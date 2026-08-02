@@ -1,0 +1,138 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>لوحة القيادة SREEN</title>
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+     <script>
+     var D={{ dash|tojson }};
+     window.addEventListener("load",function(){ 
+       if(!window.Chart) return; 
+       Chart.defaults.font.family = "'Cairo', 'Inter', sans-serif";
+       Chart.defaults.color = "#64748b";
+       
+       const commonOptions = {
+         responsive: true,
+         maintainAspectRatio: false,
+         plugins: {
+           legend: { display: false },
+           tooltip: { backgroundColor: '#1e293b', padding: 14, titleFont: { size: 14, family: "'Cairo', sans-serif", weight: 'bold' }, bodyFont: { size: 14, family: "'Cairo', sans-serif" }, cornerRadius: 10, displayColors: true, boxPadding: 6 }
+         }
+       };
+       
+       // C1: Bar Chart (Sales & Collection)
+       new Chart(document.getElementById("c1"),{
+         type:"bar",
+         data:{
+           labels:D.months,
+           datasets:[
+             {label:"مبيعات", data:D.msales, backgroundColor:"#4f46e5", borderRadius:8, maxBarThickness: 32},
+             {label:"تحصيل", data:D.mcollect, backgroundColor:"#38bdf8", borderRadius:8, maxBarThickness: 32}
+           ]
+         },
+         options: {
+           ...commonOptions,
+           plugins: { ...commonOptions.plugins, legend: { display: true, position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 10, font: { family: "'Cairo'", size: 13, weight: 'bold' } } } },
+           scales: {
+             x: { grid: { display: false }, border: { display: false } },
+             y: { grid: { color: '#f1f5f9', borderDash: [6, 4] }, border: { display: false } }
+           }
+         }
+       });
+
+       // C2: Doughnut (Salesmen)
+       new Chart(document.getElementById("c2"),{
+         type:"doughnut",
+         data:{
+           labels:D.rep_labels.slice(0,5),
+           datasets:[{data:D.rep_vals.slice(0,5), backgroundColor:["#4f46e5", "#38bdf8", "#10b981", "#f59e0b", "#8b5cf6"], borderWidth: 0, hoverOffset: 4}]
+         },
+         options: {
+           responsive: true, maintainAspectRatio: false, cutout: '75%',
+           plugins: { legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 } } } }
+         }
+       });
+
+       // C3: Doughnut (Items)
+       new Chart(document.getElementById("c3"),{
+         type:"doughnut",
+         data:{
+           labels:D.itm_labels.slice(0,5),
+           datasets:[{data:D.itm_vals.slice(0,5), backgroundColor:["#f43f5e", "#d946ef", "#0ea5e9", "#14b8a6", "#eab308"], borderWidth: 0, hoverOffset: 4}]
+         },
+         options: {
+           responsive: true, maintainAspectRatio: false, cutout: '75%',
+           plugins: { legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 } } } }
+         }
+       });
+
+       // C4: Line Chart (Purchases)
+       const ctx4 = document.getElementById("c4").getContext('2d');
+       const grad4 = ctx4.createLinearGradient(0, 0, 0, 300);
+       grad4.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+       grad4.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+       
+       new Chart(ctx4,{
+         type:"line",
+         data:{
+           labels:D.months,
+           datasets:[{
+             label: "مشتريات", data:D.mpurch, borderColor:"#10b981", borderWidth: 3, backgroundColor: grad4, fill:true, tension:0.4, pointRadius: 0, pointHoverRadius: 6, pointBackgroundColor: "#fff", pointBorderColor: "#10b981", pointBorderWidth: 2
+           }]
+         },
+         options: {
+           ...commonOptions,
+           interaction: { mode: 'index', intersect: false },
+           scales: {
+             x: { grid: { display: false }, border: { display: false } },
+             y: { grid: { color: '#f1f5f9', borderDash: [6, 4] }, border: { display: false } }
+           }
+         }
+       });
+     });
+     </script>
+<style>
+ *{box-sizing:border-box;font-family:Tahoma,Arial}
+ body{margin:0;background:#f1f5f9;color:#0f172a}
+ .hd{background:linear-gradient(90deg,#0f766e,#134e4a);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+ .hd h1{margin:0;font-size:19px} .hd .sp{flex:1}
+ .hd a{color:#fff;text-decoration:none;background:rgba(255,255,255,.15);padding:8px 14px;border-radius:8px;font-size:14px}
+ .hd form{display:flex;gap:8px;align-items:center;font-size:13px}
+ .hd input{padding:7px;border:0;border-radius:6px} .hd button{padding:8px 14px;border:0;border-radius:6px;background:#fbbf24;font-weight:700;cursor:pointer}
+ .wrap{padding:22px;max-width:1300px;margin:auto}
+ .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+ @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+ .kpi{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-right:4px solid #0f766e}
+ .kpi .l{color:#64748b;font-size:13px;margin-bottom:6px} .kpi .v{font-size:21px;font-weight:800}
+ .kpi.g{border-color:#16a34a}.kpi.b{border-color:#2563eb}.kpi.o{border-color:#ea580c}.kpi.r{border-color:#dc2626}.kpi.p{border-color:#7c3aed}
+ .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+ @media(max-width:900px){.charts{grid-template-columns:1fr}}
+ .ch{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+ .ch h3{margin:0 0 12px;font-size:15px}
+
+</style></head><body>
+ <div class="hd"><h1>📊 لوحة القيادة — SREEN</h1>
+   <form method="get" action="/dashboard"><span>من</span><input type="date" name="date_from" value="{{f}}"><span>إلى</span><input type="date" name="date_to" value="{{t}}"><button type="submit">تحديث</button></form>
+   <div class="sp"></div><a href="/">← التقارير</a></div>
+ <div class="wrap">
+   <div class="kpis">
+     <div class="kpi b"><div class="l">إجمالي المبيعات</div><div class="v">{{ "{:,.0f}".format(data.sales) }}</div></div>
+     <div class="kpi g"><div class="l">إجمالي التحصيل</div><div class="v">{{ "{:,.0f}".format(data.collect) }}</div></div>
+     <div class="kpi o"><div class="l">إجمالي المشتريات</div><div class="v">{{ "{:,.0f}".format(data.purch) }}</div></div>
+     {% if not hide_profit|default(false) %}<div class="kpi p"><div class="l">مجمل الربح</div><div class="v">{{ "{:,.0f}".format(data.gross) }}</div></div>
+     <div class="kpi g"><div class="l">صافي الربح</div><div class="v">{{ "{:,.0f}".format(data.netprofit) }}</div></div>{% endif %}
+     <div class="kpi r"><div class="l">الذمم المدينة</div><div class="v">{{ "{:,.0f}".format(data.recv) }}</div></div>
+     <div class="kpi b"><div class="l">قيمة المخزون</div><div class="v">{{ "{:,.0f}".format(data.invval) }}</div></div>
+     <div class="kpi o"><div class="l">صافي الضريبة</div><div class="v">{{ "{:,.0f}".format(data.vat) }}</div></div>
+   </div>
+   <div class="charts">
+     <div class="ch"><h3>المبيعات والتحصيل شهرياً</h3><canvas id="c1" height="140"></canvas></div>
+     <div class="ch"><h3>أفضل المناديب (مبيعات)</h3><canvas id="c2" height="140"></canvas></div>
+     <div class="ch"><h3>أفضل الأصناف (مبيعات)</h3><canvas id="c3" height="140"></canvas></div>
+     <div class="ch"><h3>المشتريات شهرياً</h3><canvas id="c4" height="140"></canvas></div>
+   </div></div>
+<script>
+const D={{ data|tojson }};
+Chart.defaults.font.family="Tahoma";
+new Chart(c1,{type:"bar",data:{labels:D.months,datasets:[{label:"مبيعات",data:D.msales,backgroundColor:"#2563eb"},{label:"تحصيل",data:D.mcollect,backgroundColor:"#16a34a"}]}});
+new Chart(c2,{type:"bar",data:{labels:D.rep_labels,datasets:[{label:"مبيعات",data:D.rep_vals,backgroundColor:"#0f766e"}]},options:{indexAxis:"y",plugins:{legend:{display:false}}}});
+new Chart(c3,{type:"bar",data:{labels:D.itm_labels,datasets:[{label:"مبيعات",data:D.itm_vals,backgroundColor:"#ea580c"}]},options:{indexAxis:"y",plugins:{legend:{display:false}}}});
+new Chart(c4,{type:"line",data:{labels:D.months,datasets:[{label:"مشتريات",data:D.mpurch,borderColor:"#ea580c",backgroundColor:"rgba(234,88,12,.12)",fill:true,tension:.3}]},options:{plugins:{legend:{display:false}}}});
+</script></body></html>
