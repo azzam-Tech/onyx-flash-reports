@@ -1,0 +1,15 @@
+<USER_REQUEST>
+حسنا الصورة التي ارفقتها انا المطبوعة للتقرير (تقارير قائمة الدخل الارصدة مع الحركة) هي للمندوب رقم 144 العمود الذي في النصف يمثل شهر 6 والذي قبله الفترة السابقة والذي بعده مابعد شهر 6 
+الخلل عندي يوجد في عمود المدين في الصف الاول الخاص ب (تكلفة البضاعة المباعة) وفي الصف (تككلفة مردود المبيعات ) وفي الصف( تكلفة مردور مبيعات سنوات سابقة ) , المشكلة هي ان هذه الارقام هي فعلا حقيقة موجودة في قاعدة البيانات لتكلفة المنتجات لكنها ليست التكلفة الحقيقية بسبب قيام محاسب سابق بتخفيض التكاليف كثيرا عن الحقيقية (لا اعلم السبب ) لذلك تقريرنا نريده ان يكون سليما ويحمل التكلفة الحقيقة , المحاسب ارشدني ان التكلفة الحقيقية يجلبها من تقرير ثاني (انظمة المخازن -> نظام ادارة المخازن -> بيانات الاصناف من عمود التكلفة) لا اعلم صحة كلامه  وضعت تقارير بيانات الاصناف ايضا ضمن مسار ملفات ال rdf وتحمل البادئة IAS_item_movement
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-26T10:16:39+03:00.
+
+The user's current state is as follows:
+Other open documents:
+- c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\privet\onyx_reports\patch_cash_sales.py (LANGUAGE_PYTHON)
+- c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\patch_ret.py (LANGUAGE_PYTHON)
+- c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\patch_aging.py (LANGUAGE_PYTHON)
+- c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\testing\compare_totals.py (LANGUAGE_PYTHON)
+- c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\testing\patch_cc.py (LANGUAGE_PYTHON)
+</ADDITIONAL_METADATA>
