@@ -196,7 +196,7 @@ TABS = [
          SELECT p.DOC_DATE, NVL(d.JV_NAME, 'قيد يومية') AS jv_name, p.DOC_NO, p.DOC_DESC, p.REF_NO,
                 NVL(p.DR_AMT,0) dr, NVL(p.CR_AMT,0) cr, p.DOC_SER
          FROM IAS20261.IAS_POST_DTL p
-         LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=p.JV_TYPE AND d.LANG_NO=1
+         LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=1 AND d.LANG_NO=1
          WHERE (p.AC_CODE_DTL = :ac_code_dtl OR p.C_V_CODE = :ac_code_dtl OR p.V_C_CODE = :ac_code_dtl) AND NVL(p.DOC_POST,0)=1
            AND NVL(p.DOC_TYPE,0) <> 0
            AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD')
@@ -849,7 +849,7 @@ TABS = [
          SELECT p.DOC_DATE, NVL(d.JV_NAME, 'قيد يومية') AS jv_name, p.DOC_NO, p.DOC_DESC,
                 NVL(p.DR_AMT,0) dr, NVL(p.CR_AMT,0) cr, p.DOC_SER
          FROM IAS20261.IAS_POST_DTL p
-         LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=p.JV_TYPE AND d.LANG_NO=1
+         LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=1 AND d.LANG_NO=1
          WHERE p.C_CODE = :c_code AND NVL(p.DOC_POST,0)=1
            AND NVL(p.DOC_TYPE,0) <> 0
            AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD')
@@ -887,7 +887,7 @@ TABS = [
          SELECT p.DOC_DATE, NVL(d.JV_NAME, 'قيد يومية') AS jv_name, p.DOC_NO, p.DOC_DESC, p.REF_NO,
                 NVL(p.DR_AMT,0) dr, NVL(p.CR_AMT,0) cr, p.DOC_SER
          FROM IAS20261.IAS_POST_DTL p
-         LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=p.JV_TYPE AND d.LANG_NO=1
+         LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=1 AND d.LANG_NO=1
          WHERE (p.AC_CODE_DTL = :ac_code_dtl OR p.C_V_CODE = :ac_code_dtl OR p.V_C_CODE = :ac_code_dtl) AND NVL(p.DOC_POST,0)=1
            AND NVL(p.DOC_TYPE,0) <> 0
            AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD')
@@ -1138,7 +1138,7 @@ TABS = [
               TO_CHAR(SUM(NVL(p.CR_AMT,0)-NVL(p.DR_AMT,0)) OVER (ORDER BY p.DOC_DATE,p.DOC_NO,p.DOC_SER),'FM999,999,990.00') AS "الرصيد",
               p.DOC_DATE s1, p.DOC_NO s2, p.DOC_SER s3
        FROM IAS20261.IAS_POST_DTL p
-       LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=p.JV_TYPE AND d.LANG_NO=1
+       LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=1 AND d.LANG_NO=1
        WHERE p.V_CODE = :v_code AND NVL(p.DOC_POST,0)=1
          AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND p.DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
        ORDER BY p.DOC_DATE, p.DOC_NO, p.DOC_SER
