@@ -576,4 +576,25 @@ tr.prof-row2 td { background: #dbeafe !important; color: #1e40af !important; fon
       });
     }
  </script>
-</body></html>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      const grpBySelect = document.querySelector('select[name="grp_by"]');
+      const repCodeSelect = document.querySelector('select[name="rep_code"]');
+      if (grpBySelect && repCodeSelect) {
+          const repCodeContainer = repCodeSelect.closest('div');
+          function toggleRepCode() {
+              if (grpBySelect.value === 'customer') {
+                  repCodeContainer.style.display = 'block';
+              } else {
+                  repCodeContainer.style.display = 'none';
+                  repCodeSelect.value = '';
+              }
+          }
+          grpBySelect.addEventListener('change', toggleRepCode);
+          toggleRepCode();
+      }
+  });
+  </script>
+</body>
+</html>

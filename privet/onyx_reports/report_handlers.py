@@ -642,6 +642,8 @@ def run_sales_collection_summary(rpt, args):
     grp_by = args.get("grp_by", "cc")
     
     date_from, date_to = get_date_range(year_val, period_type, period_val)
+    rep_filter = ""
+    rep_filter = ""
     
     if grp_by == "rep":
         grp_sales = "TO_CHAR(REP_CODE)"
@@ -661,6 +663,7 @@ def run_sales_collection_summary(rpt, args):
         name_expr = "MAX(c.C_A_NAME)"
         code_label = "كود العميل"
         name_label = "اسم العميل"
+        rep_filter = "AND (:rep_code IS NULL OR TO_CHAR(c.REP_CODE) = :rep_code)"
     elif grp_by == "customer":
         grp_sales = "TO_CHAR(C_CODE)"
         grp_sales_b = "TO_CHAR(b.C_CODE)"
@@ -670,6 +673,7 @@ def run_sales_collection_summary(rpt, args):
         name_expr = "MAX(c.C_A_NAME)"
         code_label = "كود العميل"
         name_label = "اسم العميل"
+        rep_filter = "AND (:rep_code IS NULL OR TO_CHAR(c.REP_CODE) = :rep_code)"
     elif grp_by == "period":
         if period_type == "quarterly":
             grp_sales = "'Q' || TO_CHAR(BILL_DATE, 'Q')"
@@ -791,7 +795,9 @@ def run_sales_collection_summary(rpt, args):
     
     with get_conn() as con:
         with con.cursor() as cur:
-            cur.execute(sql, {"date_from": date_from, "date_to": date_to})
+            params = {"date_from": date_from, "date_to": date_to}
+            if ":rep_code" in sql: params["rep_code"] = rep_code
+            cur.execute(sql, params)
             for c_code, c_name, ns, col in cur.fetchall():
                 ns_val = float(ns or 0.0)
                 ns_vat_val = ns_val * 1.15
@@ -820,8 +826,13 @@ def run_debt_movement_summary(rpt, args):
     period_type = args.get("period_type", "monthly")
     period_val = args.get("period_val", "all")
     grp_by = args.get("grp_by", "cc")
+    rep_code = args.get("rep_code", "")
+    if not rep_code:
+        rep_code = None
     
     date_from, date_to = get_date_range(year_val, period_type, period_val)
+    rep_filter = ""
+    rep_filter = ""
     
     if grp_by == "rep":
         grp_col = "TO_CHAR(p.REP_CODE)"
@@ -843,6 +854,7 @@ def run_debt_movement_summary(rpt, args):
         name_expr = "MAX(c.C_A_NAME)"
         code_label = "كود العميل"
         name_label = "اسم العميل"
+        rep_filter = "AND (:rep_code IS NULL OR TO_CHAR(c.REP_CODE) = :rep_code)"
     elif grp_by == "period":
         if period_type == "quarterly":
             grp_sales = "'Q' || TO_CHAR(BILL_DATE, 'Q')"
@@ -985,7 +997,8 @@ def run_debt_movement_summary(rpt, args):
     LEFT JOIN close_debt cd ON cd.grp_code = ac.grp_code
     {join_table}
     WHERE ac.grp_code IS NOT NULL
-    GROUP BY ac.grp_code
+      {rep_filter}
+      GROUP BY ac.grp_code
     ORDER BY ac.grp_code
     """
 
@@ -1006,7 +1019,9 @@ def run_debt_movement_summary(rpt, args):
     
     with get_conn() as con:
         with con.cursor() as cur:
-            cur.execute(sql, {"date_from": date_from, "date_to": date_to})
+            params = {"date_from": date_from, "date_to": date_to}
+            if ":rep_code" in sql: params["rep_code"] = rep_code
+            cur.execute(sql, params)
             for c_code, c_name, open_b, ns_vat, ns_no_vat, col, close_b in cur.fetchall():
                 ob_val = float(open_b or 0.0)
                 ns_vat_val = float(ns_vat or 0.0)
@@ -1047,9 +1062,14 @@ def run_net_debt_movement_summary(rpt, args):
     period_type = args.get("period_type", "monthly")
     period_val = args.get("period_val", "all")
     grp_by = args.get("grp_by", "cc")
+    rep_code = args.get("rep_code", "")
+    if not rep_code:
+        rep_code = None
     exclude_suppliers = args.get("exclude_suppliers", "1")
     
     date_from, date_to = get_date_range(year_val, period_type, period_val)
+    rep_filter = ""
+    rep_filter = ""
     
     if grp_by == "rep":
         grp_col = "TO_CHAR(p.REP_CODE)"
@@ -1071,6 +1091,7 @@ def run_net_debt_movement_summary(rpt, args):
         name_expr = "MAX(c.C_A_NAME)"
         code_label = "كود العميل"
         name_label = "اسم العميل"
+        rep_filter = "AND (:rep_code IS NULL OR TO_CHAR(c.REP_CODE) = :rep_code)"
     elif grp_by == "period":
         if period_type == "quarterly":
             grp_sales = "'Q' || TO_CHAR(BILL_DATE, 'Q')"
@@ -1217,7 +1238,8 @@ def run_net_debt_movement_summary(rpt, args):
     LEFT JOIN close_debt cd ON cd.grp_code = ac.grp_code
     {join_table}
     WHERE ac.grp_code IS NOT NULL
-    GROUP BY ac.grp_code
+      {rep_filter}
+      GROUP BY ac.grp_code
     ORDER BY ac.grp_code
     """
 
@@ -1236,7 +1258,9 @@ def run_net_debt_movement_summary(rpt, args):
     
     with get_conn() as con:
         with con.cursor() as cur:
-            cur.execute(sql, {"date_from": date_from, "date_to": date_to})
+            params = {"date_from": date_from, "date_to": date_to}
+            if ":rep_code" in sql: params["rep_code"] = rep_code
+            cur.execute(sql, params)
             for c_code, c_name, open_b, ns_vat, ns_no_vat, col, close_b in cur.fetchall():
                 ob_val = float(open_b or 0.0)
                 ns_vat_val = float(ns_vat or 0.0)
