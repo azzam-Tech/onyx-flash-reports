@@ -1,0 +1,23 @@
+{
+  "admin": {
+    "password": "000",
+    "role": "admin",
+    "allowed_tabs": [
+      "*"
+    ],
+    "allowed_reports": [
+      "*"
+    ]
+  },
+  "Sreen": {
+    "password": "121",
+    "role": "user",
+    "allowed_tabs": [
+      "dash"
+    ],
+    "allowed_reports": [
+      "summary/net_debt_movement_summary",
+      "dash/overview"
+    ]
+  }
+}

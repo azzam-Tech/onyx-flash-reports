@@ -566,6 +566,23 @@ def add_total_row(cols, rows, rpt_id=""):
             else:
                 total_row.append("")
                 
+    if rpt_id == "debt_movement_summary" and len(cols) >= 11:
+        try:
+            t_open = totals[2] if is_numeric[2] else 0.0
+            t_sales_vat = totals[3] if is_numeric[3] else 0.0
+            t_col = totals[4] if is_numeric[4] else 0.0
+            t_sales_no_vat = totals[8] if is_numeric[8] else 0.0
+            t_target = totals[9] if is_numeric[9] else 0.0
+            
+            if t_target > 0:
+                total_row[10] = f"{t_target - t_sales_no_vat:,.2f}"
+            
+            t_due = t_open + t_sales_vat
+            if t_due > 0:
+                total_row[6] = f"{(t_col / t_due) * 100:,.2f}%"
+        except Exception:
+            pass
+
     summary_rows = [tuple(total_row)]
     
     # Net Profit summary rows for true_income_statement

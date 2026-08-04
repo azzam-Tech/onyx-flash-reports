@@ -1679,7 +1679,95 @@ TABS = [
       """}
   ]},
  {"id":"stock","title":"المخزون","icon":"M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10","reports":[
-    {"id":"stock_bal","title":"أرصدة الأصناف","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"w_code","label":"المستودع (اختياري)","type":"text","default":""}],"sql":"""
+      {"id":"warehouse_rebalancing","title":"إعادة التوازن (نقل المخزون لتفادي الشراء)","params":[{"name":"as_of","label":"إلى تاريخ","type":"date","default":"2026-07-31"},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":"""
+        WITH wh_stock AS (
+            SELECT mv.I_CODE, mv.W_CODE,
+                   SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) as qty
+            FROM IAS20261.ITEM_MOVEMENT mv
+            WHERE mv.W_CODE IN ('105', '103', '121', '122', '118', '108', '119')
+              AND mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
+            GROUP BY mv.I_CODE, mv.W_CODE
+        ),
+        item_matrix AS (
+            SELECT I_CODE,
+                   SUM(CASE WHEN W_CODE = '105' THEN qty ELSE 0 END) as w_105,
+                   SUM(CASE WHEN W_CODE = '103' THEN qty ELSE 0 END) as w_103,
+                   SUM(CASE WHEN W_CODE = '121' THEN qty ELSE 0 END) as w_121,
+                   SUM(CASE WHEN W_CODE = '122' THEN qty ELSE 0 END) as w_122,
+                   SUM(CASE WHEN W_CODE = '118' THEN qty ELSE 0 END) as w_118,
+                   SUM(CASE WHEN W_CODE = '108' THEN qty ELSE 0 END) as w_108,
+                   SUM(CASE WHEN W_CODE = '119' THEN qty ELSE 0 END) as w_119,
+                   MAX(qty) as max_qty,
+                   MIN(qty) as min_qty,
+                   SUM(qty) as tot_qty
+            FROM wh_stock
+            GROUP BY I_CODE
+            HAVING SUM(qty) > 0
+        )
+        SELECT m.I_CODE AS "رمز الصنف",
+               i.I_NAME AS "اسم الصنف",
+               TO_CHAR(m.tot_qty, 'FM999,999,990') AS "إجمالي الأرصدة (كل الفروع)",
+               TO_CHAR(m.w_103, 'FM999,999,990') AS "الغنامية عيظه (103)",
+               TO_CHAR(m.w_121, 'FM999,999,990') AS "جده (121)",
+               TO_CHAR(m.w_122, 'FM999,999,990') AS "الشمال (122)",
+               TO_CHAR(m.w_105, 'FM999,999,990') AS "الغنامية نصرالله (105)",
+               TO_CHAR(m.w_118, 'FM999,999,990') AS "الجنوب خميس مشيط (118)",
+               TO_CHAR(m.w_119, 'FM999,999,990') AS "الدمام (119)",
+               TO_CHAR(m.w_108, 'FM999,999,990') AS "المنصورية 1 (108)"
+        FROM item_matrix m
+        JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE = m.I_CODE
+        WHERE m.min_qty = 0 AND m.max_qty > 0
+          AND (:i_code IS NULL OR m.I_CODE = :i_code)
+        ORDER BY m.tot_qty DESC
+      """},
+      
+      {"id":"smart_replenishment","title":"ذكاء المشتريات (تغطية المخزون)","params":[{"name":"as_of","label":"إلى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"فترة سحب المبيعات (أيام)","type":"number","default":"90"},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":"""
+        WITH stock AS (
+            SELECT mv.I_CODE, 
+                   MAX(i.I_NAME) as I_NAME,
+                   SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) as current_qty
+            FROM IAS20261.ITEM_MOVEMENT mv
+            LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE = mv.I_CODE
+            WHERE mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
+            AND (:i_code IS NULL OR mv.I_CODE = :i_code)
+            GROUP BY mv.I_CODE
+            HAVING SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) > 0
+        ),
+        sales AS (
+            SELECT I_CODE, 
+                   SUM(CASE WHEN IN_OUT = -1 AND DOC_TYPE IN (1, 7) THEN NVL(I_QTY,0) 
+                            WHEN IN_OUT = 1 AND DOC_TYPE = 3 THEN -NVL(I_QTY,0) 
+                            ELSE 0 END) as sold_qty
+            FROM IAS20261.ITEM_MOVEMENT
+            WHERE I_DATE >= TO_DATE(:as_of,'YYYY-MM-DD') - :days 
+              AND I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
+              AND (:i_code IS NULL OR I_CODE = :i_code)
+            GROUP BY I_CODE
+        )
+        SELECT s.I_CODE AS "رمز الصنف", 
+               s.I_NAME AS "اسم الصنف",
+               TO_CHAR(s.current_qty, 'FM999,999,990.00') AS "الرصيد الحالي",
+               TO_CHAR(NVL(sa.sold_qty, 0), 'FM999,999,990.00') AS "إجمالي السحب",
+               TO_CHAR(NVL(sa.sold_qty, 0) / :days, 'FM999,999,990.00') AS "متوسط السحب اليومي",
+               CASE WHEN NVL(sa.sold_qty, 0) > 0 THEN
+                  TO_CHAR(s.current_qty / (sa.sold_qty / :days), 'FM999,999,990')
+               ELSE 'ركود تام' END AS "أيام التغطية المتبقية",
+               CASE 
+                  WHEN NVL(sa.sold_qty, 0) <= 0 THEN 'مكدس (لا يوجد سحب)'
+                  WHEN (s.current_qty / (sa.sold_qty / :days)) < 15 THEN 'حرج (شراء فوري)'
+                  WHEN (s.current_qty / (sa.sold_qty / :days)) <= 60 THEN 'مستقر'
+                  ELSE 'مكدس (فائض)'
+               END AS "حالة الصنف"
+        FROM stock s
+        LEFT JOIN sales sa ON sa.I_CODE = s.I_CODE
+        ORDER BY 
+            CASE 
+               WHEN NVL(sa.sold_qty, 0) <= 0 THEN 999999
+               ELSE s.current_qty / (sa.sold_qty / :days) 
+            END ASC
+        """},
+      
+    {"id":"stock_bal","title":"أرصدة الأصناف","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"w_code","label":"المستودع (اختياري)","type":"text","default":""},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":"""
       SELECT * FROM (
         SELECT mv.I_CODE AS "كود الصنف", MAX(i.I_NAME) AS "اسم الصنف",
                TO_CHAR(SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))),'FM999,999,990.00') AS "الرصيد",
@@ -1687,6 +1775,8 @@ TABS = [
         FROM IAS20261.ITEM_MOVEMENT mv LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE=mv.I_CODE
         WHERE mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
           AND (:w_code IS NULL OR mv.W_CODE = :w_code)
+            AND (:i_code IS NULL OR mv.I_CODE = :i_code)
+            AND (:i_code IS NULL OR mv.I_CODE = :i_code)
         GROUP BY mv.I_CODE HAVING SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))) <> 0
         ORDER BY SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))*NVL(mv.STK_COST,0)) DESC
       ) """},
