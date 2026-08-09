@@ -145,7 +145,28 @@ TXTSRCH = {"name":"text_search","label":"بحث بالاسم/البيان","type
 TABS = [
 
  {"id":"summary","title":"ملخص التقارير","icon":"M13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8zM3 3h8v8H3z","reports":[
-   {"id":"debt_movement_summary","title":"تقرير حركة المديونية والتحصيل الدوري","fn":"run_debt_movement_summary","params":[
+       {"id":"workflow_summary","title":"ملخص سير العمل","fn":"run_workflow_summary","params":[
+      {"name":"year_val","label":"السنة","type":"select","default":"2026","options":[["2026","2026"],["2025","2025"],["2024","2024"],["2023","2023"],["2022","2022"]]},
+      {"name":"period_type","label":"نوع التقرير","type":"select","default":"monthly","options":[["monthly","شهري"],["quarterly","ربعي"],["semi_annual","نصفي"],["annual","سنوي"]]},
+      {"name":"period_val","label":"الشهر / الربع / النصف","type":"select","default":"all","options":[
+        ["all","الكل / كامل السنة"],
+        ["1","01 - يناير / Q1 / H1"],
+        ["2","02 - فبراير / Q2 / H2"],
+        ["3","03 - مارس / Q3"],
+        ["4","04 - إبريل / Q4"],
+        ["5","05 - مايو"],
+        ["6","06 - يونيو"],
+        ["7","07 - يوليو"],
+        ["8","08 - أغسطس"],
+        ["9","09 - سبتمبر"],
+        ["10","10 - أكتوبر"],
+        ["11","11 - نوفمبر"],
+        ["12","12 - ديسمبر"]
+      ]},
+      {"name":"grp_by","label":"تجميع حسب","type":"select","default":"cc","options":[["cc","مراكز التكلفة"],["rep","المناديب"],["customer","العملاء"],["period","الفترة الزمنية"]]},
+      {"name":"rep_code","label":"تصفية بمندوب معين (اختياري)","type":"text","default":""}
+    ]},
+{"id":"debt_movement_summary","title":"تقرير حركة المديونية والتحصيل الدوري","fn":"run_debt_movement_summary","params":[
       {"name":"year_val","label":"السنة","type":"select","default":"2026","options":[["2026","2026"],["2025","2025"],["2024","2024"],["2023","2023"],["2022","2022"]]},
       {"name":"period_type","label":"نوع التقرير","type":"select","default":"monthly","options":[["monthly","شهري"],["quarterly","ربعي"],["semi_annual","نصفي"],["annual","سنوي"]]},
       {"name":"period_val","label":"الشهر / الربع / النصف","type":"select","default":"all","options":[
@@ -166,6 +187,39 @@ TABS = [
       {"name":"grp_by","label":"تجميع حسب","type":"select","default":"cc","options":[["cc","مراكز التكلفة"],["rep","المناديب"],["customer","العملاء"],["period","الفترات الزمنية"]]},
       {"name":"rep_code","label":"المندوب (مجموعة العملاء)","type":"select","default":"","options":[["", "الكل (جميع المناديب)"], ["101", "101 - مندوب عاصمة المجد"], ["102", "102 - مندوب الغنامية"], ["103", "103 - مندوب الدار البيضاء"], ["104", "104 - مندوب جدة"], ["105", "105 - مندوب خميس مشيط"], ["106", "106 - مندوب المهرجان"], ["107", "107 - مندوب 1"], ["108", "108 - مندوب 2"], ["109", "109 - مندوب 3"], ["110", "110 - مندوب 4"], ["111", "111 - مندوب 5"], ["112", "112 - مندوب 6"], ["113", "113 - مندوب الشيكات"], ["114", "114 - مندوب الصيانة"], ["115", "115 - مندوب نواس"], ["116", "116 - مندوب المهرجان"], ["117", "117 - مندوب عبدالله يسلم"], ["118", "118 - مندوب ياسر شرمان"], ["119", "119 - مندوب جاسر"], ["120", "120 - مندوب عمر الفقية"], ["121", "121 - مندوب الطيب"], ["122", "122 - مندوب عبده"], ["123", "123 - درمه سالم / جاسر"], ["124", "124 - مندوب عبدالسلام"], ["125", "125 - مندوب جابر"], ["126", "126 - مندوب عامر"], ["127", "127 - مندوب بيجو"], ["128", "128 - المندوب علي المصري نون"], ["129", "129 - دماج"], ["131", "131 - المنصة الالكترونية"], ["141", "141 - مندوب عبدالله النهدي"], ["142", "142 - مندوب احمد الحلو"], ["143", "143 - مندوب طه المصري"], ["144", "144 - مندوب محمد سالم"], ["145", "145 - مندوب اقبال الهندي"], ["146", "146 - مندوب ابو صالح"], ["147", "147 - مندوب عبدالله يسلم"], ["148", "148 - مندوب ياسر شرمان"], ["149", "149 - مندوب جاسر الهندي"], ["150", "150 - مندوب عمر الفقيه"], ["151", "151 - مندوب احمد اخو الطيب"], ["152", "152 - مندوب عبده الهندي"], ["153", "153 - مندوب ديفيد الهندي"], ["154", "154 - مندوب عبدالسلام"], ["155", "155 - مندوب جابر الهندي"], ["156", "156 - الادارة"], ["157", "157 - مندوب بيجو الهندي"], ["158", "158 - مندوب منصة اعتماد صالح سعيد"], ["159", "159 - مندوب صالح سويد"], ["160", "160 - مندوب زيد احتياط"], ["161", "161 - مندوب راضي"], ["162", "162 - مندوب عبدالسلام"], ["163", "163 - مندوب سالم النهدي"], ["164", "164 - مندوب زيد احتياك"], ["165", "165 - مخزن الطيب الدمام"], ["166", "166 - مندوب احتياطي ابو خالد"], ["167", "167 - مندوب شوقي كشافات"], ["168", "168 - مندوب موقع سرين"], ["169", "169 - مندوب نون"], ["170", "170 - مندوب امازون"], ["171", "171 - مندوب رامي شرمان"], ["172", "172 - مندوب مواقع اكترونية خارجية"], ["173", "173 - مندوب عبدالجبار"], ["174", "174 - مندوب سلرررر"], ["175", "175 - هيثم عبدالباقي"]]}
     ],"sql":""},
+    {"id":"critical_debts","title":"الديون الخطرة وتوقف العملاء (مؤشر خطر)","params":[{"name":"days_threshold","label":"أيام التوقف (الحد الأدنى)","type":"number","default":"90"}],"sql":"""
+      WITH customer_balances AS (
+          SELECT C_CODE, SUM(NVL(DR_AMT,0) - NVL(CR_AMT,0)) as balance
+          FROM IAS20261.IAS_POST_DTL
+          WHERE NVL(DOC_POST,0) = 1 AND C_CODE IS NOT NULL
+          GROUP BY C_CODE
+          HAVING SUM(NVL(DR_AMT,0) - NVL(CR_AMT,0)) > 1000
+      ),
+      last_activity AS (
+          SELECT C_CODE,
+                 MAX(CASE WHEN NVL(CR_AMT,0) > 0 THEN DOC_DATE END) as last_payment_date,
+                 MAX(CASE WHEN NVL(DR_AMT,0) > 0 AND DOC_TYPE = 4 THEN DOC_DATE END) as last_invoice_date
+          FROM IAS20261.IAS_POST_DTL
+          WHERE NVL(DOC_POST,0) = 1 AND C_CODE IS NOT NULL
+          GROUP BY C_CODE
+      )
+      SELECT c.C_CODE AS "كود العميل",
+             MAX(cust.C_A_NAME) AS "اسم العميل",
+             MAX(sm.REPRS_A_NAME) AS "المندوب",
+             TO_CHAR(c.balance, 'FM999,999,990.00') AS "المديونية الحالية",
+             TO_CHAR(la.last_payment_date, 'YYYY-MM-DD') AS "تاريخ آخر سداد",
+             TRUNC(SYSDATE) - TRUNC(la.last_payment_date) AS "أيام التوقف عن السداد",
+             TO_CHAR(la.last_invoice_date, 'YYYY-MM-DD') AS "تاريخ آخر سحب",
+             TRUNC(SYSDATE) - TRUNC(la.last_invoice_date) AS "أيام التوقف عن السحب"
+      FROM customer_balances c
+      JOIN last_activity la ON c.C_CODE = la.C_CODE
+      JOIN IAS20261.CUSTOMER cust ON c.C_CODE = cust.C_CODE
+      LEFT JOIN IAS20261.SALES_MAN sm ON TO_CHAR(cust.REP_CODE) = TO_CHAR(sm.REPRS_CODE)
+      WHERE (TRUNC(SYSDATE) - TRUNC(la.last_payment_date) >= :days_threshold OR la.last_payment_date IS NULL)
+        AND (TRUNC(SYSDATE) - TRUNC(la.last_invoice_date) >= :days_threshold OR la.last_invoice_date IS NULL)
+      GROUP BY c.C_CODE, c.balance, la.last_payment_date, la.last_invoice_date
+      ORDER BY c.balance DESC
+    """},
  {"id":"net_debt_movement_summary","title":"حركة المديونية الصافية للمبيعات (مرن)","fn":"run_net_debt_movement_summary","params":[
       {"name":"year_val","label":"السنة","type":"select","default":"2026","options":[["2026","2026"],["2025","2025"],["2024","2024"],["2023","2023"],["2022","2022"]]},
       {"name":"period_type","label":"نوع التقرير","type":"select","default":"monthly","options":[["monthly","شهري"],["quarterly","ربعي"],["semi_annual","نصفي"],["annual","سنوي"]]},
@@ -803,6 +857,27 @@ TABS = [
       {"name":"grp_by","label":"تجميع حسب","type":"select","default":"cc","options":[["cc","مراكز التكلفة"],["rep","المناديب"],["customer","العملاء"],["period","الفترات الزمنية"]]},
       {"name":"rep_code","label":"المندوب (مجموعة العملاء)","type":"select","default":"","options":[["", "الكل (جميع المناديب)"], ["101", "101 - مندوب عاصمة المجد"], ["102", "102 - مندوب الغنامية"], ["103", "103 - مندوب الدار البيضاء"], ["104", "104 - مندوب جدة"], ["105", "105 - مندوب خميس مشيط"], ["106", "106 - مندوب المهرجان"], ["107", "107 - مندوب 1"], ["108", "108 - مندوب 2"], ["109", "109 - مندوب 3"], ["110", "110 - مندوب 4"], ["111", "111 - مندوب 5"], ["112", "112 - مندوب 6"], ["113", "113 - مندوب الشيكات"], ["114", "114 - مندوب الصيانة"], ["115", "115 - مندوب نواس"], ["116", "116 - مندوب المهرجان"], ["117", "117 - مندوب عبدالله يسلم"], ["118", "118 - مندوب ياسر شرمان"], ["119", "119 - مندوب جاسر"], ["120", "120 - مندوب عمر الفقية"], ["121", "121 - مندوب الطيب"], ["122", "122 - مندوب عبده"], ["123", "123 - درمه سالم / جاسر"], ["124", "124 - مندوب عبدالسلام"], ["125", "125 - مندوب جابر"], ["126", "126 - مندوب عامر"], ["127", "127 - مندوب بيجو"], ["128", "128 - المندوب علي المصري نون"], ["129", "129 - دماج"], ["131", "131 - المنصة الالكترونية"], ["141", "141 - مندوب عبدالله النهدي"], ["142", "142 - مندوب احمد الحلو"], ["143", "143 - مندوب طه المصري"], ["144", "144 - مندوب محمد سالم"], ["145", "145 - مندوب اقبال الهندي"], ["146", "146 - مندوب ابو صالح"], ["147", "147 - مندوب عبدالله يسلم"], ["148", "148 - مندوب ياسر شرمان"], ["149", "149 - مندوب جاسر الهندي"], ["150", "150 - مندوب عمر الفقيه"], ["151", "151 - مندوب احمد اخو الطيب"], ["152", "152 - مندوب عبده الهندي"], ["153", "153 - مندوب ديفيد الهندي"], ["154", "154 - مندوب عبدالسلام"], ["155", "155 - مندوب جابر الهندي"], ["156", "156 - الادارة"], ["157", "157 - مندوب بيجو الهندي"], ["158", "158 - مندوب منصة اعتماد صالح سعيد"], ["159", "159 - مندوب صالح سويد"], ["160", "160 - مندوب زيد احتياط"], ["161", "161 - مندوب راضي"], ["162", "162 - مندوب عبدالسلام"], ["163", "163 - مندوب سالم النهدي"], ["164", "164 - مندوب زيد احتياك"], ["165", "165 - مخزن الطيب الدمام"], ["166", "166 - مندوب احتياطي ابو خالد"], ["167", "167 - مندوب شوقي كشافات"], ["168", "168 - مندوب موقع سرين"], ["169", "169 - مندوب نون"], ["170", "170 - مندوب امازون"], ["171", "171 - مندوب رامي شرمان"], ["172", "172 - مندوب مواقع اكترونية خارجية"], ["173", "173 - مندوب عبدالجبار"], ["174", "174 - مندوب سلرررر"], ["175", "175 - هيثم عبدالباقي"]]}
     ],"sql":""},
+    {"id":"workflow_summary","title":"ملخص سير العمل","fn":"run_workflow_summary","params":[
+      {"name":"year_val","label":"السنة","type":"select","default":"2026","options":[["2026","2026"],["2025","2025"],["2024","2024"],["2023","2023"],["2022","2022"]]},
+      {"name":"period_type","label":"نوع التقرير","type":"select","default":"monthly","options":[["monthly","شهري"],["quarterly","ربعي"],["semi_annual","نصفي"],["annual","سنوي"]]},
+      {"name":"period_val","label":"الشهر / الربع / النصف","type":"select","default":"all","options":[
+        ["all","الكل / كامل السنة"],
+        ["1","01 - يناير / Q1 / H1"],
+        ["2","02 - فبراير / Q2 / H2"],
+        ["3","03 - مارس / Q3"],
+        ["4","04 - إبريل / Q4"],
+        ["5","05 - مايو"],
+        ["6","06 - يونيو"],
+        ["7","07 - يوليو"],
+        ["8","08 - أغسطس"],
+        ["9","09 - سبتمبر"],
+        ["10","10 - أكتوبر"],
+        ["11","11 - نوفمبر"],
+        ["12","12 - ديسمبر"]
+      ]},
+      {"name":"grp_by","label":"تجميع حسب","type":"select","default":"cc","options":[["cc","مراكز التكلفة"],["rep","المناديب"],["customer","العملاء"],["period","الفترة الزمنية"]]},
+      {"name":"rep_code","label":"تصفية بمندوب معين (اختياري)","type":"text","default":""}
+    ]},
     {"id":"debt_movement_summary","title":"تقرير حركة المديونية والتحصيل الدوري","fn":"run_debt_movement_summary","params":[
       {"name":"year_val","label":"السنة","type":"select","default":"2026","options":[["2026","2026"],["2025","2025"],["2024","2024"],["2023","2023"],["2022","2022"]]},
       {"name":"period_type","label":"نوع التقرير","type":"select","default":"monthly","options":[["monthly","شهري"],["quarterly","ربعي"],["semi_annual","نصفي"],["annual","سنوي"]]},
@@ -1720,7 +1795,30 @@ TABS = [
           AND (:i_code IS NULL OR m.I_CODE = :i_code)
         ORDER BY m.tot_qty DESC
       """},
-      
+      {"id":"dead_stock_value","title":"القيمة المالية للركود (مراكز التكلفة)","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"أيام الركود","type":"number","default":"90"}],"sql":"""
+        WITH stock_movements AS (
+            SELECT mv.W_CODE,
+                   mv.I_CODE,
+                   SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) as qty,
+                   MAX(NVL(mv.STK_COST,0)) as unit_cost,
+                   MAX(CASE WHEN NVL(mv.IN_OUT,0) <> 1 THEN mv.I_DATE END) as last_out_date
+            FROM IAS20261.ITEM_MOVEMENT mv
+            WHERE mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
+            GROUP BY mv.W_CODE, mv.I_CODE
+            HAVING SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) > 0
+        )
+        SELECT s.W_CODE AS "رقم المستودع",
+               MAX(w.W_A_NAME) AS "اسم المستودع",
+               COUNT(s.I_CODE) AS "عدد الأصناف الراكدة",
+               TO_CHAR(SUM(s.qty), 'FM999,999,990.00') AS "إجمالي الكمية الراكدة",
+               TO_CHAR(SUM(s.qty * s.unit_cost), 'FM999,999,990.00') AS "القيمة المالية للركود (بالتكلفة)"
+        FROM stock_movements s
+        LEFT JOIN IAS20261.WAREHOUSE w ON TO_CHAR(w.W_CODE) = TO_CHAR(s.W_CODE)
+        WHERE (TRUNC(TO_DATE(:as_of,'YYYY-MM-DD')) - TRUNC(s.last_out_date) >= :days
+               OR s.last_out_date IS NULL)
+        GROUP BY s.W_CODE
+        ORDER BY SUM(s.qty * s.unit_cost) DESC
+      """},
       {"id":"smart_replenishment","title":"ذكاء المشتريات (تغطية المخزون)","params":[{"name":"as_of","label":"إلى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"فترة سحب المبيعات (أيام)","type":"number","default":"90"},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":"""
         WITH stock AS (
             SELECT mv.I_CODE, 
@@ -1771,12 +1869,19 @@ TABS = [
       SELECT * FROM (
         SELECT mv.I_CODE AS "كود الصنف", MAX(i.I_NAME) AS "اسم الصنف",
                TO_CHAR(SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))),'FM999,999,990.00') AS "الرصيد",
+               TO_CHAR(SUM(CASE WHEN mv.W_CODE = '103' THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "الغنامية عيظه (103)",
+               TO_CHAR(SUM(CASE WHEN mv.W_CODE = '121' THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "جده (121)",
+               TO_CHAR(SUM(CASE WHEN mv.W_CODE = '122' THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "الشمال (122)",
+               TO_CHAR(SUM(CASE WHEN mv.W_CODE = '105' THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "الغنامية نصرالله (105)",
+               TO_CHAR(SUM(CASE WHEN mv.W_CODE = '118' THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "الجنوب خميس مشيط (118)",
+               TO_CHAR(SUM(CASE WHEN mv.W_CODE = '119' THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "الدمام (119)",
+               TO_CHAR(SUM(CASE WHEN mv.W_CODE = '108' THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "المنصورية 1 (108)",
+               TO_CHAR(SUM(CASE WHEN mv.W_CODE NOT IN ('103','121','122','105','118','119','108') THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "مستودعات أخرى",
                TO_CHAR(SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))*NVL(mv.STK_COST,0)),'FM999,999,999,990.00') AS "قيمة الرصيد (تقريبية)"
         FROM IAS20261.ITEM_MOVEMENT mv LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE=mv.I_CODE
         WHERE mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
           AND (:w_code IS NULL OR mv.W_CODE = :w_code)
-            AND (:i_code IS NULL OR mv.I_CODE = :i_code)
-            AND (:i_code IS NULL OR mv.I_CODE = :i_code)
+          AND (:i_code IS NULL OR mv.I_CODE = :i_code)
         GROUP BY mv.I_CODE HAVING SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))) <> 0
         ORDER BY SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))*NVL(mv.STK_COST,0)) DESC
       ) """},
