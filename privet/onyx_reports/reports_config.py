@@ -280,10 +280,10 @@ TABS = [
                 TO_CHAR((SELECT NVL(bal,0) FROM open_bal) + SUM(t.dr-t.cr) OVER (ORDER BY t.DOC_DATE, t.DOC_NO, t.DOC_SER), 'FM999,999,990.00'),
                 t.DOC_DATE s1, t.DOC_NO s2, t.DOC_SER s3
          FROM trans t
-       ) ORDER BY s1, s2, s3"""}, {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+       ) ORDER BY s1, s2, s3"""}, {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO per customer
        SELECT 'Dynamic Analytical' as "Placeholder" FROM DUAL
-       """}, {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+       """}, {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO
        SELECT 'Dynamic' as "Placeholder" FROM DUAL
        """}, {"id":"true_income_statement","title":"قائمة الدخل (الحقيقية)","params":[DFROM,DTO,REP],"sql":"""
@@ -307,58 +307,37 @@ TABS = [
         inv_cogs AS (
           SELECT 
               '311010001' as acc_code,
-              SUM(CASE WHEN m.BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as op_dr,
+              SUM(CASE WHEN m.BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as op_dr,
               0 as op_cr,
-              SUM(CASE WHEN m.BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND m.BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as mv_dr,
+              SUM(CASE WHEN m.BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND m.BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_dr,
               0 as mv_cr
-          FROM IAS20261.ITEM_MOVEMENT im
-          JOIN IAS20261.IAS_ITM_MST it ON it.I_CODE = im.I_CODE
-          LEFT JOIN IAS20261.IAS_ITEM_PRICE ip ON ip.I_CODE = im.I_CODE AND ip.LEV_NO = 1
-          JOIN IAS20261.IAS_BILL_MST m 
-            ON m.BILL_DOC_TYPE = im.BILL_DOC_TYPE 
-           AND m.BILL_NO = im.DOC_NO 
-           AND m.BILL_SER = im.DOC_SER
-          WHERE (:rep_code IS NULL OR m.REP_CODE = :rep_code)
-            AND im.DOC_TYPE = 1 
-            AND NVL(im.I_QTY,0) > 0
+          FROM IAS20261.IAS_BILL_MST m
+          JOIN IAS20261.IAS_BILL_DTL d ON m.BILL_DOC_TYPE = d.BILL_DOC_TYPE AND m.BILL_NO = d.BILL_NO AND m.BILL_SER = d.BILL_SER
+          WHERE (:rep_code IS NULL OR m.REP_CODE = :rep_code OR m.CC_CODE = :rep_code)
         ),
         inv_cogs_ret AS (
           SELECT 
               '311030001' as acc_code,
               0 as op_dr,
-              SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as op_cr,
+              SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as op_cr,
               0 as mv_dr,
-              SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as mv_cr
-          FROM IAS20261.ITEM_MOVEMENT im
-          JOIN IAS20261.IAS_ITM_MST it ON it.I_CODE = im.I_CODE
-          LEFT JOIN IAS20261.IAS_ITEM_PRICE ip ON ip.I_CODE = im.I_CODE AND ip.LEV_NO = 1
-          JOIN IAS20261.IAS_RT_BILL_MST r
-            ON r.RT_BILL_DOC_TYPE = im.BILL_DOC_TYPE 
-           AND r.RT_BILL_NO = im.DOC_NO 
-           AND r.RT_BILL_SER = im.DOC_SER
-          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code)
-            AND im.DOC_TYPE = 3
+              SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_cr
+          FROM IAS20261.IAS_RT_BILL_MST r
+          JOIN IAS20261.IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
+          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code OR r.CC_CODE = :rep_code)
             AND r.PREV_YEAR IS NULL
-            AND NVL(im.I_QTY,0) > 0
         ),
         inv_cogs_ret_prev AS (
           SELECT 
               '311060001' as acc_code,
               0 as op_dr,
-              SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as op_cr,
+              SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as op_cr,
               0 as mv_dr,
-              SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as mv_cr
-          FROM IAS20261.ITEM_MOVEMENT im
-          JOIN IAS20261.IAS_ITM_MST it ON it.I_CODE = im.I_CODE
-          LEFT JOIN IAS20261.IAS_ITEM_PRICE ip ON ip.I_CODE = im.I_CODE AND ip.LEV_NO = 1
-          JOIN IAS20261.IAS_RT_BILL_MST r
-            ON r.RT_BILL_DOC_TYPE = im.BILL_DOC_TYPE 
-           AND r.RT_BILL_NO = im.DOC_NO 
-           AND r.RT_BILL_SER = im.DOC_SER
-          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code)
-            AND im.DOC_TYPE = 3
+              SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_cr
+          FROM IAS20261.IAS_RT_BILL_MST r
+          JOIN IAS20261.IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
+          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code OR r.CC_CODE = :rep_code)
             AND r.PREV_YEAR IS NOT NULL
-            AND NVL(im.I_QTY,0) > 0
         ),
         all_data AS (
           SELECT * FROM gl_base
@@ -995,35 +974,12 @@ TABS = [
                 t.DOC_DATE s1, t.DOC_NO s2, t.DOC_SER s3
          FROM trans t
        ) ORDER BY s1, s2, s3"""},
-    {"id":"aging","title":"أعمار الديون","params":[
+    {"id":"aging","title":"أعمار الديون","fn":"run_cust_aging","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},
      DTO,
+     AGETR,
      {"name":"rep_code","label":"المندوب (اختياري)","type":"text","default":""},
      {"name":"c_code","label":"كود العميل (اختياري)","type":"text","default":""}
-   ],"sql":"""
-     WITH pay AS (SELECT C_CODE, SUM(NVL(CR_AMT,0)) paid FROM IAS20261.IAS_POST_DTL
-                  WHERE NVL(DOC_POST,0)=1 AND C_CODE IS NOT NULL
-                    AND DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
-                  GROUP BY C_CODE),
-     charges AS (SELECT p.C_CODE, p.DOC_DATE, NVL(p.DR_AMT,0) amt,
-                   SUM(NVL(p.DR_AMT,0)) OVER (PARTITION BY p.C_CODE ORDER BY p.DOC_DATE,p.DOC_NO,p.DOC_SER
-                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) cum
-                 FROM IAS20261.IAS_POST_DTL p
-                 WHERE NVL(p.DOC_POST,0)=1 AND p.C_CODE IS NOT NULL AND NVL(p.DR_AMT,0)>0
-                   AND p.DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1),
-     openit AS (SELECT ch.C_CODE, GREATEST(0,LEAST(ch.amt,ch.cum-NVL(pay.paid,0))) unpaid,
-                   TRUNC(TO_DATE(:date_to,'YYYY-MM-DD'))-TRUNC(ch.DOC_DATE) age
-                FROM charges ch LEFT JOIN pay ON pay.C_CODE=ch.C_CODE)
-     SELECT o.C_CODE AS "كود العميل", MAX(c.C_A_NAME) AS "اسم العميل", MAX(c.REP_CODE) AS "المندوب",
-            TO_CHAR(SUM(CASE WHEN o.age<=30 THEN o.unpaid ELSE 0 END),'FM999,999,990.00') AS "0-30",
-            TO_CHAR(SUM(CASE WHEN o.age BETWEEN 31 AND 60 THEN o.unpaid ELSE 0 END),'FM999,999,990.00') AS "31-60",
-            TO_CHAR(SUM(CASE WHEN o.age BETWEEN 61 AND 90 THEN o.unpaid ELSE 0 END),'FM999,999,990.00') AS "61-90",
-            TO_CHAR(SUM(CASE WHEN o.age BETWEEN 91 AND 120 THEN o.unpaid ELSE 0 END),'FM999,999,990.00') AS "91-120",
-            TO_CHAR(SUM(CASE WHEN o.age>120 THEN o.unpaid ELSE 0 END),'FM999,999,990.00') AS "أكثر من 120",
-            TO_CHAR(SUM(o.unpaid),'FM999,999,990.00') AS "الإجمالي"
-     FROM openit o LEFT JOIN IAS20261.CUSTOMER c ON c.C_CODE=o.C_CODE
-     WHERE o.unpaid>0 AND (:rep_code IS NULL OR c.REP_CODE = :rep_code)
-       AND (:c_code IS NULL OR o.C_CODE = :c_code)
-     GROUP BY o.C_CODE ORDER BY SUM(o.unpaid) DESC"""},
+   ]},
    {"id":"dormant","title":"العملاء الخاملون","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"أيام الخمول","type":"number","default":"90"}],"sql":"""
      SELECT * FROM (
        SELECT c.C_CODE AS "كود العميل", c.C_A_NAME AS "اسم العميل", c.REP_CODE AS "المندوب",
@@ -1130,11 +1086,11 @@ TABS = [
         ORDER BY MAX(b.total_inc) DESC
       ) 
 """},
-        {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+        {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO per customer
        SELECT 'Dynamic Analytical' as "Placeholder" FROM DUAL
        """},
-        {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+        {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO
        SELECT 'Dynamic' as "Placeholder" FROM DUAL
        """},
@@ -1290,11 +1246,11 @@ TABS = [
        ORDER BY p.DOC_DATE DESC, p.DOC_NO DESC, p.DOC_SER
      ) """},
         
-        {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+        {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO per customer
        SELECT 'Dynamic Analytical' as "Placeholder" FROM DUAL
        """},
-        {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+        {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO
        SELECT 'Dynamic' as "Placeholder" FROM DUAL
        """},
@@ -1668,58 +1624,37 @@ TABS = [
         inv_cogs AS (
           SELECT 
               '311010001' as acc_code,
-              SUM(CASE WHEN m.BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as op_dr,
+              SUM(CASE WHEN m.BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as op_dr,
               0 as op_cr,
-              SUM(CASE WHEN m.BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND m.BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as mv_dr,
+              SUM(CASE WHEN m.BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND m.BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_dr,
               0 as mv_cr
-          FROM IAS20261.ITEM_MOVEMENT im
-          JOIN IAS20261.IAS_ITM_MST it ON it.I_CODE = im.I_CODE
-          LEFT JOIN IAS20261.IAS_ITEM_PRICE ip ON ip.I_CODE = im.I_CODE AND ip.LEV_NO = 1
-          JOIN IAS20261.IAS_BILL_MST m 
-            ON m.BILL_DOC_TYPE = im.BILL_DOC_TYPE 
-           AND m.BILL_NO = im.DOC_NO 
-           AND m.BILL_SER = im.DOC_SER
-          WHERE (:rep_code IS NULL OR m.REP_CODE = :rep_code)
-            AND im.DOC_TYPE = 1 
-            AND NVL(im.I_QTY,0) > 0
+          FROM IAS20261.IAS_BILL_MST m
+          JOIN IAS20261.IAS_BILL_DTL d ON m.BILL_DOC_TYPE = d.BILL_DOC_TYPE AND m.BILL_NO = d.BILL_NO AND m.BILL_SER = d.BILL_SER
+          WHERE (:rep_code IS NULL OR m.REP_CODE = :rep_code OR m.CC_CODE = :rep_code)
         ),
         inv_cogs_ret AS (
           SELECT 
               '311030001' as acc_code,
               0 as op_dr,
-              SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as op_cr,
+              SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as op_cr,
               0 as mv_dr,
-              SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as mv_cr
-          FROM IAS20261.ITEM_MOVEMENT im
-          JOIN IAS20261.IAS_ITM_MST it ON it.I_CODE = im.I_CODE
-          LEFT JOIN IAS20261.IAS_ITEM_PRICE ip ON ip.I_CODE = im.I_CODE AND ip.LEV_NO = 1
-          JOIN IAS20261.IAS_RT_BILL_MST r
-            ON r.RT_BILL_DOC_TYPE = im.BILL_DOC_TYPE 
-           AND r.RT_BILL_NO = im.DOC_NO 
-           AND r.RT_BILL_SER = im.DOC_SER
-          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code)
-            AND im.DOC_TYPE = 3
+              SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_cr
+          FROM IAS20261.IAS_RT_BILL_MST r
+          JOIN IAS20261.IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
+          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code OR r.CC_CODE = :rep_code)
             AND r.PREV_YEAR IS NULL
-            AND NVL(im.I_QTY,0) > 0
         ),
         inv_cogs_ret_prev AS (
           SELECT 
               '311060001' as acc_code,
               0 as op_dr,
-              SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as op_cr,
+              SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as op_cr,
               0 as mv_dr,
-              SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(im.I_QTY,0) * NVL(ip.I_PRICE, NVL(it.PRIMARY_COST,0)) ELSE 0 END) as mv_cr
-          FROM IAS20261.ITEM_MOVEMENT im
-          JOIN IAS20261.IAS_ITM_MST it ON it.I_CODE = im.I_CODE
-          LEFT JOIN IAS20261.IAS_ITEM_PRICE ip ON ip.I_CODE = im.I_CODE AND ip.LEV_NO = 1
-          JOIN IAS20261.IAS_RT_BILL_MST r
-            ON r.RT_BILL_DOC_TYPE = im.BILL_DOC_TYPE 
-           AND r.RT_BILL_NO = im.DOC_NO 
-           AND r.RT_BILL_SER = im.DOC_SER
-          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code)
-            AND im.DOC_TYPE = 3
+              SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_cr
+          FROM IAS20261.IAS_RT_BILL_MST r
+          JOIN IAS20261.IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
+          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code OR r.CC_CODE = :rep_code)
             AND r.PREV_YEAR IS NOT NULL
-            AND NVL(im.I_QTY,0) > 0
         ),
         all_data AS (
           SELECT * FROM gl_base
@@ -1754,6 +1689,93 @@ TABS = [
       """}
   ]},
  {"id":"stock","title":"المخزون","icon":"M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10","reports":[
+    {"id":"detailed_stock_pivot","title":"حركة وأرصدة المخزون الشامل","params":[DFROM,DTO],"sql":"""
+        WITH item_groups AS (
+            SELECT 
+                m.I_CODE,
+                MAX(m.I_NAME) AS I_NAME,
+                MAX(gd.G_A_NAME) AS main_grp,
+                MAX(mg.MNG_A_NAME) AS sub_main_grp,
+                MAX(sg.SUBG_A_NAME) AS sub_grp,
+                MAX(dg.DETAIL_A_NAME) AS dtl_grp
+            FROM IAS20261.IAS_ITM_MST m
+            LEFT JOIN IAS20261.GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE AND sg.MNG_CODE = m.MNG_CODE AND sg.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DET_I_CODE = m.DETAIL_NO AND dg.SUBG_CODE = m.SUBG_CODE AND dg.MNG_CODE = m.MNG_CODE AND dg.G_CODE = m.G_CODE
+            GROUP BY m.I_CODE
+        ),
+        inventory_mov AS (
+            SELECT 
+                dt.I_CODE,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 105 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_105,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 103 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_103,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 121 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_121,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 122 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_122,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 118 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_118,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 108 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_108,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 119 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_119,
+                
+                SUM(CASE WHEN I_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND IN_OUT = -1 
+                  AND NOT EXISTS (
+                    SELECT 1 FROM IAS20261.ITEM_MOVEMENT t2 
+                    WHERE t2.DOC_NO = dt.DOC_NO AND t2.DOC_SER = dt.DOC_SER AND t2.I_CODE = dt.I_CODE AND t2.IN_OUT = 1 
+                    AND t2.W_CODE IN (105, 103, 121, 122, 118, 108, 119)
+                  ) THEN NVL(dt.I_QTY,0) ELSE 0 END) as sales_qty,
+                  
+                SUM(CASE WHEN I_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND IN_OUT = 1 
+                  AND NOT EXISTS (
+                    SELECT 1 FROM IAS20261.ITEM_MOVEMENT t2 
+                    WHERE t2.DOC_NO = dt.DOC_NO AND t2.DOC_SER = dt.DOC_SER AND t2.I_CODE = dt.I_CODE AND t2.IN_OUT = -1 
+                    AND t2.W_CODE IN (105, 103, 121, 122, 118, 108, 119)
+                  ) THEN NVL(dt.I_QTY,0) ELSE 0 END) as pur_qty,
+                
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 105 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_105,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 103 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_103,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 121 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_121,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 122 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_122,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 118 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_118,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 108 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_108,
+                SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 119 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_119
+            FROM IAS20261.ITEM_MOVEMENT dt
+            WHERE dt.W_CODE IN (105, 103, 121, 122, 118, 108, 119)
+            GROUP BY dt.I_CODE
+        )
+        SELECT 
+            ig.main_grp AS "المجموعة الرئيسية",
+            ig.sub_main_grp AS "الفرعية",
+            ig.sub_grp AS "تحت الفرعية",
+            ig.dtl_grp AS "التفصيلية",
+            ig.I_CODE AS "رقم الصنف",
+            ig.I_NAME AS "اسم الصنف",
+            
+            TO_CHAR(NVL(im.op_bal_105, 0), 'FM999,999,990.00') AS "افتتاحي 105",
+            TO_CHAR(NVL(im.op_bal_103, 0), 'FM999,999,990.00') AS "افتتاحي 103",
+            TO_CHAR(NVL(im.op_bal_121, 0), 'FM999,999,990.00') AS "افتتاحي 121",
+            TO_CHAR(NVL(im.op_bal_122, 0), 'FM999,999,990.00') AS "افتتاحي 122",
+            TO_CHAR(NVL(im.op_bal_118, 0), 'FM999,999,990.00') AS "افتتاحي 118",
+            TO_CHAR(NVL(im.op_bal_108, 0), 'FM999,999,990.00') AS "افتتاحي 108",
+            TO_CHAR(NVL(im.op_bal_119, 0), 'FM999,999,990.00') AS "افتتاحي 119",
+            
+            TO_CHAR(NVL(im.sales_qty, 0), 'FM999,999,990.00') AS "صادر (مبيعات/تحويل)",
+            TO_CHAR(NVL(im.pur_qty, 0), 'FM999,999,990.00') AS "وارد (مشتريات/استرجاع)",
+            
+            TO_CHAR(NVL(im.end_bal_105, 0), 'FM999,999,990.00') AS "نهائي 105",
+            TO_CHAR(NVL(im.end_bal_103, 0), 'FM999,999,990.00') AS "نهائي 103",
+            TO_CHAR(NVL(im.end_bal_121, 0), 'FM999,999,990.00') AS "نهائي 121",
+            TO_CHAR(NVL(im.end_bal_122, 0), 'FM999,999,990.00') AS "نهائي 122",
+            TO_CHAR(NVL(im.end_bal_118, 0), 'FM999,999,990.00') AS "نهائي 118",
+            TO_CHAR(NVL(im.end_bal_108, 0), 'FM999,999,990.00') AS "نهائي 108",
+            TO_CHAR(NVL(im.end_bal_119, 0), 'FM999,999,990.00') AS "نهائي 119"
+            
+        FROM item_groups ig
+        JOIN inventory_mov im ON ig.I_CODE = im.I_CODE
+        WHERE NVL(im.op_bal_105,0) <> 0 OR NVL(im.op_bal_103,0) <> 0 OR NVL(im.op_bal_121,0) <> 0 OR NVL(im.op_bal_122,0) <> 0 OR NVL(im.op_bal_118,0) <> 0 OR NVL(im.op_bal_108,0) <> 0 OR NVL(im.op_bal_119,0) <> 0
+           OR NVL(im.sales_qty,0) <> 0 OR NVL(im.pur_qty,0) <> 0
+           OR NVL(im.end_bal_105,0) <> 0 OR NVL(im.end_bal_103,0) <> 0 OR NVL(im.end_bal_121,0) <> 0 OR NVL(im.end_bal_122,0) <> 0 OR NVL(im.end_bal_118,0) <> 0 OR NVL(im.end_bal_108,0) <> 0 OR NVL(im.end_bal_119,0) <> 0
+        ORDER BY ig.main_grp, ig.I_CODE
+    """},
+
       {"id":"warehouse_rebalancing","title":"إعادة التوازن (نقل المخزون لتفادي الشراء)","params":[{"name":"as_of","label":"إلى تاريخ","type":"date","default":"2026-07-31"},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":"""
         WITH wh_stock AS (
             SELECT mv.I_CODE, mv.W_CODE,
@@ -1809,11 +1831,19 @@ TABS = [
         )
         SELECT s.W_CODE AS "رقم المستودع",
                MAX(w.W_A_NAME) AS "اسم المستودع",
-               COUNT(s.I_CODE) AS "عدد الأصناف الراكدة",
-               TO_CHAR(SUM(s.qty), 'FM999,999,990.00') AS "إجمالي الكمية الراكدة",
-               TO_CHAR(SUM(s.qty * s.unit_cost), 'FM999,999,990.00') AS "القيمة المالية للركود (بالتكلفة)"
+               COUNT(s.I_CODE) AS "عدد الأصناف",
+               TO_CHAR(SUM(s.qty), 'FM999,999,990.00') AS "الكمية",
+               TO_CHAR(SUM(s.qty * s.unit_cost), 'FM999,999,990.00') AS "القيمة المالية"
         FROM stock_movements s
-        LEFT JOIN IAS20261.WAREHOUSE w ON TO_CHAR(w.W_CODE) = TO_CHAR(s.W_CODE)
+        LEFT JOIN (
+           SELECT '103' as W_CODE, 'الغنامية عيظه' as W_A_NAME FROM DUAL UNION ALL
+           SELECT '121' as W_CODE, 'جده' as W_A_NAME FROM DUAL UNION ALL
+           SELECT '122' as W_CODE, 'الشمال' as W_A_NAME FROM DUAL UNION ALL
+           SELECT '105' as W_CODE, 'الغنامية نصرالله' as W_A_NAME FROM DUAL UNION ALL
+           SELECT '118' as W_CODE, 'الجنوب خميس مشيط' as W_A_NAME FROM DUAL UNION ALL
+           SELECT '119' as W_CODE, 'الدمام' as W_A_NAME FROM DUAL UNION ALL
+           SELECT '108' as W_CODE, 'المنصورية 1' as W_A_NAME FROM DUAL
+        ) w ON w.W_CODE = TO_CHAR(s.W_CODE)
         WHERE (TRUNC(TO_DATE(:as_of,'YYYY-MM-DD')) - TRUNC(s.last_out_date) >= :days
                OR s.last_out_date IS NULL)
         GROUP BY s.W_CODE
@@ -1832,15 +1862,15 @@ TABS = [
             HAVING SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) > 0
         ),
         sales AS (
-            SELECT I_CODE, 
-                   SUM(CASE WHEN IN_OUT = -1 AND DOC_TYPE IN (1, 7) THEN NVL(I_QTY,0) 
-                            WHEN IN_OUT = 1 AND DOC_TYPE = 3 THEN -NVL(I_QTY,0) 
+            SELECT dt.I_CODE, 
+                   SUM(CASE WHEN dt.IN_OUT = -1 AND dt.DOC_TYPE IN (1, 7) THEN NVL(dt.I_QTY,0) 
+                            WHEN dt.IN_OUT = 1 AND dt.DOC_TYPE = 3 THEN -NVL(dt.I_QTY,0) 
                             ELSE 0 END) as sold_qty
-            FROM IAS20261.ITEM_MOVEMENT
-            WHERE I_DATE >= TO_DATE(:as_of,'YYYY-MM-DD') - :days 
-              AND I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
-              AND (:i_code IS NULL OR I_CODE = :i_code)
-            GROUP BY I_CODE
+            FROM IAS20261.ITEM_MOVEMENT dt
+            WHERE dt.I_DATE >= TO_DATE(:as_of,'YYYY-MM-DD') - :days 
+              AND dt.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
+              AND (:i_code IS NULL OR dt.I_CODE = :i_code)
+            GROUP BY dt.I_CODE
         )
         SELECT s.I_CODE AS "رمز الصنف", 
                s.I_NAME AS "اسم الصنف",

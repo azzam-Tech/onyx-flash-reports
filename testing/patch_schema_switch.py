@@ -1,35 +1,6 @@
-import os
-import oracledb
+import sys
 
-# قراءة المتغيرات من ملف db.env إن وجد
-env_path = os.path.join(os.path.dirname(__file__), 'db.env')
-if os.path.exists(env_path):
-    with open(env_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            if '=' in line and not line.strip().startswith('#'):
-                k, v = line.strip().split('=', 1)
-                os.environ[k.strip()] = v.strip()
-
-DB_USER     = os.environ.get("ORA_USER",     "RPT_USER")
-DB_PASSWORD = os.environ.get("ORA_PASSWORD", "ULT2016")
-DB_DSN      = os.environ.get("ORA_DSN",      "100.100.1.100:1521/ORCL")
-_lib        = os.environ.get("ORA_LIB_DIR")
-
-try:
-    if _lib:
-        oracledb.init_oracle_client(lib_dir=_lib)
-    else:
-        try:
-            # 1. التجربة الأولى: مسار الأوراكل الثابت في جهازك الحالي
-            oracledb.init_oracle_client(lib_dir=r"C:\oracle\instantclient\instantclient_23_0")
-        except Exception:
-            # 2. التجربة الثانية: الاعتماد على بيئة الويندوز (هذا ما يعمل في الجهاز الآخر!)
-            oracledb.init_oracle_client()
-    print("Thick mode ON")
-except Exception as e:
-    print("thick warn:", e)
-
-
+db_code = """
 class InterceptCursor:
     def __init__(self, cur):
         self._cur = cur
@@ -55,16 +26,7 @@ class InterceptCursor:
     def __iter__(self):
         return iter(self._cur)
 
-
-    def __enter__(self):
-        self._cur.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return self._cur.__exit__(exc_type, exc_val, exc_tb)
-
 class InterceptConnection:
-
     def __init__(self, conn):
         self._conn = conn
 
@@ -83,4 +45,44 @@ class InterceptConnection:
 
 def get_conn():
     return InterceptConnection(oracledb.connect(user=DB_USER, password=DB_PASSWORD, dsn=DB_DSN))
+"""
 
+db_path = 'privet/onyx_reports/database.py'
+with open(db_path, 'r', encoding='utf-8') as f:
+    c = f.read()
+
+c = c.replace("""def get_conn():
+    return oracledb.connect(user=DB_USER, password=DB_PASSWORD, dsn=DB_DSN)""", db_code)
+
+with open(db_path, 'w', encoding='utf-8') as f:
+    f.write(c)
+
+app_code = """
+@app.before_request
+def set_target_year():
+    from flask import request, g
+    year_val = request.args.get('year_val')
+    date_to = request.args.get('date_to')
+    date_from = request.args.get('date_from')
+    
+    target_year = "2026"
+    if year_val and len(year_val) == 4:
+        target_year = year_val
+    elif date_from and len(date_from) >= 4:
+        target_year = date_from[:4]
+    elif date_to and len(date_to) >= 4:
+        target_year = date_to[:4]
+        
+    g.target_year = target_year
+"""
+
+app_path = 'privet/onyx_reports/app.py'
+with open(app_path, 'r', encoding='utf-8') as f:
+    c_app = f.read()
+
+c_app = c_app.replace("app = Flask(__name__)\n", "app = Flask(__name__)\n" + app_code)
+
+with open(app_path, 'w', encoding='utf-8') as f:
+    f.write(c_app)
+
+print("Patch applied to database.py and app.py!")

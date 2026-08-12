@@ -13,6 +13,23 @@ import report_handlers
 from report_handlers import *
 
 app = Flask(__name__)
+
+@app.before_request
+def set_target_year():
+    from flask import request, g
+    year_val = request.args.get('year_val')
+    date_to = request.args.get('date_to')
+    date_from = request.args.get('date_from')
+    
+    target_year = "2026"
+    if year_val and len(year_val) == 4:
+        target_year = year_val
+    elif date_from and len(date_from) >= 4:
+        target_year = date_from[:4]
+    elif date_to and len(date_to) >= 4:
+        target_year = date_to[:4]
+        
+    g.target_year = target_year
 app.secret_key = os.environ.get("SREEN_SECRET", "sreen-reports-2026-secret-key")
 
 from flask import redirect
@@ -98,7 +115,7 @@ def index():
     cur_tab = tab["id"]
     for _p in rpt["params"]:
         if _p.get("dynamic") == "jv": _p["options"] = jv_options()
-        if _p["name"] in ("rep_code","c_code","v_code","i_code","a_code"): _p["_list"] = lookups(_p["name"])
+        if _p["name"] in ("rep_code","c_code","v_code","i_code","a_code","cc_code","grp_code"): _p["_list"] = lookups(_p["name"])
     display = {p["name"]: request.args.get(p["name"]) or (p["get_default"]() if "get_default" in p else p.get("default","")) for p in rpt["params"]}
     qsp = {"tab": cur_tab, "report": rpt["id"]}
     for p in rpt["params"]: qsp[p["name"]] = request.args.get(p["name"]) or (p["get_default"]() if "get_default" in p else p.get("default",""))

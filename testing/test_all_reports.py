@@ -1,44 +1,39 @@
-import os
-import sys
+import sys, os
+import traceback
+sys.path.append(os.path.abspath('privet/onyx_reports'))
+from reports_config import TABS
+import report_handlers
 
-os.environ["NLS_LANG"] = ".AL32UTF8"
-sys.stdout.reconfigure(encoding='utf-8')
+args = {
+    'date_from': '2026-07-01',
+    'date_to': '2026-08-31',
+    'rep_code': '',
+    'c_code': '',
+    'aging_ranges': '2,30,60,90,120'
+}
 
-# Add privet/onyx_reports to sys.path to import app
-sys.path.insert(0, r"c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\privet\onyx_reports")
-
-from app import TABS, run_report
-
-print("=== TESTING ALL REPORTS IN APP.PY ===")
-
+print("Running all reports to check for errors...")
+success_count = 0
+error_count = 0
 failed_reports = []
-empty_reports = []
-success_reports = []
 
 for tab in TABS:
-    tab_id = tab["id"]
-    if tab.get("dash"):
-        continue
-    for rpt in tab.get("reports", []):
-        rpt_id = rpt["id"]
-        title = rpt["title"]
+    for rpt in tab.get('reports', []):
         try:
-            cols, rows = run_report(rpt, {})
-            if not rows:
-                empty_reports.append(f"{tab_id}/{rpt_id} ({title}): 0 rows returned")
-            else:
-                success_reports.append(f"{tab_id}/{rpt_id} ({title}): {len(rows)} rows, {len(cols)} cols")
+            cols, rows = report_handlers.run_report(rpt, args)
+            success_count += 1
+            print(f"PASS {rpt['id']} - Success ({len(rows)} rows)")
         except Exception as e:
-            failed_reports.append(f"{tab_id}/{rpt_id} ({title}): ERROR -> {e}")
+            error_count += 1
+            print(f"FAIL {rpt['id']} - FAILED: {str(e)}")
+            failed_reports.append((rpt['id'], traceback.format_exc()))
 
-print(f"\n✅ SUCCESS REPORTS ({len(success_reports)}):")
-for s in success_reports:
-    print(" ", s)
+print("\\n--- Summary ---")
+print(f"Total Successful: {success_count}")
+print(f"Total Failed: {error_count}")
 
-print(f"\n⚠️ EMPTY REPORTS ({len(empty_reports)}):")
-for e in empty_reports:
-    print(" ", e)
-
-print(f"\n❌ FAILED REPORTS ({len(failed_reports)}):")
-for f in failed_reports:
-    print(" ", f)
+if error_count > 0:
+    print("\\n--- Failed Reports Tracebacks ---")
+    for rpt_id, tb in failed_reports:
+        print(f"REPORT: {rpt_id}")
+        print(tb)

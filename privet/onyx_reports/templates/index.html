@@ -125,7 +125,23 @@ tr.prof-row2 td { background: #dbeafe !important; color: #1e40af !important; fon
   .gcharts { grid-template-columns: 1fr; }
 }
 
-</style></head><body>
+</style>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<style>
+.dataTables_wrapper { direction: rtl; padding: 15px 10px; }
+.dataTables_wrapper .dataTables_filter { float: right !important; text-align: right; margin-bottom: 15px; }
+.dataTables_wrapper .dataTables_length { float: left !important; margin-bottom: 15px; }
+.dataTables_wrapper .dataTables_filter label { font-weight: 700; color: var(--ink-dark); font-size: 15px; display:inline-flex; align-items:center; gap:8px; }
+.dataTables_wrapper .dataTables_filter input { border: 2px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-family: inherit; font-size: 14px; outline: none; transition: 0.3s; width: 300px; background: #f8fafc; }
+.dataTables_wrapper .dataTables_filter input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15); }
+table.dataTable thead th, table.dataTable tfoot th { text-align: right; border-bottom: 1px solid #e2e8f0; padding-right: 12px !important; padding-left: 30px !important; }
+table.dataTable thead > tr > th.sorting:before, table.dataTable thead > tr > th.sorting:after, table.dataTable thead > tr > th.sorting_asc:before, table.dataTable thead > tr > th.sorting_asc:after, table.dataTable thead > tr > th.sorting_desc:before, table.dataTable thead > tr > th.sorting_desc:after { right: auto !important; left: 10px !important; }
+table.dataTable.no-footer { border-bottom: 1px solid #e2e8f0; }
+.dataTables_wrapper .dataTables_paginate .paginate_button { padding: 6px 12px; margin-left: 4px; border-radius: 8px !important; border: 1px solid transparent !important; font-weight:600; }
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover { background: #f1f5f9 !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
+.dataTables_wrapper .dataTables_paginate .paginate_button.current { background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; }
+</style>
+</head><body>
 <div class="app">
  <aside class="sb">
    <div class="brand"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Onyx Deck</span></div>
@@ -515,8 +531,68 @@ tr.prof-row2 td { background: #dbeafe !important; color: #1e40af !important; fon
      
      {% if error %}<div class="err">خطأ: {{error}}</div>
      {% else %}
-       <div class="tw"><table><thead><tr>{% for c in cols %}<th onclick="sortTable({{loop.index0}})" style="cursor:pointer" title="اضغط للترتيب">{{c}} <span style="font-size:10px; opacity:0.5; margin-right:4px">↕</span></th>{% endfor %}</tr></thead>
-       <tbody>{% for row in rows %}{% set r0 = (row[0]|string).strip() %}{% set r1 = (row[1]|string).strip() %}{% set cls = '' %}{% if r0=='الإجمالي' or r1=='الإجمالي' %}{% set cls = 'tot-row' %}{% elif 'رصيد الفترة صافي' in r1 %}{% set cls = 'prof-row1' %}{% elif 'الرصيد النهائي صافي' in r1 %}{% set cls = 'prof-row2' %}{% endif %}<tr class="{{ cls }}">{% for cell in row %}<td>{{ '' if cell is none else cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+       
+<div class="tw" style="overflow-x:hidden;">
+  <table id="mainTable" class="display nowrap" style="width:100%">
+    <thead>
+      {% if rpt.id == 'detailed_stock_pivot' %}
+      <tr>
+        <th colspan="6" style="text-align:center; background:#f8fafc;">معلومات الصنف</th>
+        <th colspan="7" style="text-align:center; background:#4f46e5; color:#fff;">الرصيد الافتتاحي</th>
+        <th colspan="2" style="text-align:center; background:#0ea5e9; color:#fff;">الحركة (صادر / وارد)</th>
+        <th colspan="7" style="text-align:center; background:#10b981; color:#fff;">الرصيد النهائي</th>
+      </tr>
+      <tr>
+        {% for c in cols %}
+          {% set clean_c = c|replace('افتتاحي ', '')|replace('نهائي ', '')|replace('صادر (مبيعات/تحويل)', 'صادر')|replace('وارد (مشتريات/استرجاع)', 'وارد') %}
+          <th>{{ clean_c }}</th>
+        {% endfor %}
+      </tr>
+      {% else %}
+      <tr>
+        {% for c in cols %}
+          <th>{{ c }}</th>
+        {% endfor %}
+      </tr>
+      {% endif %}
+    </thead>
+    
+    {% set has_total = rows and ((rows[0][0]|string|trim) == 'الإجمالي' or (rows[0][1]|string|trim) == 'الإجمالي') %}
+    {% if has_total %}
+      {% set data_rows = rows[1:] %}
+    {% else %}
+      {% set data_rows = rows %}
+    {% endif %}
+
+    <tbody>
+      {% for row in data_rows %}
+        {% set r1 = (row[1]|string).strip() %}
+        {% set cls = '' %}
+        {% if 'رصيد الفترة صافي' in r1 %}
+          {% set cls = 'prof-row1' %}
+        {% elif 'الرصيد النهائي صافي' in r1 %}
+          {% set cls = 'prof-row2' %}
+        {% endif %}
+        <tr class="{{ cls }}">
+          {% for cell in row %}
+            <td>{{ '' if cell is none else cell }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+
+    {% if has_total %}
+    <tfoot>
+      <tr class="tot-row" style="background: #e2e8f0; font-weight: bold; color: #0f172a;">
+        {% for cell in rows[0] %}
+          <td style="border-top:2px solid #cbd5e1; border-bottom:2px solid #cbd5e1;">{{ '' if cell is none else cell }}</td>
+        {% endfor %}
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+
      {% endif %}
      {% endif %}
    </div>
@@ -529,52 +605,7 @@ tr.prof-row2 td { background: #dbeafe !important; color: #1e40af !important; fon
    if (activePill) { activePill.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' }); }
  });
 
-    function sortTable(colIndex) {
-      const tbody = document.querySelector('tbody');
-      if (!tbody) return;
-      
-      const rows = Array.from(tbody.querySelectorAll('tr'));
-      if (rows.length <= 1) return; 
-      
-      const totalRow = rows.shift(); 
-      
-      let dir = tbody.getAttribute('data-sort-dir') === 'asc' ? 'desc' : 'asc';
-      tbody.setAttribute('data-sort-dir', dir);
-      
-      rows.sort((a, b) => {
-        let valA = a.children[colIndex].textContent.trim();
-        let valB = b.children[colIndex].textContent.trim();
-        
-        let numA = parseFloat(valA.replace(/,/g, ''));
-        let numB = parseFloat(valB.replace(/,/g, ''));
-        
-        let isNumA = !isNaN(numA) && valA !== '';
-        let isNumB = !isNaN(numB) && valB !== '';
-        
-        let cmp = 0;
-        if (isNumA && isNumB) {
-          cmp = numA - numB;
-        } else {
-          cmp = valA.localeCompare(valB, 'ar');
-        }
-        
-        return dir === 'asc' ? cmp : -cmp;
-      });
-      
-      tbody.innerHTML = '';
-      tbody.appendChild(totalRow);
-      rows.forEach(r => tbody.appendChild(r));
-      
-      // Update PDF and Excel export links
-      let exps = document.querySelectorAll('.exp');
-      let colName = document.querySelectorAll('thead th')[colIndex].textContent.replace(' ↕', '').trim();
-      exps.forEach(a => {
-        let url = new URL(a.href, window.location.origin);
-        url.searchParams.set('sort_col', colName);
-        url.searchParams.set('sort_dir', dir);
-        a.href = url.pathname + url.search;
-      });
-    }
+    
  </script>
 
   <script>
@@ -596,5 +627,92 @@ tr.prof-row2 td { background: #dbeafe !important; color: #1e40af !important; fon
       }
   });
   </script>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    if($('#mainTable').length){
+        var table = $('#mainTable').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json",
+                "search": "بحث سريع:",
+                "searchPlaceholder": "اكتب للبحث في التقرير...",
+                "lengthMenu": "عرض _MENU_ سجل"
+            },
+            "pageLength": 100,
+            "lengthMenu": [[50, 100, 500, -1], [50, 100, 500, "الكل"]],
+            "scrollX": true,
+            "ordering": true,
+            "bSortClasses": false,
+            initComplete: function () {
+                this.api().columns().every(function () {
+                    let column = this;
+                    
+                    // Create select element
+                    let select = document.createElement('select');
+                    select.add(new Option('جميع الحالات', ''));
+                    select.style.display = 'block';
+                    select.style.width = '100%';
+                    select.style.marginTop = '6px';
+                    select.style.fontSize = '12px';
+                    select.style.padding = '4px';
+                    select.style.borderRadius = '6px';
+                    select.style.border = '1px solid #cbd5e1';
+                    select.style.fontWeight = '500';
+                    select.style.color = '#0f172a';
+                    select.style.background = '#f8fafc';
+                    select.style.outline = 'none';
+                    select.style.cursor = 'pointer';
+                    
+                    // Prevent sorting when clicking on select
+                    select.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                    });
+                    
+                    // Apply listener for user change in value
+                    select.addEventListener('change', function () {
+                        var val = $.fn.dataTable.util.escapeRegex(select.value);
+                        column.search(val ? '^' + val + '$' : '', true, false).draw();
+                    });
+                    
+                    // Append to header cell
+                    column.header().appendChild(select);
+                    
+                    // Add list of options
+                    column.data().unique().sort().each(function (d, j) {
+                        let text = d ? String(d).replace(/<[^>]*>?/gm, '').trim() : '';
+                        // Ignore empty text or the total row text
+                        if (text && text !== 'الإجمالي') {
+                            select.add(new Option(text, text));
+                        }
+                    });
+                });
+            }
+        });
+        
+        $('#mainTable').on('order.dt', function () {
+            let order = table.order();
+            if(order && order.length > 0) {
+                let colIndex = order[0][0];
+                let dir = order[0][1];
+                let $th = $(table.column(colIndex).header());
+                // Get text without the select options text
+                let colName = $th.clone().children().remove().end().text().trim();
+                
+                let exps = document.querySelectorAll('.exp');
+                exps.forEach(a => {
+                    try {
+                        let url = new URL(a.href, window.location.origin);
+                        url.searchParams.set('sort_col', colName);
+                        url.searchParams.set('sort_dir', dir);
+                        a.href = url.pathname + url.search;
+                    } catch(e){}
+                });
+            }
+        });
+    }
+});
+</script>
 </body>
 </html>
