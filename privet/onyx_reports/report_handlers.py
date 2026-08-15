@@ -1496,12 +1496,12 @@ def run_sql_report(rpt, args):
                 col_idx = cols.index(sort_col)
                 def parse_sort_val(r):
                     v = r[col_idx]
-                    if v is None: return float('-inf') if sort_dir == 'asc' else float('inf')
-                    if isinstance(v, (int, float)): return v
+                    if v is None: return (0, float('-inf') if sort_dir == 'asc' else float('inf'))
+                    if isinstance(v, (int, float)): return (0, float(v))
                     if isinstance(v, str):
-                        try: return float(v.replace(',', ''))
-                        except: return v
-                    return str(v)
+                        try: return (0, float(v.replace(',', '')))
+                        except: return (1, v)
+                    return (1, str(v))
                 rows.sort(key=parse_sort_val, reverse=(sort_dir == 'desc'))
             return cols, rows
 

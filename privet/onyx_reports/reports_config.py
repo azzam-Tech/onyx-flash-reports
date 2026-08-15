@@ -123,6 +123,7 @@ def get_target_amount(year_val, period_type, period_val, grp_by, row_code=None):
 
 DFROM = {"name":"date_from","label":"من تاريخ","type":"date","get_default": get_default_date_from}
 DTO   = {"name":"date_to","label":"إلى تاريخ","type":"date","get_default": get_default_date_to}
+PYEAR = {"name":"p_year","label":"السنة","type":"text","default":str(datetime.now().year)}
 REP   = {"name":"rep_code","label":"المندوب (اختياري)","type":"text","default":""}
 INCR  = {"name":"inc_rcpt","label":"سندات القبض","type":"select","default":"1","options":[["1","تضمين"],["0","استبعاد"]]}
 INCN  = {"name":"inc_net","label":"قيود الشبكة المنفصلة","type":"select","default":"1","options":[["1","تضمين"],["0","استبعاد"]]}
@@ -280,10 +281,10 @@ TABS = [
                 TO_CHAR((SELECT NVL(bal,0) FROM open_bal) + SUM(t.dr-t.cr) OVER (ORDER BY t.DOC_DATE, t.DOC_NO, t.DOC_SER), 'FM999,999,990.00'),
                 t.DOC_DATE s1, t.DOC_NO s2, t.DOC_SER s3
          FROM trans t
-       ) ORDER BY s1, s2, s3"""}, {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+       ) ORDER BY s1, s2, s3"""}, {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO per customer
        SELECT 'Dynamic Analytical' as "Placeholder" FROM DUAL
-       """}, {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+       """}, {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO
        SELECT 'Dynamic' as "Placeholder" FROM DUAL
        """}, {"id":"true_income_statement","title":"قائمة الدخل (الحقيقية)","params":[DFROM,DTO,REP],"sql":"""
@@ -1086,11 +1087,11 @@ TABS = [
         ORDER BY MAX(b.total_inc) DESC
       ) 
 """},
-        {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+        {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO per customer
        SELECT 'Dynamic Analytical' as "Placeholder" FROM DUAL
        """},
-        {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+        {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO
        SELECT 'Dynamic' as "Placeholder" FROM DUAL
        """},
@@ -1246,11 +1247,11 @@ TABS = [
        ORDER BY p.DOC_DATE DESC, p.DOC_NO DESC, p.DOC_SER
      ) """},
         
-        {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+        {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO per customer
        SELECT 'Dynamic Analytical' as "Placeholder" FROM DUAL
        """},
-        {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
+        {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":"""
        -- This report dynamically processes valid collections via Python FIFO
        SELECT 'Dynamic' as "Placeholder" FROM DUAL
        """},
@@ -1715,20 +1716,10 @@ TABS = [
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 118 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_118,
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 108 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_108,
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') AND W_CODE = 119 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as op_bal_119,
-                
-                SUM(CASE WHEN I_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND IN_OUT = -1 
-                  AND NOT EXISTS (
-                    SELECT 1 FROM IAS20261.ITEM_MOVEMENT t2 
-                    WHERE t2.DOC_NO = dt.DOC_NO AND t2.DOC_SER = dt.DOC_SER AND t2.I_CODE = dt.I_CODE AND t2.IN_OUT = 1 
-                    AND t2.W_CODE IN (105, 103, 121, 122, 118, 108, 119)
-                  ) THEN NVL(dt.I_QTY,0) ELSE 0 END) as sales_qty,
-                  
-                SUM(CASE WHEN I_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND IN_OUT = 1 
-                  AND NOT EXISTS (
-                    SELECT 1 FROM IAS20261.ITEM_MOVEMENT t2 
-                    WHERE t2.DOC_NO = dt.DOC_NO AND t2.DOC_SER = dt.DOC_SER AND t2.I_CODE = dt.I_CODE AND t2.IN_OUT = -1 
-                    AND t2.W_CODE IN (105, 103, 121, 122, 118, 108, 119)
-                  ) THEN NVL(dt.I_QTY,0) ELSE 0 END) as pur_qty,
+                SUM(CASE WHEN I_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as sales_qty,
+                SUM(CASE WHEN I_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as sales_rtn_qty,
+                SUM(CASE WHEN I_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as pur_qty,
+                SUM(CASE WHEN I_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as pur_rtn_qty,
                 
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 105 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_105,
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 103 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_103,
@@ -1738,7 +1729,7 @@ TABS = [
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 108 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_108,
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 119 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_119
             FROM IAS20261.ITEM_MOVEMENT dt
-            WHERE dt.W_CODE IN (105, 103, 121, 122, 118, 108, 119)
+            WHERE dt.W_CODE IN (105, 103, 121, 122, 118, 108, 119) OR dt.DOC_TYPE IN (1, 2, 3, 4)
             GROUP BY dt.I_CODE
         )
         SELECT 
@@ -1757,8 +1748,10 @@ TABS = [
             TO_CHAR(NVL(im.op_bal_108, 0), 'FM999,999,990.00') AS "افتتاحي 108",
             TO_CHAR(NVL(im.op_bal_119, 0), 'FM999,999,990.00') AS "افتتاحي 119",
             
-            TO_CHAR(NVL(im.sales_qty, 0), 'FM999,999,990.00') AS "صادر (مبيعات/تحويل)",
-            TO_CHAR(NVL(im.pur_qty, 0), 'FM999,999,990.00') AS "وارد (مشتريات/استرجاع)",
+            TO_CHAR(NVL(im.sales_qty, 0), 'FM999,999,990.00') AS "المبيعات",
+            TO_CHAR(NVL(im.sales_rtn_qty, 0), 'FM999,999,990.00') AS "مردود المبيعات",
+            TO_CHAR(NVL(im.pur_qty, 0), 'FM999,999,990.00') AS "المشتريات",
+            TO_CHAR(NVL(im.pur_rtn_qty, 0), 'FM999,999,990.00') AS "مردود المشتريات",
             
             TO_CHAR(NVL(im.end_bal_105, 0), 'FM999,999,990.00') AS "نهائي 105",
             TO_CHAR(NVL(im.end_bal_103, 0), 'FM999,999,990.00') AS "نهائي 103",
@@ -1771,8 +1764,139 @@ TABS = [
         FROM item_groups ig
         JOIN inventory_mov im ON ig.I_CODE = im.I_CODE
         WHERE NVL(im.op_bal_105,0) <> 0 OR NVL(im.op_bal_103,0) <> 0 OR NVL(im.op_bal_121,0) <> 0 OR NVL(im.op_bal_122,0) <> 0 OR NVL(im.op_bal_118,0) <> 0 OR NVL(im.op_bal_108,0) <> 0 OR NVL(im.op_bal_119,0) <> 0
-           OR NVL(im.sales_qty,0) <> 0 OR NVL(im.pur_qty,0) <> 0
+           OR NVL(im.sales_qty,0) <> 0 OR NVL(im.pur_qty,0) <> 0 OR NVL(im.sales_rtn_qty,0) <> 0 OR NVL(im.pur_rtn_qty,0) <> 0
            OR NVL(im.end_bal_105,0) <> 0 OR NVL(im.end_bal_103,0) <> 0 OR NVL(im.end_bal_121,0) <> 0 OR NVL(im.end_bal_122,0) <> 0 OR NVL(im.end_bal_118,0) <> 0 OR NVL(im.end_bal_108,0) <> 0 OR NVL(im.end_bal_119,0) <> 0
+        ORDER BY ig.main_grp, ig.I_CODE
+    """},
+
+          {"id":"monthly_movement_pivot","title":"حركة الأصناف الشهرية (مبيعات/مشتريات)","params":[PYEAR],"sql":"""
+        WITH item_groups AS (
+            SELECT 
+                m.I_CODE,
+                MAX(m.I_NAME) AS I_NAME,
+                MAX(gd.G_A_NAME) AS main_grp,
+                MAX(mg.MNG_A_NAME) AS sub_main_grp,
+                MAX(sg.SUBG_A_NAME) AS sub_grp,
+                MAX(dg.DETAIL_A_NAME) AS dtl_grp
+            FROM IAS20261.IAS_ITM_MST m
+            LEFT JOIN IAS20261.GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE AND sg.MNG_CODE = m.MNG_CODE AND sg.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DET_I_CODE = m.DETAIL_NO AND dg.SUBG_CODE = m.SUBG_CODE AND dg.MNG_CODE = m.MNG_CODE AND dg.G_CODE = m.G_CODE
+            GROUP BY m.I_CODE
+        ),
+        inventory_mov AS (
+            SELECT 
+                dt.I_CODE,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '01' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m01_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '01' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m01_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '01' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m01_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '01' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m01_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '02' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m02_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '02' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m02_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '02' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m02_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '02' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m02_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '03' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m03_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '03' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m03_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '03' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m03_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '03' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m03_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '04' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m04_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '04' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m04_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '04' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m04_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '04' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m04_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '05' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m05_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '05' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m05_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '05' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m05_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '05' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m05_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '06' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m06_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '06' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m06_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '06' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m06_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '06' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m06_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '07' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m07_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '07' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m07_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '07' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m07_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '07' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m07_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '08' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m08_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '08' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m08_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '08' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m08_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '08' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m08_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '09' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m09_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '09' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m09_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '09' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m09_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '09' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m09_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '10' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m10_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '10' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m10_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '10' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m10_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '10' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m10_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '11' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m11_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '11' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m11_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '11' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m11_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '11' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m11_pur_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '12' AND DOC_TYPE = 1 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m12_sales,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '12' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m12_sales_rtn,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '12' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m12_pur,
+                SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '12' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m12_pur_rtn
+            FROM IAS20261.ITEM_MOVEMENT dt
+            WHERE dt.DOC_TYPE IN (1, 2, 3, 4) AND TO_CHAR(dt.I_DATE, 'YYYY') = :p_year
+            GROUP BY dt.I_CODE
+        )
+        SELECT 
+            ig.main_grp AS "المجموعة الرئيسية",
+            ig.sub_main_grp AS "الفرعية",
+            ig.sub_grp AS "تحت الفرعية",
+            ig.dtl_grp AS "التفصيلية",
+            ig.I_CODE AS "رقم الصنف",
+            ig.I_NAME AS "اسم الصنف",
+            TO_CHAR(NVL(im.m01_sales, 0), 'FM999,999,990.00') AS "مبيعات ش1",
+            TO_CHAR(NVL(im.m01_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش1",
+            TO_CHAR(NVL(im.m01_pur, 0), 'FM999,999,990.00') AS "مشتريات ش1",
+            TO_CHAR(NVL(im.m01_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش1",
+            TO_CHAR(NVL(im.m02_sales, 0), 'FM999,999,990.00') AS "مبيعات ش2",
+            TO_CHAR(NVL(im.m02_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش2",
+            TO_CHAR(NVL(im.m02_pur, 0), 'FM999,999,990.00') AS "مشتريات ش2",
+            TO_CHAR(NVL(im.m02_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش2",
+            TO_CHAR(NVL(im.m03_sales, 0), 'FM999,999,990.00') AS "مبيعات ش3",
+            TO_CHAR(NVL(im.m03_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش3",
+            TO_CHAR(NVL(im.m03_pur, 0), 'FM999,999,990.00') AS "مشتريات ش3",
+            TO_CHAR(NVL(im.m03_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش3",
+            TO_CHAR(NVL(im.m04_sales, 0), 'FM999,999,990.00') AS "مبيعات ش4",
+            TO_CHAR(NVL(im.m04_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش4",
+            TO_CHAR(NVL(im.m04_pur, 0), 'FM999,999,990.00') AS "مشتريات ش4",
+            TO_CHAR(NVL(im.m04_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش4",
+            TO_CHAR(NVL(im.m05_sales, 0), 'FM999,999,990.00') AS "مبيعات ش5",
+            TO_CHAR(NVL(im.m05_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش5",
+            TO_CHAR(NVL(im.m05_pur, 0), 'FM999,999,990.00') AS "مشتريات ش5",
+            TO_CHAR(NVL(im.m05_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش5",
+            TO_CHAR(NVL(im.m06_sales, 0), 'FM999,999,990.00') AS "مبيعات ش6",
+            TO_CHAR(NVL(im.m06_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش6",
+            TO_CHAR(NVL(im.m06_pur, 0), 'FM999,999,990.00') AS "مشتريات ش6",
+            TO_CHAR(NVL(im.m06_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش6",
+            TO_CHAR(NVL(im.m07_sales, 0), 'FM999,999,990.00') AS "مبيعات ش7",
+            TO_CHAR(NVL(im.m07_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش7",
+            TO_CHAR(NVL(im.m07_pur, 0), 'FM999,999,990.00') AS "مشتريات ش7",
+            TO_CHAR(NVL(im.m07_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش7",
+            TO_CHAR(NVL(im.m08_sales, 0), 'FM999,999,990.00') AS "مبيعات ش8",
+            TO_CHAR(NVL(im.m08_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش8",
+            TO_CHAR(NVL(im.m08_pur, 0), 'FM999,999,990.00') AS "مشتريات ش8",
+            TO_CHAR(NVL(im.m08_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش8",
+            TO_CHAR(NVL(im.m09_sales, 0), 'FM999,999,990.00') AS "مبيعات ش9",
+            TO_CHAR(NVL(im.m09_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش9",
+            TO_CHAR(NVL(im.m09_pur, 0), 'FM999,999,990.00') AS "مشتريات ش9",
+            TO_CHAR(NVL(im.m09_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش9",
+            TO_CHAR(NVL(im.m10_sales, 0), 'FM999,999,990.00') AS "مبيعات ش10",
+            TO_CHAR(NVL(im.m10_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش10",
+            TO_CHAR(NVL(im.m10_pur, 0), 'FM999,999,990.00') AS "مشتريات ش10",
+            TO_CHAR(NVL(im.m10_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش10",
+            TO_CHAR(NVL(im.m11_sales, 0), 'FM999,999,990.00') AS "مبيعات ش11",
+            TO_CHAR(NVL(im.m11_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش11",
+            TO_CHAR(NVL(im.m11_pur, 0), 'FM999,999,990.00') AS "مشتريات ش11",
+            TO_CHAR(NVL(im.m11_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش11",
+            TO_CHAR(NVL(im.m12_sales, 0), 'FM999,999,990.00') AS "مبيعات ش12",
+            TO_CHAR(NVL(im.m12_sales_rtn, 0), 'FM999,999,990.00') AS "مردود مبيعات ش12",
+            TO_CHAR(NVL(im.m12_pur, 0), 'FM999,999,990.00') AS "مشتريات ش12",
+            TO_CHAR(NVL(im.m12_pur_rtn, 0), 'FM999,999,990.00') AS "مردود مشتريات ش12"
+        FROM item_groups ig
+        JOIN inventory_mov im ON ig.I_CODE = im.I_CODE
         ORDER BY ig.main_grp, ig.I_CODE
     """},
 
@@ -1944,6 +2068,37 @@ TABS = [
     {"id":"main_wh_movement","title":"حركة الأصناف (7 مستودعات)","fn":"run_main_wh_movement","params":[{"name":"i_code","label":"كود الصنف (اختياري)","type":"text","default":""},DFROM,DTO],"sql":""},
   ]},
   {"id":"general","title":"تقارير عامة","icon":"M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z","reports":[
+    {"id":"daily_expenses","title":"تقرير المصاريف اليومية","hide_from_menu":True,"params":[
+      DFROM, DTO,
+      {"name":"ac_code","label":"رقم الحساب (اختياري)","type":"text","default":""},
+      {"name":"text_search","label":"بحث في البيان (اختياري)","type":"text","default":""}
+    ],"sql":"""
+      SELECT TO_CHAR(d.DOC_DATE, 'YYYY-MM-DD') AS "التاريخ",
+             d.DOC_NO AS "رقم المستند",
+             CASE d.DOC_TYPE 
+               WHEN 1 THEN 'قيد يومية'
+               WHEN 2 THEN 'سند قبض'
+               WHEN 3 THEN 'سند صرف'
+               ELSE TO_CHAR(d.DOC_TYPE)
+             END AS "نوع المستند",
+             d.A_CODE AS "رقم الحساب",
+             MAX(a.A_NAME) AS "اسم الحساب",
+             MAX(d.DOC_DESC) AS "البيان / الشرح",
+             TO_CHAR(d.DR_AMT, 'FM999,999,990.00') AS "المبلغ",
+             TO_CHAR(d.CC_CODE) AS "مركز التكلفة",
+             MAX(cc.CC_A_NAME) AS "اسم مركز التكلفة"
+      FROM IAS20261.IAS_POST_DTL d
+      LEFT JOIN IAS20261.ACCOUNT a ON d.A_CODE = a.A_CODE
+      LEFT JOIN IAS20261.COST_CENTERS cc ON d.CC_CODE = cc.CC_CODE
+      WHERE d.DR_AMT > 0 
+        AND d.A_CODE LIKE '3%'
+        AND d.DOC_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD')
+        AND d.DOC_DATE < TO_DATE(:date_to, 'YYYY-MM-DD') + 1
+        AND (:ac_code IS NULL OR :ac_code = '' OR d.A_CODE = :ac_code)
+        AND (:text_search IS NULL OR :text_search = '' OR d.DOC_DESC LIKE '%' || :text_search || '%')
+      GROUP BY d.DOC_DATE, d.DOC_NO, d.DOC_TYPE, d.A_CODE, d.DR_AMT, d.CC_CODE
+      ORDER BY d.DOC_DATE DESC, d.DOC_NO DESC
+    """},
     {"id":"detailed_net_jrn","title":"قيود الشبكة التفصيلي","params":[DFROM,DTO,REP,CST],"sql":"""
       SELECT TO_CHAR(p.DOC_DATE,'YYYY-MM-DD') AS "التاريخ",
              p.DOC_NO AS "رقم القيد",

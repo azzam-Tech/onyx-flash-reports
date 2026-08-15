@@ -1,5 +1,7 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>تقارير SREEN</title><style>
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>تقارير SREEN</title>
+<link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.dataTables.min.css">
+<style>
 
 /* Hide scrollbars completely while keeping scroll functionality */
 ::-webkit-scrollbar { display: none; }
@@ -381,13 +383,13 @@ table.dataTable.no-footer { border-bottom: 1px solid #e2e8f0; }
      {% endif %}
      {% else %}
      <div class="pills">
-       {% for r in tab.reports %}{% if (cur_tab ~ '/' ~ r.id) not in hidden_reports %}
+       {% for r in tab.reports %}{% if (cur_tab ~ '/' ~ r.id) not in hidden_reports and not r.get('hide_from_menu') %}
          <a class="pill {{ 'on' if r.id==rpt.id else '' }}" href="/?tab={{cur_tab}}&report={{r.id}}">{{ r.title }}</a>
        {% endif %}{% endfor %}
      </div>
      <div class="mobile-dropdown">
        <select onchange="window.location.href=this.value">
-         {% for r in tab.reports %}{% if (cur_tab ~ '/' ~ r.id) not in hidden_reports %}
+         {% for r in tab.reports %}{% if (cur_tab ~ '/' ~ r.id) not in hidden_reports and not r.get('hide_from_menu') %}
            <option value="/?tab={{cur_tab}}&report={{r.id}}" {{ 'selected' if r.id==rpt.id else '' }}>{{ r.title }}</option>
          {% endif %}{% endfor %}
        </select>
@@ -418,6 +420,8 @@ table.dataTable.no-footer { border-bottom: 1px solid #e2e8f0; }
          {% elif p.get('_list') %}
            <input type="text" name="{{p.name}}" list="dl_{{p.name}}" autocomplete="off" placeholder="ابحث بالكود أو الاسم" value="{{ binds.get(p.name) if binds.get(p.name) is not none else '' }}">
            <datalist id="dl_{{p.name}}">{% for o in p.get('_list') %}<option value="{{o}}"></option>{% endfor %}</datalist>
+          {% elif p.type=='checkbox' %}
+            <input type="checkbox" name="{{p.name}}" value="1" {% if binds.get(p.name)|string == '1' %}checked{% endif %}>
          {% else %}
            <input type="{{p.type}}" name="{{p.name}}" value="{{ binds.get(p.name) if binds.get(p.name) is not none else '' }}">
          {% endif %}
@@ -532,19 +536,41 @@ table.dataTable.no-footer { border-bottom: 1px solid #e2e8f0; }
      {% if error %}<div class="err">خطأ: {{error}}</div>
      {% else %}
        
-<div class="tw" style="overflow-x:hidden;">
+<div class="tw">
   <table id="mainTable" class="display nowrap" style="width:100%">
     <thead>
       {% if rpt.id == 'detailed_stock_pivot' %}
       <tr>
         <th colspan="6" style="text-align:center; background:#f8fafc;">معلومات الصنف</th>
         <th colspan="7" style="text-align:center; background:#4f46e5; color:#fff;">الرصيد الافتتاحي</th>
-        <th colspan="2" style="text-align:center; background:#0ea5e9; color:#fff;">الحركة (صادر / وارد)</th>
+        <th colspan="4" style="text-align:center; background:#0ea5e9; color:#fff;">الحركة (مبيعات ومشتريات)</th>
         <th colspan="7" style="text-align:center; background:#10b981; color:#fff;">الرصيد النهائي</th>
       </tr>
       <tr>
         {% for c in cols %}
           {% set clean_c = c|replace('افتتاحي ', '')|replace('نهائي ', '')|replace('صادر (مبيعات/تحويل)', 'صادر')|replace('وارد (مشتريات/استرجاع)', 'وارد') %}
+          <th>{{ clean_c }}</th>
+        {% endfor %}
+      </tr>
+      {% elif rpt.id == 'monthly_movement_pivot' %}
+      <tr>
+        <th colspan="6" style="text-align:center; background:#f8fafc;">معلومات الصنف</th>
+        <th colspan="4" style="text-align:center; background:#4f46e5; color:#fff;">يناير</th>
+        <th colspan="4" style="text-align:center; background:#0ea5e9; color:#fff;">فبراير</th>
+        <th colspan="4" style="text-align:center; background:#10b981; color:#fff;">مارس</th>
+        <th colspan="4" style="text-align:center; background:#f59e0b; color:#fff;">أبريل</th>
+        <th colspan="4" style="text-align:center; background:#ef4444; color:#fff;">مايو</th>
+        <th colspan="4" style="text-align:center; background:#8b5cf6; color:#fff;">يونيو</th>
+        <th colspan="4" style="text-align:center; background:#ec4899; color:#fff;">يوليو</th>
+        <th colspan="4" style="text-align:center; background:#f43f5e; color:#fff;">أغسطس</th>
+        <th colspan="4" style="text-align:center; background:#14b8a6; color:#fff;">سبتمبر</th>
+        <th colspan="4" style="text-align:center; background:#eab308; color:#fff;">أكتوبر</th>
+        <th colspan="4" style="text-align:center; background:#f97316; color:#fff;">نوفمبر</th>
+        <th colspan="4" style="text-align:center; background:#64748b; color:#fff;">ديسمبر</th>
+      </tr>
+      <tr>
+        {% for c in cols %}
+          {% set clean_c = c|replace('مبيعات ش', 'مبيعات')|replace('مردود مبيعات ش', 'مردود')|replace('مشتريات ش', 'مشتريات')|replace('مردود مشتريات ش', 'مردود')|replace('1', '')|replace('2', '')|replace('3', '')|replace('4', '')|replace('5', '')|replace('6', '')|replace('7', '')|replace('8', '')|replace('9', '')|replace('0', '') %}
           <th>{{ clean_c }}</th>
         {% endfor %}
       </tr>
@@ -630,6 +656,7 @@ table.dataTable.no-footer { border-bottom: 1px solid #e2e8f0; }
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>
 <script>
 $(document).ready(function() {
     if($('#mainTable').length){
@@ -642,6 +669,8 @@ $(document).ready(function() {
             },
             "pageLength": 100,
             "lengthMenu": [[50, 100, 500, -1], [50, 100, 500, "الكل"]],
+            "scrollY": "60vh",
+            "scrollCollapse": true,
             "scrollX": true,
             "ordering": true,
             "bSortClasses": false,
