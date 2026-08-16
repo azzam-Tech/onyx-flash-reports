@@ -115,11 +115,12 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
           const rawCol = rawCols[colIdx]
           if (hiddenColsList.includes(rawCol)) { colIdx++; continue; }
           const cleanCol = rawCol.replace('افتتاحي ', '').replace('نهائي ', '').replace('صادر (مبيعات/تحويل)', 'صادر').replace('وارد (مشتريات/استرجاع)', 'وارد')
+          const currentIndex = colIdx;
           groupCols.push({
             header: cleanCol,
-            accessorFn: (row: any[]) => row[colIdx],
-            id: `col_${colIdx}`,
-            meta: { originalIndex: colIdx }
+            accessorFn: (row: any[]) => row[currentIndex],
+            id: `col_${currentIndex}`,
+            meta: { originalIndex: currentIndex }
           })
           colIdx++
         }
@@ -334,11 +335,14 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                   <tbody className="divide-y divide-slate-100/50 print:divide-slate-400">
                     {totalRow && (
                       <tr className="bg-primary/5 font-extrabold text-primary border-b-2 border-primary/10 shadow-sm relative z-0 print:bg-slate-200 print:border-b-2 print:border-b-slate-800 print:text-slate-900 print:shadow-none">
-                        {columns.map((col: any) => (
-                          <td key={`total_${col.id}`} className="px-4 py-2 whitespace-nowrap print:whitespace-normal print:border print:border-slate-400 text-right print:px-1 print:py-0.5">
-                            {totalRow[col.meta.originalIndex]}
-                          </td>
-                        ))}
+                        {table.getVisibleLeafColumns().map((col) => {
+                          const originalIndex = (col.columnDef.meta as any)?.originalIndex;
+                          return (
+                            <td key={`total_${col.id}`} className="px-4 py-2 whitespace-nowrap print:whitespace-normal print:border print:border-slate-400 text-right print:px-1 print:py-0.5">
+                              {originalIndex !== undefined ? totalRow[originalIndex] : null}
+                            </td>
+                          );
+                        })}
                       </tr>
                     )}
                     {table.getRowModel().rows.length > 0 ? (
