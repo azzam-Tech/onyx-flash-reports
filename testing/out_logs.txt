@@ -1,0 +1,38 @@
+---
+<USER_REQUEST>
+في التقرير السابق كنت في الفلاتر لمن اضغط تظهر لي القائمة بالكامل بامكاني الاختيار او الكتابة 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-08-15T16:24:02+03:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\privet\onyx_reports\templates\index.html (LANGUAGE_HTML)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\privet\onyx_reports\templates\inde
+---
+<USER_REQUEST>
+لا زالت التقارير لايظهر فيها الدروب داون 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-08-15T16:28:23+03:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\privet\onyx_reports\templates\index.html (LANGUAGE_HTML)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\privet\onyx_reports\templates\index.html (LANGUAGE_HTML)
+No browser pages are currently
+---
+<USER_REQUEST>
+ليس في المندوب فقط  اريده بل في اي شي اخر 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-08-15T16:36:24+03:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\privet\onyx_reports\templates\index.html (LANGUAGE_HTML)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\amarn\OneDrive\Desktop\dbOnyxOnAntigravity\privet\onyx_reports\templates\index.html (LANGUAGE_HTML)
+No browser pages are currentl

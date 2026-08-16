@@ -95,7 +95,85 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
   const hiddenColsList = ["الخصم في الفاتورة", "إيداعات وتسويات (بدون عميل)"]
 
   const columns = useMemo(() => {
-    return data.cols
+    const rawCols = data.cols
+
+    if (reportId === 'detailed_stock_pivot' && rawCols.length >= 22) {
+      const groups = [
+        { header: 'معلومات الصنف', colspan: 6 },
+        { header: 'الرصيد الافتتاحي', colspan: 7 },
+        { header: 'الحركة (صادر / وارد)', colspan: 2 },
+        { header: 'الرصيد النهائي', colspan: 7 },
+      ]
+      
+      let colIdx = 0
+      const finalCols = []
+      
+      for (const group of groups) {
+        const groupCols = []
+        for (let i = 0; i < group.colspan; i++) {
+          if (colIdx >= rawCols.length) break
+          const rawCol = rawCols[colIdx]
+          if (hiddenColsList.includes(rawCol)) { colIdx++; continue; }
+          const cleanCol = rawCol.replace('افتتاحي ', '').replace('نهائي ', '').replace('صادر (مبيعات/تحويل)', 'صادر').replace('وارد (مشتريات/استرجاع)', 'وارد')
+          groupCols.push({
+            header: cleanCol,
+            accessorFn: (row: any[]) => row[colIdx],
+            id: `col_${colIdx}`,
+            meta: { originalIndex: colIdx }
+          })
+          colIdx++
+        }
+        if (groupCols.length > 0) {
+          finalCols.push({ header: group.header, columns: groupCols, id: `group_${colIdx}` })
+        }
+      }
+      return finalCols
+    }
+
+    if (reportId === 'monthly_movement_pivot' && rawCols.length > 6) {
+      const finalCols = []
+      const itemInfoCols = []
+      for (let i = 0; i < 6; i++) {
+        if (i < rawCols.length && !hiddenColsList.includes(rawCols[i])) {
+          itemInfoCols.push({
+            header: rawCols[i],
+            accessorFn: (row: any[]) => row[i],
+            id: `col_${i}`,
+            meta: { originalIndex: i }
+          })
+        }
+      }
+      if (itemInfoCols.length > 0) {
+        finalCols.push({ header: 'معلومات الصنف', columns: itemInfoCols, id: 'group_items' })
+      }
+      
+      const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+      let monthIdx = 0
+      
+      for (let i = 6; i < rawCols.length; i += 4) {
+        const monthGroup = []
+        for (let j = 0; j < 4; j++) {
+          const cIdx = i + j
+          if (cIdx < rawCols.length && !hiddenColsList.includes(rawCols[cIdx])) {
+             const cleanCol = rawCols[cIdx].replace(/يناير |فبراير |مارس |أبريل |مايو |يونيو |يوليو |أغسطس |سبتمبر |أكتوبر |نوفمبر |ديسمبر /g, '')
+             monthGroup.push({
+               header: cleanCol,
+               accessorFn: (row: any[]) => row[cIdx],
+               id: `col_${cIdx}`,
+               meta: { originalIndex: cIdx }
+             })
+          }
+        }
+        if (monthGroup.length > 0) {
+           finalCols.push({ header: months[monthIdx] || `شهر ${monthIdx+1}`, columns: monthGroup, id: `group_m_${monthIdx}` })
+           monthIdx++
+        }
+      }
+      return finalCols
+    }
+
+    // Default flat columns
+    return rawCols
       .map((col, index) => ({
         header: col,
         accessorFn: (row: any[]) => row[index],
@@ -103,7 +181,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
         meta: { originalIndex: index }
       }))
       .filter(c => !hiddenColsList.includes(c.header))
-  }, [data.cols])
+  }, [data.cols, reportId])
   
   const totalRow = useMemo(() => data.rows.length > 0 ? data.rows[0] : null, [data.rows])
   const tableData = useMemo(() => data.rows.length > 1 ? data.rows.slice(1) : [], [data.rows])
@@ -151,56 +229,46 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent print:bg-white print:h-auto p-4 md:p-6 gap-6">
       
-      {/* Top Header Card */}
-      <div className="soft-card flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 gap-4 print:hidden">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">{reportTitle}</h2>
-          <p className="text-sm text-muted-foreground mt-1">عرض وتحليل بيانات التقرير</p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          {showFilter && (
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                placeholder="بحث في جميع الأعمدة..."
-                value={globalFilter ?? ''}
-                onChange={e => setGlobalFilter(e.target.value)}
-                className="w-full h-10 pr-10 pl-4 rounded-xl border-none bg-slate-100/50 focus:bg-white shadow-inner outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-              />
-            </div>
-          )}
-          <div className="flex gap-2">
-            <button 
-              className={cn("soft-button flex items-center gap-2 px-4 py-2 text-sm font-semibold", showFilter && "text-primary ring-1 ring-primary/20")}
-              onClick={() => setShowFilter(!showFilter)}
-            >
-              <Filter className="w-4 h-4" /> بحث سريع
-            </button>
-            <button 
-              className="soft-button flex items-center gap-2 px-4 py-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-              onClick={exportToExcel}
-              disabled={isLoading || data.rows.length === 0}
-            >
-              <Download className="w-4 h-4" /> تصدير إكسل
-            </button>
-            <button 
-              className="soft-button flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600"
-              onClick={handlePrint}
-              disabled={isLoading || data.rows.length === 0}
-            >
-              <Printer className="w-4 h-4" /> طباعة
-            </button>
-          </div>
-        </div>
-      </div>
-      
       {/* Top Report Parameters */}
       <ReportFilters 
         params={reportParams} 
         initialBinds={reportBinds} 
         onApply={setCurrentQuery} 
-      />
+      >
+        {showFilter && (
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              placeholder="بحث في جميع الأعمدة..."
+              value={globalFilter ?? ''}
+              onChange={e => setGlobalFilter(e.target.value)}
+              className="w-full h-10 pr-10 pl-4 rounded-xl border-none bg-slate-100/50 focus:bg-white shadow-inner outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+            />
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            className={cn("flex items-center gap-2 px-4 py-2 text-[13px] font-bold rounded-xl transition-all duration-300", showFilter ? "bg-primary text-white shadow-md shadow-primary/20" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-primary/30")}
+            onClick={() => setShowFilter(!showFilter)}
+          >
+            <Filter className="w-4 h-4" /> بحث سريع
+          </button>
+          <button 
+            className="flex items-center gap-2 px-4 py-2 text-[13px] font-bold rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white hover:shadow-md hover:shadow-emerald-500/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={exportToExcel}
+            disabled={isLoading || data.rows.length === 0}
+          >
+            <Download className="w-4 h-4" /> تصدير إكسل
+          </button>
+          <button 
+            className="flex items-center gap-2 px-4 py-2 text-[13px] font-bold rounded-xl bg-white text-slate-600 border border-slate-200 hover:bg-slate-800 hover:text-white hover:shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handlePrint}
+            disabled={isLoading || data.rows.length === 0}
+          >
+            <Printer className="w-4 h-4" /> طباعة
+          </button>
+        </div>
+      </ReportFilters>
 
       {/* Print-only Header */}
       <div className="hidden print:block p-6 pb-2 text-center border-b mb-4">
@@ -228,23 +296,35 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                         {headerGroup.headers.map(header => (
                           <th 
                             key={header.id} 
-                            className="px-4 py-2.5 font-bold whitespace-nowrap align-top select-none print:border print:border-gray-300 min-w-[140px] first:rounded-tr-xl last:rounded-tl-xl"
+                            colSpan={header.colSpan}
+                            className={cn(
+                              "px-4 py-2.5 font-bold whitespace-nowrap align-top select-none print:border print:border-gray-300 min-w-[140px] first:rounded-tr-xl last:rounded-tl-xl border-b border-slate-200 text-right",
+                              header.colSpan > 1 ? "text-center bg-slate-100/80" : ""
+                            )}
                           >
-                            <div 
-                              className="flex items-center gap-1 justify-end cursor-pointer hover:text-primary transition-colors"
-                              onClick={header.column.getToggleSortingHandler()}
-                            >
-                              {{
-                                asc: ' 🔼',
-                                desc: ' 🔽',
-                              }[header.column.getIsSorted() as string] ?? null}
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                            </div>
-                            {/* Column Filter Dropdown */}
-                            <ColumnFilter column={header.column} table={table} />
+                            {header.isPlaceholder ? null : (
+                              <>
+                                <div 
+                                  className={cn("flex items-center gap-1 cursor-pointer hover:text-primary transition-colors", header.colSpan > 1 ? "justify-center" : "justify-start")}
+                                  onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                                >
+                                  {header.column.getCanSort() ? (
+                                    {
+                                      asc: ' 🔼',
+                                      desc: ' 🔽',
+                                    }[header.column.getIsSorted() as string] ?? null
+                                  ) : null}
+                                  {flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                                </div>
+                                {/* Column Filter Dropdown only on lowest level columns */}
+                                {header.subHeaders.length === 0 && (
+                                  <ColumnFilter column={header.column} table={table} />
+                                )}
+                              </>
+                            )}
                           </th>
                         ))}
                       </tr>
@@ -254,7 +334,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                     {totalRow && (
                       <tr className="bg-primary/5 font-extrabold text-primary border-b-2 border-primary/10 shadow-sm relative z-0 print:bg-gray-200 print:border-b-2">
                         {columns.map((col: any) => (
-                          <td key={`total_${col.id}`} className="px-4 py-2 whitespace-nowrap print:border print:border-gray-300">
+                          <td key={`total_${col.id}`} className="px-4 py-2 whitespace-nowrap print:border print:border-gray-300 text-right">
                             {totalRow[col.meta.originalIndex]}
                           </td>
                         ))}
@@ -267,7 +347,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                           className="hover:bg-slate-50/50 text-slate-600 font-medium transition-colors duration-200"
                         >
                           {row.getVisibleCells().map(cell => (
-                            <td key={cell.id} className="px-4 py-1.5 whitespace-nowrap print:border print:border-gray-300">
+                            <td key={cell.id} className="px-4 py-1.5 whitespace-nowrap print:border print:border-gray-300 text-right">
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </td>
                           ))}
@@ -285,40 +365,40 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
               </div>
               
               {/* Pagination Controls */}
-              <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-slate-100/50 bg-slate-50/50 print:hidden gap-4">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-2 border-t border-slate-100/50 bg-slate-50/50 print:hidden gap-3">
+                <div className="flex items-center gap-1.5">
                   <button
-                    className="soft-button px-4 py-2 text-sm font-semibold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:text-primary transition-colors"
+                    className="soft-button px-3 py-1.5 text-[12px] font-bold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:text-primary transition-colors rounded-lg"
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                   >
                     السابق
                   </button>
                   <button
-                    className="soft-button px-4 py-2 text-sm font-semibold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:text-primary transition-colors"
+                    className="soft-button px-3 py-1.5 text-[12px] font-bold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:text-primary transition-colors rounded-lg"
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                   >
                     التالي
                   </button>
                 </div>
-                <span className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                <span className="flex items-center gap-1.5 text-[12px] text-slate-600 font-bold">
                   <div>صفحة</div>
-                  <strong className="text-primary font-bold">
+                  <strong className="text-primary bg-white px-2 py-0.5 rounded shadow-sm border border-slate-200">
                     {table.getState().pagination.pageIndex + 1}
                   </strong>
                   <div>من {table.getPageCount()}</div>
                 </span>
                 <select
-                  value={table.getState().pagination.pageSize}
+                  value={table.getState().pagination.pageSize === 1000000 ? 1000000 : table.getState().pagination.pageSize}
                   onChange={e => {
                     table.setPageSize(Number(e.target.value))
                   }}
-                  className="soft-button px-4 py-2 text-sm text-slate-600 font-semibold outline-none cursor-pointer hover:text-primary transition-colors appearance-none"
+                  className="soft-button px-3 py-1.5 text-[12px] text-slate-600 font-bold outline-none cursor-pointer hover:text-primary transition-colors appearance-none rounded-lg bg-white"
                 >
-                  {[100, 250, 500, 1000].map(pageSize => (
+                  {[100, 250, 500, 1000, 1000000].map(pageSize => (
                     <option key={pageSize} value={pageSize}>
-                      عرض {pageSize} سطر
+                      {pageSize === 1000000 ? 'عرض الكل' : `عرض ${pageSize} سطر`}
                     </option>
                   ))}
                 </select>

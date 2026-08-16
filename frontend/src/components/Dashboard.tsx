@@ -134,7 +134,7 @@ export function Dashboard() {
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent overflow-auto p-4 md:p-6 gap-6">
       {/* Top Header Card */}
-      <div className="soft-card flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 gap-4 print:hidden relative overflow-hidden">
+      <div className="soft-card flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 gap-4 print:hidden relative overflow-hidden shrink-0">
         <div className="absolute -left-10 -top-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl"></div>
         
         <div className="relative z-10">
@@ -257,7 +257,7 @@ export function Dashboard() {
                       formatter={(value: number) => formatNumber(value)}
                       contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontWeight: 'bold'}}
                     />
-                    <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{fontSize: '12px', fontWeight: '600'}} />
+                    <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{fontSize: '14px', fontWeight: 'bold', lineHeight: '28px'}} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -280,7 +280,7 @@ export function Dashboard() {
                       formatter={(value: number) => formatNumber(value)}
                       contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontWeight: 'bold'}}
                     />
-                    <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{fontSize: '12px', fontWeight: '600'}} />
+                    <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{fontSize: '14px', fontWeight: 'bold', lineHeight: '28px'}} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
