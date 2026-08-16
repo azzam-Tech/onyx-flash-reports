@@ -1690,7 +1690,7 @@ TABS = [
       """}
   ]},
  {"id":"stock","title":"المخزون","icon":"M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10","reports":[
-    {"id":"detailed_stock_pivot","title":"حركة وأرصدة المخزون الشامل","params":[DFROM,DTO],"sql":"""
+    {"id":"detailed_stock_pivot","pivot_type":"detailed_stock","title":"حركة وأرصدة المخزون الشامل","params":[DFROM,DTO],"sql":"""
         WITH item_groups AS (
             SELECT 
                 m.I_CODE,
@@ -1769,7 +1769,7 @@ TABS = [
         ORDER BY ig.main_grp, ig.I_CODE
     """},
 
-          {"id":"monthly_movement_pivot","title":"حركة الأصناف الشهرية (مبيعات/مشتريات)","params":[PYEAR],"sql":"""
+          {"id":"monthly_movement_pivot","pivot_type":"monthly_movement","title":"حركة الأصناف الشهرية (مبيعات/مشتريات)","params":[PYEAR],"sql":"""
         WITH item_groups AS (
             SELECT 
                 m.I_CODE,

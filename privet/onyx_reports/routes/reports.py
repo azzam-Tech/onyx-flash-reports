@@ -60,6 +60,15 @@ def api_report_data(tab_id, report_id):
         binds = dict(request.args)
         
         cols, rows = run_report(rpt, request.args)
-        return jsonify({"cols": cols, "rows": rows, "params": resolved_params, "binds": binds})
+        return jsonify({
+            "cols": cols, 
+            "rows": rows, 
+            "params": resolved_params, 
+            "binds": binds,
+            "metadata": {
+                "id": rpt.get("id"),
+                "pivot_type": rpt.get("pivot_type", None)
+            }
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

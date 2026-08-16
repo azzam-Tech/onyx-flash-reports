@@ -97,7 +97,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
   const columns = useMemo(() => {
     const rawCols = data.cols
 
-    if (reportId === 'detailed_stock_pivot' && rawCols.length >= 22) {
+    if (data.metadata?.pivot_type === 'detailed_stock' && rawCols.length >= 22) {
       const groups = [
         { header: 'معلومات الصنف', colspan: 6 },
         { header: 'الرصيد الافتتاحي', colspan: 7 },
@@ -131,7 +131,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
       return finalCols
     }
 
-    if (reportId === 'monthly_movement_pivot' && rawCols.length > 6) {
+    if (data.metadata?.pivot_type === 'monthly_movement' && rawCols.length > 6) {
       const finalCols = []
       const itemInfoCols = []
       for (let i = 0; i < 6; i++) {
@@ -182,7 +182,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
         meta: { originalIndex: index }
       }))
       .filter(c => !hiddenColsList.includes(c.header))
-  }, [data.cols, reportId])
+  }, [data.cols, reportId, data.metadata?.pivot_type])
   
   const totalRow = useMemo(() => data.rows.length > 0 ? data.rows[0] : null, [data.rows])
   const tableData = useMemo(() => data.rows.length > 1 ? data.rows.slice(1) : [], [data.rows])
