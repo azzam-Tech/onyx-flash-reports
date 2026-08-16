@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 from flask import Flask, request, render_template_string, render_template, Response, session, redirect, jsonify
 import os
 import json
@@ -14,7 +14,7 @@ from report_handlers import *
 
 from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='public', static_url_path='/')
 CORS(app, supports_credentials=True)
 
 @app.before_request
@@ -47,7 +47,7 @@ def require_login():
     # Let React handle authentication flow; just serve static assets unconditionally
     return None
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/_old_login", methods=["GET", "POST"])
 def login():
     error = None
     if request.method == "POST":
@@ -71,10 +71,10 @@ def login():
             session['role'] = found_user_data.get('role', 'user')
             return redirect('/')
         else:
-            error = "الرمز غير صحيح، حاول مرة أخرى."
+            error = "ط§ظ„ط±ظ…ط² ط؛ظٹط± طµط­ظٹط­طŒ ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰."
     return render_template("login.html", error=error)
 
-@app.route("/logout")
+@app.route("/_old_logout")
 def logout():
     session.pop('logged_in', None)
     return redirect('/login')
@@ -109,7 +109,7 @@ def api_login():
             }
         })
     else:
-        return jsonify({"success": False, "error": "رمز المرور غير صحيح"}), 401
+        return jsonify({"success": False, "error": "ط±ظ…ط² ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­"}), 401
 
 @app.route("/api/session", methods=["GET"])
 def api_session():
@@ -139,7 +139,7 @@ def api_logout():
     return jsonify({"success": True})
 
 
-@app.route("/")
+@app.route("/_old_index")
 def index():
     username = session.get('username')
     hidden_tabs, hidden_reports = load_hidden()
@@ -163,7 +163,7 @@ def index():
             _vis.append(t_copy)
             
     if not _vis:
-        return "لا تملك صلاحية لعرض أي تقارير."
+        return "ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ظ„ط¹ط±ط¶ ط£ظٹ طھظ‚ط§ط±ظٹط±."
         
     cur_tab = request.args.get("tab", _vis[0]["id"])
     rid = request.args.get("report", "")
@@ -171,7 +171,7 @@ def index():
     # Find the current tab in the filtered list
     tab = next((t for t in _vis if t["id"] == cur_tab), None)
     if not tab:
-        return "غير مصرح لك بعرض هذا التبويب."
+        return "ط؛ظٹط± ظ…طµط±ط­ ظ„ظƒ ط¨ط¹ط±ط¶ ظ‡ط°ط§ ط§ظ„طھط¨ظˆظٹط¨."
         
     # Find the requested report in the allowed reports of this tab
     rpt = next((r for r in tab["reports"] if r["id"] == rid), None)
@@ -215,47 +215,47 @@ table{border-collapse:collapse;width:100%;table-layout:fixed;word-wrap:break-wor
 thead th{background:#4f46e5;color:#fff;padding:4px 4px;font-size:11px;text-align:right;border:1px solid #4338ca;font-weight:700}
 tbody td{padding:3px 4px;font-size:11px;border:1px solid #e2e8f0;text-align:right;font-weight:500;color:#1e293b}
 tbody tr:nth-child(even) td{background:#f8fafc}
-tbody tr:first-child td{background:#eef2ff;font-weight:800;color:#3730a3;border-bottom:2px solid #a5b4fc} /* تمييز صف الإجمالي */
+tbody tr:first-child td{background:#eef2ff;font-weight:800;color:#3730a3;border-bottom:2px solid #a5b4fc} /* طھظ…ظٹظٹط² طµظپ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ */
 .ft{margin-top:20px;font-size:11px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px;font-weight:600}
 
 </style></head>
 <body onload="setTimeout(function(){window.print()},250)">
 <div class="hd">
-  <h1 style="color:#4f46e5;font-weight:900;margin:0;font-size:26px">تقارير الأونكس الحديثة</h1>
-  <div><h1>{{title}}</h1><div class="dt">تاريخ الطباعة: {{now}}</div></div>
+  <h1 style="color:#4f46e5;font-weight:900;margin:0;font-size:26px">طھظ‚ط§ط±ظٹط± ط§ظ„ط£ظˆظ†ظƒط³ ط§ظ„ط­ط¯ظٹط«ط©</h1>
+  <div><h1>{{title}}</h1><div class="dt">طھط§ط±ظٹط® ط§ظ„ط·ط¨ط§ط¹ط©: {{now}}</div></div>
 </div>
-{% if filt %}<div class="filt">الفلاتر — {% for f in filt %}<b>{{f[0]}}</b>: {{f[1]}}{% if not loop.last %} &nbsp;|&nbsp; {% endif %}{% endfor %}</div>{% endif %}
-{% set hidden_cols = ["الخصم في الفاتورة", "إيداعات وتسويات (بدون عميل)"] %}
+{% if filt %}<div class="filt">ط§ظ„ظپظ„ط§طھط± â€” {% for f in filt %}<b>{{f[0]}}</b>: {{f[1]}}{% if not loop.last %} &nbsp;|&nbsp; {% endif %}{% endfor %}</div>{% endif %}
+{% set hidden_cols = ["ط§ظ„ط®طµظ… ظپظٹ ط§ظ„ظپط§طھظˆط±ط©", "ط¥ظٹط¯ط§ط¹ط§طھ ظˆطھط³ظˆظٹط§طھ (ط¨ط¯ظˆظ† ط¹ظ…ظٹظ„)"] %}
 <table><thead><tr>{% for c in cols %}{% if c not in hidden_cols %}<th>{{c}}</th>{% endif %}{% endfor %}</tr></thead>
 <tbody>{% for row in rows %}<tr>{% for cell in row %}{% if cols[loop.index0] not in hidden_cols %}<td>{{ '' if cell is none else cell }}</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table>
-<div class="ft">لوحة تقارير SREEN — عدد الصفوف: {{rows|length}}</div>
+<div class="ft">ظ„ظˆط­ط© طھظ‚ط§ط±ظٹط± SREEN â€” ط¹ط¯ط¯ ط§ظ„طµظپظˆظپ: {{rows|length}}</div>
 </body></html>"""
 
-@app.route("/export")
+@app.route("/_old_export")
 def export():
     username = session.get('username')
     tab_id = request.args.get("tab", TABS[0]["id"])
     report_id = request.args.get("report","")
     if not check_permission(username, tab_id, report_id):
-        return "غير مصرح لك بتصدير هذا التقرير.", 403
+        return "ط؛ظٹط± ظ…طµط±ط­ ظ„ظƒ ط¨طھطµط¯ظٹط± ظ‡ط°ط§ ط§ظ„طھظ‚ط±ظٹط±.", 403
     tab, rpt = find_report(tab_id, report_id)
     try:
         cols, rows = run_report(rpt, request.args)
     except Exception as e:
-        return "خطأ: " + str(e), 500
+        return "ط®ط·ط£: " + str(e), 500
     try:
-        hidden_cols = ["الخصم في الفاتورة", "إيداعات وتسويات (بدون عميل)"]
+        hidden_cols = ["ط§ظ„ط®طµظ… ظپظٹ ط§ظ„ظپط§طھظˆط±ط©", "ط¥ظٹط¯ط§ط¹ط§طھ ظˆطھط³ظˆظٹط§طھ (ط¨ط¯ظˆظ† ط¹ظ…ظٹظ„)"]
         valid_indices = [i for i, col in enumerate(cols) if col not in hidden_cols]
         filtered_cols = [cols[i] for i in valid_indices]
 
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
         from openpyxl.utils import get_column_letter
-        wb = Workbook(); ws = wb.active; ws.title = "تقرير"
+        wb = Workbook(); ws = wb.active; ws.title = "طھظ‚ط±ظٹط±"
         ws.sheet_view.rightToLeft = True
         ws.append(filtered_cols)
         
-        # تنسيق الرأس
+        # طھظ†ط³ظٹظ‚ ط§ظ„ط±ط£ط³
         header_fill = PatternFill("solid", fgColor="4F46E5")
         header_font = Font(bold=True, color="FFFFFF")
         border = Border(left=Side(style='thin', color='E2E8F0'), 
@@ -269,7 +269,7 @@ def export():
             cell.alignment = Alignment(horizontal="right")
             cell.border = border
             
-        # تنسيق صف الإجمالي (الصف الأول من البيانات وهو الصف الثاني في الإكسل)
+        # طھظ†ط³ظٹظ‚ طµظپ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ (ط§ظ„طµظپ ط§ظ„ط£ظˆظ„ ظ…ظ† ط§ظ„ط¨ظٹط§ظ†ط§طھ ظˆظ‡ظˆ ط§ظ„طµظپ ط§ظ„ط«ط§ظ†ظٹ ظپظٹ ط§ظ„ط¥ظƒط³ظ„)
         total_fill = PatternFill("solid", fgColor="EEF2FF")
         total_font = Font(bold=True, color="3730A3")
         
@@ -279,7 +279,7 @@ def export():
             for cell_idx, cell in enumerate(ws[row_idx], start=1):
                 cell.border = border
                 cell.alignment = Alignment(horizontal="right")
-                if row_idx == 2:  # صف الإجمالي
+                if row_idx == 2:  # طµظپ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ
                     cell.fill = total_fill
                     cell.font = total_font
 
@@ -303,19 +303,19 @@ def export():
             mimetype="text/csv",
             headers={"Content-Disposition": "attachment; filename=%s.csv" % rpt["id"]})
 
-@app.route("/print")
+@app.route("/_old_print")
 def printview():
     username = session.get('username')
     tab_id = request.args.get("tab", TABS[0]["id"])
     report_id = request.args.get("report","")
     if not check_permission(username, tab_id, report_id):
-        return "غير مصرح لك بطباعة هذا التقرير.", 403
+        return "ط؛ظٹط± ظ…طµط±ط­ ظ„ظƒ ط¨ط·ط¨ط§ط¹ط© ظ‡ط°ط§ ط§ظ„طھظ‚ط±ظٹط±.", 403
     tab, rpt = find_report(tab_id, report_id)
     try:
         cols, rows = run_report(rpt, request.args)
         model = request.args.get("model", "1")
         if model == "2" and rpt["id"] == "collection_adopted":
-            new_cols = ["الرمز", "الاسم / الوصف", "إجمالي السندات", "قيود الشبكة المنفصلة", "صافي المبيعات النقدية", "الإجمالي النهائي"]
+            new_cols = ["ط§ظ„ط±ظ…ط²", "ط§ظ„ط§ط³ظ… / ط§ظ„ظˆطµظپ", "ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط³ظ†ط¯ط§طھ", "ظ‚ظٹظˆط¯ ط§ظ„ط´ط¨ظƒط© ط§ظ„ظ…ظ†ظپطµظ„ط©", "طµط§ظپظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ†ظ‚ط¯ظٹط©", "ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ†ظ‡ط§ط¦ظٹ"]
             new_rows = []
             for r in rows:
                 def parse_num(v):
@@ -337,32 +337,32 @@ def printview():
             rows = new_rows
 
     except Exception as e:
-        return "خطأ: " + str(e), 500
+        return "ط®ط·ط£: " + str(e), 500
     filt = []
     for p in rpt["params"]:
         v = request.args.get(p["name"], p.get("default",""))
         if v not in ("", None): filt.append((p["label"], v))
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    title = rpt["title"] + (" (نموذج 2)" if request.args.get("model") == "2" else "")
+    title = rpt["title"] + (" (ظ†ظ…ظˆط°ط¬ 2)" if request.args.get("model") == "2" else "")
     return render_template("print.html", title=title, cols=cols, rows=rows, filt=filt, now=now)
 
 SETTINGS_PAGE = """<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>الإعدادات</title>""" + STYLE + """</head><body>
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</title>""" + STYLE + """</head><body>
 <div class="app"><div class="main">
  <div class="wrap">
-   <a class="back" href="/" style="color:#4f46e5;font-weight:700;display:inline-block;margin-bottom:10px">&#8594; رجوع للتقارير</a>
-   {% if saved %}<div style="background:#e8f4ec;color:#1e7b34;padding:10px 14px;border-radius:8px;margin:6px 0 12px">تم حفظ الإعدادات</div>{% endif %}
-   <h1>إظهار / إخفاء التبويبات والتقارير</h1>
-   <p style="color:#6b7280;font-size:13px;margin-bottom:12px">ضع علامة على ما تريد إخفاءه من الواجهة، ثم احفظ.</p>
+   <a class="back" href="/" style="color:#4f46e5;font-weight:700;display:inline-block;margin-bottom:10px">&#8594; ط±ط¬ظˆط¹ ظ„ظ„طھظ‚ط§ط±ظٹط±</a>
+   {% if saved %}<div style="background:#e8f4ec;color:#1e7b34;padding:10px 14px;border-radius:8px;margin:6px 0 12px">طھظ… ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</div>{% endif %}
+   <h1>ط¥ط¸ظ‡ط§ط± / ط¥ط®ظپط§ط، ط§ظ„طھط¨ظˆظٹط¨ط§طھ ظˆط§ظ„طھظ‚ط§ط±ظٹط±</h1>
+   <p style="color:#6b7280;font-size:13px;margin-bottom:12px">ط¶ط¹ ط¹ظ„ط§ظ…ط© ط¹ظ„ظ‰ ظ…ط§ طھط±ظٹط¯ ط¥ط®ظپط§ط،ظ‡ ظ…ظ† ط§ظ„ظˆط§ط¬ظ‡ط©طŒ ط«ظ… ط§ط­ظپط¸.</p>
    <form method="post">
      <input type="hidden" name="action" value="save">
      <div class="card" style="margin-bottom:16px;border:2px solid #f59e0b;background:#fffbeb">
-       <label style="font-weight:800;font-size:15px;color:#b45309"><input type="checkbox" name="hide_profit" {{ 'checked' if hide_profit else '' }}> 🔒 إخفاء كل ما يخص الربح من النظام</label>
-       <div style="margin-top:6px;color:#92400e;font-size:12.5px">عند التفعيل يُخفى: تبويب «الربحية» بالكامل، بطاقتا «مجمل الربح» و«صافي الربح» في لوحة القيادة، وتقريرا «قائمة الدخل» و«مراكز التكلفة» في التبويب المالي.</div>
+       <label style="font-weight:800;font-size:15px;color:#b45309"><input type="checkbox" name="hide_profit" {{ 'checked' if hide_profit else '' }}> ًں”’ ط¥ط®ظپط§ط، ظƒظ„ ظ…ط§ ظٹط®طµ ط§ظ„ط±ط¨ط­ ظ…ظ† ط§ظ„ظ†ط¸ط§ظ…</label>
+       <div style="margin-top:6px;color:#92400e;font-size:12.5px">ط¹ظ†ط¯ ط§ظ„طھظپط¹ظٹظ„ ظٹظڈط®ظپظ‰: طھط¨ظˆظٹط¨ آ«ط§ظ„ط±ط¨ط­ظٹط©آ» ط¨ط§ظ„ظƒط§ظ…ظ„طŒ ط¨ط·ط§ظ‚طھط§ آ«ظ…ط¬ظ…ظ„ ط§ظ„ط±ط¨ط­آ» ظˆآ«طµط§ظپظٹ ط§ظ„ط±ط¨ط­آ» ظپظٹ ظ„ظˆط­ط© ط§ظ„ظ‚ظٹط§ط¯ط©طŒ ظˆطھظ‚ط±ظٹط±ط§ آ«ظ‚ط§ط¦ظ…ط© ط§ظ„ط¯ط®ظ„آ» ظˆآ«ظ…ط±ط§ظƒط² ط§ظ„طھظƒظ„ظپط©آ» ظپظٹ ط§ظ„طھط¨ظˆظٹط¨ ط§ظ„ظ…ط§ظ„ظٹ.</div>
      </div>
      {% for t in tabs %}
        <div class="card" style="margin-bottom:12px">
-         <label style="font-weight:700;font-size:15px"><input type="checkbox" name="tab_{{t.id}}" {{ 'checked' if t.id in hidden_tabs else '' }}> إخفاء التبويب كاملاً: {{t.title}}</label>
+         <label style="font-weight:700;font-size:15px"><input type="checkbox" name="tab_{{t.id}}" {{ 'checked' if t.id in hidden_tabs else '' }}> ط¥ط®ظپط§ط، ط§ظ„طھط¨ظˆظٹط¨ ظƒط§ظ…ظ„ط§ظ‹: {{t.title}}</label>
          <div style="margin-top:10px;padding-right:18px;display:flex;flex-wrap:wrap;gap:14px">
            {% for r in t.reports %}
              <label style="font-size:13px;color:#374151"><input type="checkbox" name="rep_{{t.id}}/{{r.id}}" {{ 'checked' if (t.id ~ '/' ~ r.id) in hidden_reports else '' }}> {{r.title}}</label>
@@ -370,13 +370,13 @@ SETTINGS_PAGE = """<!doctype html><html lang="ar" dir="rtl"><head><meta charset=
          </div>
        </div>
      {% endfor %}
-     <button type="submit" style="background:#4f46e5;color:#fff;border:0;padding:12px 24px;border-radius:9px;font-weight:700;font-size:15px;cursor:pointer">حفظ الإعدادات</button>
+     <button type="submit" style="background:#4f46e5;color:#fff;border:0;padding:12px 24px;border-radius:9px;font-weight:700;font-size:15px;cursor:pointer">ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</button>
    </form>
  </div>
 </div></div></body></html>"""
 
 GLOBALS_PAGE = """<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>المتغيرات العامة</title>""" + STYLE + """
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>ط§ظ„ظ…طھط؛ظٹط±ط§طھ ط§ظ„ط¹ط§ظ…ط©</title>""" + STYLE + """
 <style>
 .tgt-table { width:100%; border-collapse:collapse; font-size:13px; }
 .tgt-table th, .tgt-table td { border:1px solid #e2e8f0; padding:6px; text-align:center; }
@@ -386,19 +386,19 @@ GLOBALS_PAGE = """<!doctype html><html lang="ar" dir="rtl"><head><meta charset="
 </head><body>
 <div class="app"><div class="main">
  <div class="wrap">
-   <a class="back" href="/" style="color:#4f46e5;font-weight:700;display:inline-block;margin-bottom:16px">&#8594; العودة للرئيسية</a>
+   <a class="back" href="/" style="color:#4f46e5;font-weight:700;display:inline-block;margin-bottom:16px">&#8594; ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ط±ط¦ظٹط³ظٹط©</a>
    <div class="rhead">
-     <h1>المتغيرات العامة (التارجت)</h1>
-     {% if saved %}<div style="color:#10b981;font-weight:bold;margin-top:10px">تم الحفظ بنجاح!</div>{% endif %}
+     <h1>ط§ظ„ظ…طھط؛ظٹط±ط§طھ ط§ظ„ط¹ط§ظ…ط© (ط§ظ„طھط§ط±ط¬طھ)</h1>
+     {% if saved %}<div style="color:#10b981;font-weight:bold;margin-top:10px">طھظ… ط§ظ„ط­ظپط¸ ط¨ظ†ط¬ط§ط­!</div>{% endif %}
    </div>
    <form method="post" action="/globals">
      <div style="overflow-x:auto; max-height: 70vh; margin-bottom: 20px; border-radius: 8px; border: 1px solid #e2e8f0">
        <table class="tgt-table">
          <thead>
            <tr>
-             <th style="min-width:150px">اسم المندوب</th>
+             <th style="min-width:150px">ط§ط³ظ… ط§ظ„ظ…ظ†ط¯ظˆط¨</th>
              {% for m in range(1, 13) %}
-             <th>شهر {{m}}</th>
+             <th>ط´ظ‡ط± {{m}}</th>
              {% endfor %}
            </tr>
          </thead>
@@ -418,40 +418,40 @@ GLOBALS_PAGE = """<!doctype html><html lang="ar" dir="rtl"><head><meta charset="
          </tbody>
        </table>
      </div>
-     <button type="submit" style="background:#4f46e5;color:#fff;border:0;padding:12px 24px;border-radius:9px;font-weight:700;font-size:15px;cursor:pointer">حفظ المتغيرات</button>
+     <button type="submit" style="background:#4f46e5;color:#fff;border:0;padding:12px 24px;border-radius:9px;font-weight:700;font-size:15px;cursor:pointer">ط­ظپط¸ ط§ظ„ظ…طھط؛ظٹط±ط§طھ</button>
    </form>
  </div>
 </div></div></body></html>"""
 
 
 PIN_PAGE = """<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>رمز الدخول</title>""" + STYLE + """</head><body>
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>ط±ظ…ط² ط§ظ„ط¯ط®ظˆظ„</title>""" + STYLE + """</head><body>
 <div class="app"><div class="main">
  <div class="wrap">
-   <a class="back" href="/" style="color:#4f46e5;font-weight:700;display:inline-block;margin-bottom:16px">&#8594; رجوع للتقارير</a>
+   <a class="back" href="/" style="color:#4f46e5;font-weight:700;display:inline-block;margin-bottom:16px">&#8594; ط±ط¬ظˆط¹ ظ„ظ„طھظ‚ط§ط±ظٹط±</a>
    <div class="card" style="max-width:380px;margin:40px auto;text-align:center">
-     <div style="font-size:40px;margin-bottom:6px">🔒</div>
-     <h1 style="font-size:18px;margin:0 0 4px">تبويب الإعدادات محمي</h1>
-     <p style="color:#6b7280;font-size:13px;margin:0 0 16px">أدخل رمز الدخول للمتابعة</p>
-     {% if error %}<div class="err" style="margin-bottom:12px">رمز الدخول غير صحيح</div>{% endif %}
+     <div style="font-size:40px;margin-bottom:6px">ًں”’</div>
+     <h1 style="font-size:18px;margin:0 0 4px">طھط¨ظˆظٹط¨ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ظ…ط­ظ…ظٹ</h1>
+     <p style="color:#6b7280;font-size:13px;margin:0 0 16px">ط£ط¯ط®ظ„ ط±ظ…ط² ط§ظ„ط¯ط®ظˆظ„ ظ„ظ„ظ…طھط§ط¨ط¹ط©</p>
+     {% if error %}<div class="err" style="margin-bottom:12px">ط±ظ…ط² ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­</div>{% endif %}
      <form method="post">
-       <input type="password" name="pin" autofocus inputmode="numeric" placeholder="• • • • •"
+       <input type="password" name="pin" autofocus inputmode="numeric" placeholder="â€¢ â€¢ â€¢ â€¢ â€¢"
               style="width:100%;text-align:center;letter-spacing:8px;font-size:22px;padding:12px;border:1.5px solid #cbd5e1;border-radius:10px;margin-bottom:14px">
-       <button type="submit" style="width:100%;background:#4f46e5;color:#fff;border:0;padding:12px;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer">دخول</button>
+       <button type="submit" style="width:100%;background:#4f46e5;color:#fff;border:0;padding:12px;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer">ط¯ط®ظˆظ„</button>
      </form>
    </div>
  </div>
 </div></div></body></html>"""
 
-@app.route("/settings/logout")
+@app.route("/_old_settings_logout")
 def settings_logout():
     session.pop("set_ok", None)
     return render_template("pin.html", error=False)
 
-@app.route("/settings", methods=["GET","POST"])
+@app.route("/_old_settings", methods=["GET","POST"])
 def settings():
-    if session.get("role") != "admin": return "لا تملك صلاحية", 403
-    # بوابة رمز الدخول
+    if session.get("role") != "admin": return "ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط©", 403
+    # ط¨ظˆط§ط¨ط© ط±ظ…ط² ط§ظ„ط¯ط®ظˆظ„
 
     saved = False
     if request.method == "POST" and request.form.get("action") == "save":
@@ -471,9 +471,9 @@ def settings():
 
 
 
-@app.route("/globals", methods=["GET","POST"])
+@app.route("/_old_globals", methods=["GET","POST"])
 def globals_page():
-    if session.get("role") != "admin": return "لا تملك صلاحية", 403
+    if session.get("role") != "admin": return "ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط©", 403
 
             
     saved = False
@@ -514,7 +514,7 @@ def globals_page():
 
 
 DASHBOARD_PAGE = '''<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>لوحة القيادة SREEN</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>ظ„ظˆط­ط© ط§ظ„ظ‚ظٹط§ط¯ط© SREEN</title>
      <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
      <script>
      var D={{ dash|tojson }};
@@ -538,8 +538,8 @@ DASHBOARD_PAGE = '''<!doctype html><html lang="ar" dir="rtl"><head><meta charset
          data:{
            labels:D.months,
            datasets:[
-             {label:"مبيعات", data:D.msales, backgroundColor:"#4f46e5", borderRadius:8, maxBarThickness: 32},
-             {label:"تحصيل", data:D.mcollect, backgroundColor:"#38bdf8", borderRadius:8, maxBarThickness: 32}
+             {label:"ظ…ط¨ظٹط¹ط§طھ", data:D.msales, backgroundColor:"#4f46e5", borderRadius:8, maxBarThickness: 32},
+             {label:"طھط­طµظٹظ„", data:D.mcollect, backgroundColor:"#38bdf8", borderRadius:8, maxBarThickness: 32}
            ]
          },
          options: {
@@ -589,7 +589,7 @@ DASHBOARD_PAGE = '''<!doctype html><html lang="ar" dir="rtl"><head><meta charset
          data:{
            labels:D.months,
            datasets:[{
-             label: "مشتريات", data:D.mpurch, borderColor:"#10b981", borderWidth: 3, backgroundColor: grad4, fill:true, tension:0.4, pointRadius: 0, pointHoverRadius: 6, pointBackgroundColor: "#fff", pointBorderColor: "#10b981", pointBorderWidth: 2
+             label: "ظ…ط´طھط±ظٹط§طھ", data:D.mpurch, borderColor:"#10b981", borderWidth: 3, backgroundColor: grad4, fill:true, tension:0.4, pointRadius: 0, pointHoverRadius: 6, pointBackgroundColor: "#fff", pointBorderColor: "#10b981", pointBorderWidth: 2
            }]
          },
          options: {
@@ -623,33 +623,33 @@ DASHBOARD_PAGE = '''<!doctype html><html lang="ar" dir="rtl"><head><meta charset
  .ch h3{margin:0 0 12px;font-size:15px}
 
 </style></head><body>
- <div class="hd"><h1>📊 لوحة القيادة — SREEN</h1>
-   <form method="get" action="/dashboard"><span>من</span><input type="date" name="date_from" value="{{f}}"><span>إلى</span><input type="date" name="date_to" value="{{t}}"><button type="submit">تحديث</button></form>
-   <div class="sp"></div><a href="/">← التقارير</a></div>
+ <div class="hd"><h1>ًں“ٹ ظ„ظˆط­ط© ط§ظ„ظ‚ظٹط§ط¯ط© â€” SREEN</h1>
+   <form method="get" action="/dashboard"><span>ظ…ظ†</span><input type="date" name="date_from" value="{{f}}"><span>ط¥ظ„ظ‰</span><input type="date" name="date_to" value="{{t}}"><button type="submit">طھط­ط¯ظٹط«</button></form>
+   <div class="sp"></div><a href="/">â†گ ط§ظ„طھظ‚ط§ط±ظٹط±</a></div>
  <div class="wrap">
    <div class="kpis">
-     <div class="kpi b"><div class="l">إجمالي المبيعات</div><div class="v">{{ "{:,.0f}".format(data.sales) }}</div></div>
-     <div class="kpi g"><div class="l">إجمالي التحصيل</div><div class="v">{{ "{:,.0f}".format(data.collect) }}</div></div>
-     <div class="kpi o"><div class="l">إجمالي المشتريات</div><div class="v">{{ "{:,.0f}".format(data.purch) }}</div></div>
-     {% if not hide_profit|default(false) %}<div class="kpi p"><div class="l">مجمل الربح</div><div class="v">{{ "{:,.0f}".format(data.gross) }}</div></div>
-     <div class="kpi g"><div class="l">صافي الربح</div><div class="v">{{ "{:,.0f}".format(data.netprofit) }}</div></div>{% endif %}
-     <div class="kpi r"><div class="l">الذمم المدينة</div><div class="v">{{ "{:,.0f}".format(data.recv) }}</div></div>
-     <div class="kpi b"><div class="l">قيمة المخزون</div><div class="v">{{ "{:,.0f}".format(data.invval) }}</div></div>
-     <div class="kpi o"><div class="l">صافي الضريبة</div><div class="v">{{ "{:,.0f}".format(data.vat) }}</div></div>
+     <div class="kpi b"><div class="l">ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ</div><div class="v">{{ "{:,.0f}".format(data.sales) }}</div></div>
+     <div class="kpi g"><div class="l">ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­طµظٹظ„</div><div class="v">{{ "{:,.0f}".format(data.collect) }}</div></div>
+     <div class="kpi o"><div class="l">ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط´طھط±ظٹط§طھ</div><div class="v">{{ "{:,.0f}".format(data.purch) }}</div></div>
+     {% if not hide_profit|default(false) %}<div class="kpi p"><div class="l">ظ…ط¬ظ…ظ„ ط§ظ„ط±ط¨ط­</div><div class="v">{{ "{:,.0f}".format(data.gross) }}</div></div>
+     <div class="kpi g"><div class="l">طµط§ظپظٹ ط§ظ„ط±ط¨ط­</div><div class="v">{{ "{:,.0f}".format(data.netprofit) }}</div></div>{% endif %}
+     <div class="kpi r"><div class="l">ط§ظ„ط°ظ…ظ… ط§ظ„ظ…ط¯ظٹظ†ط©</div><div class="v">{{ "{:,.0f}".format(data.recv) }}</div></div>
+     <div class="kpi b"><div class="l">ظ‚ظٹظ…ط© ط§ظ„ظ…ط®ط²ظˆظ†</div><div class="v">{{ "{:,.0f}".format(data.invval) }}</div></div>
+     <div class="kpi o"><div class="l">طµط§ظپظٹ ط§ظ„ط¶ط±ظٹط¨ط©</div><div class="v">{{ "{:,.0f}".format(data.vat) }}</div></div>
    </div>
    <div class="charts">
-     <div class="ch"><h3>المبيعات والتحصيل شهرياً</h3><canvas id="c1" height="140"></canvas></div>
-     <div class="ch"><h3>أفضل المناديب (مبيعات)</h3><canvas id="c2" height="140"></canvas></div>
-     <div class="ch"><h3>أفضل الأصناف (مبيعات)</h3><canvas id="c3" height="140"></canvas></div>
-     <div class="ch"><h3>المشتريات شهرياً</h3><canvas id="c4" height="140"></canvas></div>
+     <div class="ch"><h3>ط§ظ„ظ…ط¨ظٹط¹ط§طھ ظˆط§ظ„طھط­طµظٹظ„ ط´ظ‡ط±ظٹط§ظ‹</h3><canvas id="c1" height="140"></canvas></div>
+     <div class="ch"><h3>ط£ظپط¶ظ„ ط§ظ„ظ…ظ†ط§ط¯ظٹط¨ (ظ…ط¨ظٹط¹ط§طھ)</h3><canvas id="c2" height="140"></canvas></div>
+     <div class="ch"><h3>ط£ظپط¶ظ„ ط§ظ„ط£طµظ†ط§ظپ (ظ…ط¨ظٹط¹ط§طھ)</h3><canvas id="c3" height="140"></canvas></div>
+     <div class="ch"><h3>ط§ظ„ظ…ط´طھط±ظٹط§طھ ط´ظ‡ط±ظٹط§ظ‹</h3><canvas id="c4" height="140"></canvas></div>
    </div></div>
 <script>
 const D={{ data|tojson }};
 Chart.defaults.font.family="Tahoma";
-new Chart(c1,{type:"bar",data:{labels:D.months,datasets:[{label:"مبيعات",data:D.msales,backgroundColor:"#2563eb"},{label:"تحصيل",data:D.mcollect,backgroundColor:"#16a34a"}]}});
-new Chart(c2,{type:"bar",data:{labels:D.rep_labels,datasets:[{label:"مبيعات",data:D.rep_vals,backgroundColor:"#0f766e"}]},options:{indexAxis:"y",plugins:{legend:{display:false}}}});
-new Chart(c3,{type:"bar",data:{labels:D.itm_labels,datasets:[{label:"مبيعات",data:D.itm_vals,backgroundColor:"#ea580c"}]},options:{indexAxis:"y",plugins:{legend:{display:false}}}});
-new Chart(c4,{type:"line",data:{labels:D.months,datasets:[{label:"مشتريات",data:D.mpurch,borderColor:"#ea580c",backgroundColor:"rgba(234,88,12,.12)",fill:true,tension:.3}]},options:{plugins:{legend:{display:false}}}});
+new Chart(c1,{type:"bar",data:{labels:D.months,datasets:[{label:"ظ…ط¨ظٹط¹ط§طھ",data:D.msales,backgroundColor:"#2563eb"},{label:"طھط­طµظٹظ„",data:D.mcollect,backgroundColor:"#16a34a"}]}});
+new Chart(c2,{type:"bar",data:{labels:D.rep_labels,datasets:[{label:"ظ…ط¨ظٹط¹ط§طھ",data:D.rep_vals,backgroundColor:"#0f766e"}]},options:{indexAxis:"y",plugins:{legend:{display:false}}}});
+new Chart(c3,{type:"bar",data:{labels:D.itm_labels,datasets:[{label:"ظ…ط¨ظٹط¹ط§طھ",data:D.itm_vals,backgroundColor:"#ea580c"}]},options:{indexAxis:"y",plugins:{legend:{display:false}}}});
+new Chart(c4,{type:"line",data:{labels:D.months,datasets:[{label:"ظ…ط´طھط±ظٹط§طھ",data:D.mpurch,borderColor:"#ea580c",backgroundColor:"rgba(234,88,12,.12)",fill:true,tension:.3}]},options:{plugins:{legend:{display:false}}}});
 </script></body></html>'''
 
 def compute_dash(f, t):
@@ -740,10 +740,10 @@ def compute_dash(f, t):
 
 
 
-@app.route("/users", methods=["GET", "POST"])
+@app.route("/_old_users", methods=["GET", "POST"])
 def users_manage():
     if session.get("role") != "admin":
-        return "غير مصرح لك بدخول هذه الصفحة.", 403
+        return "ط؛ظٹط± ظ…طµط±ط­ ظ„ظƒ ط¨ط¯ط®ظˆظ„ ظ‡ط°ظ‡ ط§ظ„طµظپط­ط©.", 403
         
     from config import load_users, save_users
     users = load_users()
@@ -959,11 +959,11 @@ def api_dashboard():
 def api_report_data(tab_id, report_id):
     username = session.get('username')
     # if not check_permission(username, tab_id, report_id):
-    #     return jsonify({"error": "غير مصرح لك بعرض هذا التقرير."}), 403
+    #     return jsonify({"error": "ط؛ظٹط± ظ…طµط±ط­ ظ„ظƒ ط¨ط¹ط±ط¶ ظ‡ط°ط§ ط§ظ„طھظ‚ط±ظٹط±."}), 403
         
     tab, rpt = find_report(tab_id, report_id)
     if not rpt:
-        return jsonify({"error": "التقرير غير موجود"}), 404
+        return jsonify({"error": "ط§ظ„طھظ‚ط±ظٹط± ط؛ظٹط± ظ…ظˆط¬ظˆط¯"}), 404
         
     try:
         # Prepare parameters for the frontend UI
@@ -983,7 +983,7 @@ def api_report_data(tab_id, report_id):
                         l_items = lookups(param_def["name"])
                         print(f"DEBUG: Fetched {len(l_items)} items")
                         param_def["type"] = "select"
-                        param_def["options"] = [["", "الكل / بدون تحديد"]] + [[x, x] for x in l_items]
+                        param_def["options"] = [["", "ط§ظ„ظƒظ„ / ط¨ط¯ظˆظ† طھط­ط¯ظٹط¯"]] + [[x, x] for x in l_items]
                     except Exception as e:
                         print("Lookup error:", e)
 
@@ -998,3 +998,17 @@ def api_report_data(tab_id, report_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)
+
+import os
+from flask import send_from_directory
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react(path):
+    if path.startswith('api/'):
+        return 'API route not found', 404
+    public_dir = os.path.join(os.path.dirname(__file__), 'public')
+    if path and os.path.exists(os.path.join(public_dir, path)):
+        return send_from_directory(public_dir, path)
+    return send_from_directory(public_dir, 'index.html')
+

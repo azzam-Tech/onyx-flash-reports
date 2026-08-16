@@ -17,5 +17,9 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  build: {
+    outDir: '../privet/onyx_reports/public',
+    emptyOutDir: true,
   }
 })
