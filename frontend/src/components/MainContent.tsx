@@ -214,6 +214,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
     const wscols = data.cols.map(() => ({ wch: 20 }))
     worksheet['!cols'] = wscols
+    worksheet['!views'] = [{ rightToLeft: true }]
     
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, "Report")
@@ -271,14 +272,14 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
       </ReportFilters>
 
       {/* Print-only Header */}
-      <div className="hidden print:block p-6 pb-2 text-center border-b mb-4">
-         <h1 className="text-2xl font-bold">{reportTitle}</h1>
-         <p className="text-slate-500 mt-2">تاريخ الطباعة: {new Date().toLocaleString('ar-SA')}</p>
+      <div className="hidden print:flex flex-col items-center justify-center mb-4 border-b border-slate-800 pb-2">
+         <h1 className="text-xl font-extrabold text-slate-900">{reportTitle}</h1>
+         <p className="text-xs text-slate-600 font-bold mt-1">تاريخ الطباعة: {new Date().toLocaleString('ar-SA')}</p>
       </div>
 
       {/* Table Area */}
       <div className="flex-1 overflow-hidden flex flex-col print:p-0 print:overflow-visible print:block">
-        <div className="soft-card flex-1 flex flex-col overflow-hidden bg-white/80 backdrop-blur-xl print:shadow-none print:overflow-visible print:block">
+        <div className="soft-card flex-1 flex flex-col min-h-0 overflow-hidden print:shadow-none print:border-none">
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
               <div className="flex flex-col items-center gap-3">
@@ -289,7 +290,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
           ) : data.cols.length > 0 ? (
             <>
               <div className="overflow-auto flex-1 p-2">
-                <table className="w-full text-sm text-right print:text-xs border-collapse">
+                <table className="w-full text-sm text-right print:text-[10px] border-collapse">
                   <thead className="bg-slate-50/80 backdrop-blur-md text-slate-600 sticky top-0 z-10 print:static print:bg-gray-100 rounded-t-xl">
                     {table.getHeaderGroups().map(headerGroup => (
                       <tr key={headerGroup.id}>
@@ -298,8 +299,8 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                             key={header.id} 
                             colSpan={header.colSpan}
                             className={cn(
-                              "px-4 py-2.5 font-bold whitespace-nowrap align-top select-none print:border print:border-gray-300 min-w-[140px] first:rounded-tr-xl last:rounded-tl-xl border-b border-slate-200 text-right",
-                              header.colSpan > 1 ? "text-center bg-slate-100/80" : ""
+                              "px-4 py-2.5 font-bold whitespace-nowrap align-top select-none print:border print:border-slate-400 print:border-b-2 print:border-b-slate-800 min-w-[140px] print:min-w-0 first:rounded-tr-xl last:rounded-tl-xl border-b border-slate-200 text-right print:bg-slate-100 print:text-slate-800 print:text-[9px] print:px-1 print:py-1 print:whitespace-normal",
+                              header.colSpan > 1 ? "text-center bg-slate-100/80 print:text-center" : ""
                             )}
                           >
                             {header.isPlaceholder ? null : (
@@ -330,11 +331,11 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                       </tr>
                     ))}
                   </thead>
-                  <tbody className="divide-y divide-slate-100/50 print:divide-gray-300">
+                  <tbody className="divide-y divide-slate-100/50 print:divide-slate-400">
                     {totalRow && (
-                      <tr className="bg-primary/5 font-extrabold text-primary border-b-2 border-primary/10 shadow-sm relative z-0 print:bg-gray-200 print:border-b-2">
+                      <tr className="bg-primary/5 font-extrabold text-primary border-b-2 border-primary/10 shadow-sm relative z-0 print:bg-slate-200 print:border-b-2 print:border-b-slate-800 print:text-slate-900 print:shadow-none">
                         {columns.map((col: any) => (
-                          <td key={`total_${col.id}`} className="px-4 py-2 whitespace-nowrap print:border print:border-gray-300 text-right">
+                          <td key={`total_${col.id}`} className="px-4 py-2 whitespace-nowrap print:whitespace-normal print:border print:border-slate-400 text-right print:px-1 print:py-0.5">
                             {totalRow[col.meta.originalIndex]}
                           </td>
                         ))}
@@ -344,10 +345,10 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                       table.getRowModel().rows.map((row) => (
                         <tr 
                           key={row.id} 
-                          className="hover:bg-slate-50/50 text-slate-600 font-medium transition-colors duration-200"
+                          className="hover:bg-slate-50/50 text-slate-600 font-medium transition-colors duration-200 print:text-slate-800"
                         >
                           {row.getVisibleCells().map(cell => (
-                            <td key={cell.id} className="px-4 py-1.5 whitespace-nowrap print:border print:border-gray-300 text-right">
+                            <td key={cell.id} className="px-4 py-1.5 whitespace-nowrap print:whitespace-normal print:border print:border-slate-400 text-right print:px-1 print:py-0.5">
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </td>
                           ))}

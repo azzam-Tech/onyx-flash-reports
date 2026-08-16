@@ -22,6 +22,22 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<any>(null)
 
+  // Listen to browser back/forward buttons (hash changes)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '')
+      if (hash) {
+        const [tab, report] = hash.split('/')
+        if (tab && report) {
+          setActiveTab(tab)
+          setActiveReport(report)
+        }
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
   useEffect(() => {
     // First, check session
     fetch("/api/session")
@@ -60,6 +76,17 @@ export default function App() {
           
           setTabs(finalTabs)
           if (finalTabs.length > 0) {
+            const hash = window.location.hash.replace(/^#\/?/, '')
+            if (hash) {
+              const [tab, report] = hash.split('/')
+              if (tab && report) {
+                setActiveTab(tab)
+                setActiveReport(report)
+                setIsLoading(false)
+                return
+              }
+            }
+            
             setActiveTab(finalTabs[0].id)
             if (finalTabs[0].reports && finalTabs[0].reports.length > 0) {
               setActiveReport(finalTabs[0].reports[0].id)
@@ -110,6 +137,7 @@ export default function App() {
         activeTab={activeTab} 
         activeReport={activeReport}
         onSelectReport={(t, r) => {
+          window.location.hash = `/${t}/${r}`
           setActiveTab(t)
           setActiveReport(r)
         }}
