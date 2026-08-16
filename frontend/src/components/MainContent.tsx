@@ -101,7 +101,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
       const groups = [
         { header: 'معلومات الصنف', colspan: 6 },
         { header: 'الرصيد الافتتاحي', colspan: 7 },
-        { header: 'الحركة (صادر / وارد)', colspan: 2 },
+        { header: 'الحركة (صادر / وارد)', colspan: 4 },
         { header: 'الرصيد النهائي', colspan: 7 },
       ]
       
@@ -173,8 +173,8 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
     }
 
     // Default flat columns
-    return rawCols
-      .map((col, index) => ({
+    return (rawCols || [])
+      .map((col: string, index: number) => ({
         header: col,
         accessorFn: (row: any[]) => row[index],
         id: `col_${index}`,
