@@ -12,7 +12,10 @@ from reports_config import TABS, find_report
 import report_handlers
 from report_handlers import *
 
+from flask_cors import CORS
+
 app = Flask(__name__)
+CORS(app, supports_credentials=True)
 
 @app.before_request
 def set_target_year():
@@ -36,8 +39,13 @@ from flask import redirect
 
 @app.before_request
 def require_login():
-    if request.endpoint not in ('login', 'static') and not session.get('logged_in'):
-        return redirect('/login')
+    print(f"DEBUG: method={request.method}, path={request.path}, endpoint={request.endpoint}")
+    if request.method == 'OPTIONS':
+        return None
+    if request.path.startswith('/api/'):
+        return None
+    # Let React handle authentication flow; just serve static assets unconditionally
+    return None
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -71,6 +79,64 @@ def logout():
     session.pop('logged_in', None)
     return redirect('/login')
 
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    data = request.json or {}
+    pin = data.get("pin", "")
+    
+    from config import load_users
+    users = load_users()
+    
+    found_username = None
+    found_user_data = None
+    for uname, udata in users.items():
+        if udata.get("password") == pin:
+            found_username = uname
+            found_user_data = udata
+            break
+            
+    if found_username:
+        session['logged_in'] = True
+        session['username'] = found_username
+        session['role'] = found_user_data.get('role', 'user')
+        return jsonify({
+            "success": True, 
+            "user": {
+                "username": found_username,
+                "role": session['role'],
+                "allowed_tabs": found_user_data.get("allowed_tabs", []),
+                "allowed_reports": found_user_data.get("allowed_reports", [])
+            }
+        })
+    else:
+        return jsonify({"success": False, "error": "رمز المرور غير صحيح"}), 401
+
+@app.route("/api/session", methods=["GET"])
+def api_session():
+    if not session.get('logged_in'):
+        return jsonify({"authenticated": False}), 401
+    
+    from config import load_users
+    users = load_users()
+    username = session.get('username')
+    user_data = users.get(username, {})
+    
+    return jsonify({
+        "authenticated": True,
+        "user": {
+            "username": username,
+            "role": session.get('role', 'user'),
+            "allowed_tabs": user_data.get("allowed_tabs", []),
+            "allowed_reports": user_data.get("allowed_reports", [])
+        }
+    })
+
+@app.route("/api/logout", methods=["POST"])
+def api_logout():
+    session.pop('logged_in', None)
+    session.pop('username', None)
+    session.pop('role', None)
+    return jsonify({"success": True})
 
 
 @app.route("/")
@@ -587,82 +653,86 @@ new Chart(c4,{type:"line",data:{labels:D.months,datasets:[{label:"مشتريات
 </script></body></html>'''
 
 def compute_dash(f, t):
+    import concurrent.futures
+    from database import get_pooled_conn
     b = {"f": f, "t": t}
     P="TO_DATE(:f,'YYYY-MM-DD')"; Q="TO_DATE(:t,'YYYY-MM-DD')+1"
     d = {"sales":0,"collect":0,"purch":0,"gross":0,"netprofit":0,"recv":0,"invval":0,"vat":0,
          "months":[],"msales":[],"mcollect":[],"mpurch":[],"rep_labels":[],"rep_vals":[],"itm_labels":[],"itm_vals":[]}
     try:
-        with get_conn() as con:
-            cur = con.cursor()
-            def sc(sql):
-                try:
-                    cur.execute(sql,{k:v for k,v in b.items() if (":"+k) in sql}); r=cur.fetchone()
-                    return round(float(r[0]),2) if r and r[0] is not None else 0.0
-                except Exception: return 0.0
-            def rw(sql):
-                try:
-                    cur.execute(sql,{k:v for k,v in b.items() if (":"+k) in sql}); return cur.fetchall()
-                except Exception: return []
-            def mm(sql):
-                m={}
-                for r in rw(sql):
-                    m[str(r[0])]=round(float(r[1] or 0),2)
-                return m
+        sqls = {
+            "sales": "SELECT NVL(SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_BILL_MST WHERE BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND BILL_DATE>="+P+" AND BILL_DATE<"+Q,
+            "sales_ret": "SELECT NVL(SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(RT_BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_RT_BILL_MST WHERE RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND RT_BILL_DATE>="+P+" AND RT_BILL_DATE<"+Q,
+            "collect": "SELECT NVL(SUM(NVL(CR_AMT,0)),0) FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=2 AND C_CODE IS NOT NULL AND DOC_DATE>="+P+" AND DOC_DATE<"+Q,
+            "purch": "SELECT NVL(SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_PI_BILL_MST WHERE BILL_DATE>="+P+" AND BILL_DATE<"+Q,
+            "gross": "SELECT NVL(SUM((NVL(x.I_QTY,0)*(NVL(x.I_PRICE,0)-NVL(x.DIS_AMT,0)+NVL(x.OTHR_AMT,0))-NVL(x.I_QTY,0)*NVL(x.STK_COST,0)) * DECODE(m.BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_BILL_DTL x JOIN IAS20261.IAS_BILL_MST m ON m.BILL_DOC_TYPE=x.BILL_DOC_TYPE AND m.BILL_NO=x.BILL_NO AND m.BILL_SER=x.BILL_SER WHERE m.BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.BILL_DATE>="+P+" AND m.BILL_DATE<"+Q,
+            "gross_ret": "SELECT NVL(SUM((NVL(x.I_QTY,0)*(NVL(x.I_PRICE,0)-NVL(x.DIS_AMT,0)+NVL(x.OTHR_AMT,0))-NVL(x.I_QTY,0)*NVL(x.STK_COST,0)) * DECODE(m.RT_BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_RT_BILL_DTL x JOIN IAS20261.IAS_RT_BILL_MST m ON m.RT_BILL_DOC_TYPE=x.RT_BILL_DOC_TYPE AND m.RT_BILL_NO=x.RT_BILL_NO AND m.RT_BILL_SER=x.RT_BILL_SER WHERE m.RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.RT_BILL_DATE>="+P+" AND m.RT_BILL_DATE<"+Q,
+            "netprofit": "SELECT NVL(SUM(NVL(p.CR_AMT,0)-NVL(p.DR_AMT,0)),0) FROM IAS20261.IAS_POST_DTL p JOIN IAS20261.ACCOUNT a ON a.A_CODE=p.A_CODE WHERE NVL(p.DOC_POST,0)=1 AND a.A_REPORT=2 AND p.DOC_DATE>="+P+" AND p.DOC_DATE<"+Q,
+            "recv": "SELECT NVL(SUM(bal),0) FROM (SELECT SUM(NVL(DR_AMT,0)-NVL(CR_AMT,0)) bal FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND C_CODE IS NOT NULL AND DOC_DATE<"+Q+" GROUP BY C_CODE HAVING SUM(NVL(DR_AMT,0)-NVL(CR_AMT,0))>0)",
+            "invval": "SELECT NVL(SUM(NVL(I_QTY,0)*NVL(IN_OUT,0)*NVL(STK_COST,0)),0) FROM IAS20261.ITEM_MOVEMENT WHERE I_DATE<"+Q,
+            "ov": "SELECT NVL(SUM(NVL(VAT_AMT,0) * DECODE(BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_BILL_MST WHERE BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND BILL_DATE>="+P+" AND BILL_DATE<"+Q,
+            "ov_ret": "SELECT NVL(SUM(NVL(VAT_AMT,0) * DECODE(RT_BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_RT_BILL_MST WHERE RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND RT_BILL_DATE>="+P+" AND RT_BILL_DATE<"+Q,
+            "iv": "SELECT NVL(SUM(NVL(VAT_AMT,0) * DECODE(BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_PI_BILL_MST WHERE BILL_DATE>="+P+" AND BILL_DATE<"+Q,
+            "ms": "SELECT TO_CHAR(BILL_DATE,'YYYY-MM'), SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_BILL_MST WHERE BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND BILL_DATE>="+P+" AND BILL_DATE<"+Q+" GROUP BY TO_CHAR(BILL_DATE,'YYYY-MM')",
+            "ms_ret": "SELECT TO_CHAR(RT_BILL_DATE,'YYYY-MM'), SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(RT_BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_RT_BILL_MST WHERE RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND RT_BILL_DATE>="+P+" AND RT_BILL_DATE<"+Q+" GROUP BY TO_CHAR(RT_BILL_DATE,'YYYY-MM')",
+            "mc": "SELECT TO_CHAR(DOC_DATE,'YYYY-MM'), SUM(CR_AMT) FROM (SELECT DOC_DATE, CR_AMT FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=2 AND C_CODE IS NOT NULL AND DOC_DATE>="+P+" AND DOC_DATE<"+Q+" UNION ALL SELECT DOC_DATE, CR_AMT FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=0 AND DOC_TYPE=2 AND DOC_DATE>="+P+" AND DOC_DATE<"+Q+" UNION ALL SELECT DOC_DATE, CR_AMT FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=1 AND JV_TYPE=2 AND C_CODE IS NOT NULL AND DOC_DATE>="+P+" AND DOC_DATE<"+Q+" UNION ALL SELECT b.BILL_DATE AS DOC_DATE, NVL(p.DR_AMT,0) AS CR_AMT FROM IAS20261.IAS_BILL_MST b JOIN IAS20261.IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%' WHERE b.BILL_DOC_TYPE=1 AND NVL(p.DOC_POST,0)=1 AND p.DR_AMT > 0 AND b.BILL_DATE>="+P+" AND b.BILL_DATE<"+Q+" UNION ALL SELECT DOC_DATE, -CR_AMT FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=5 AND TO_CHAR(A_CODE) LIKE '111%' AND DOC_DATE>="+P+" AND DOC_DATE<"+Q+") GROUP BY TO_CHAR(DOC_DATE,'YYYY-MM')",
+            "mp": "SELECT TO_CHAR(BILL_DATE,'YYYY-MM'), SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_PI_BILL_MST WHERE BILL_DATE>="+P+" AND BILL_DATE<"+Q+" GROUP BY TO_CHAR(BILL_DATE,'YYYY-MM')",
+            "rs": "SELECT NVL(sm.REPRS_A_NAME, m.REP_CODE), SUM((NVL(m.BILL_AMT,0)-(NVL(m.DISC_AMT,0)-NVL(m.ADD_DISC_AMT_MST,0))+NVL(m.VAT_AMT,0)+NVL(m.OTHR_AMT,0)) * DECODE(m.BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_BILL_MST m LEFT JOIN IAS20261.SALES_MAN sm ON sm.REPRS_CODE=m.REP_CODE WHERE m.BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.BILL_DATE>="+P+" AND m.BILL_DATE<"+Q+" GROUP BY NVL(sm.REPRS_A_NAME,m.REP_CODE)",
+            "rs_ret": "SELECT NVL(sm.REPRS_A_NAME, m.REP_CODE_BILL), SUM((NVL(m.BILL_AMT,0)-(NVL(m.DISC_AMT,0)-NVL(m.ADD_DISC_AMT_MST,0))+NVL(m.VAT_AMT,0)+NVL(m.OTHR_AMT,0)) * DECODE(m.RT_BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_RT_BILL_MST m LEFT JOIN IAS20261.SALES_MAN sm ON sm.REPRS_CODE=m.REP_CODE_BILL WHERE m.RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.RT_BILL_DATE>="+P+" AND m.RT_BILL_DATE<"+Q+" GROUP BY NVL(sm.REPRS_A_NAME,m.REP_CODE_BILL)",
+            "its": "SELECT NVL(i.I_NAME, x.I_CODE), SUM((NVL(x.I_QTY,0)*(NVL(x.I_PRICE,0)-NVL(x.DIS_AMT,0)+NVL(x.OTHR_AMT,0))) * DECODE(m.BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_BILL_DTL x JOIN IAS20261.IAS_BILL_MST m ON m.BILL_DOC_TYPE=x.BILL_DOC_TYPE AND m.BILL_NO=x.BILL_NO AND m.BILL_SER=x.BILL_SER LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE=x.I_CODE WHERE m.BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.BILL_DATE>="+P+" AND m.BILL_DATE<"+Q+" GROUP BY NVL(i.I_NAME,x.I_CODE)",
+            "its_ret": "SELECT NVL(i.I_NAME, x.I_CODE), SUM((NVL(x.I_QTY,0)*(NVL(x.I_PRICE,0)-NVL(x.DIS_AMT,0)+NVL(x.OTHR_AMT,0))) * DECODE(m.RT_BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_RT_BILL_DTL x JOIN IAS20261.IAS_RT_BILL_MST m ON m.RT_BILL_DOC_TYPE=x.RT_BILL_DOC_TYPE AND m.RT_BILL_NO=x.RT_BILL_NO AND m.RT_BILL_SER=x.RT_BILL_SER LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE=x.I_CODE WHERE m.RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.RT_BILL_DATE>="+P+" AND m.RT_BILL_DATE<"+Q+" GROUP BY NVL(i.I_NAME,x.I_CODE)"
+        }
 
-            sales = sc("SELECT NVL(SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_BILL_MST WHERE BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND BILL_DATE>="+P+" AND BILL_DATE<"+Q)
-            sales_ret = sc("SELECT NVL(SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(RT_BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_RT_BILL_MST WHERE RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND RT_BILL_DATE>="+P+" AND RT_BILL_DATE<"+Q)
-            d["sales"] = round(sales - sales_ret, 2)
+        results = {}
+        with get_pooled_conn() as con:
+            with con.cursor() as cur:
+                for key, sql in sqls.items():
+                    try:
+                        cur.execute(sql, {k:v for k,v in b.items() if (":"+k) in sql})
+                        if key in ["sales", "sales_ret", "collect", "purch", "gross", "gross_ret", "netprofit", "recv", "invval", "ov", "ov_ret", "iv"]:
+                            r = cur.fetchone()
+                            results[key] = round(float(r[0]),2) if r and r[0] is not None else 0.0
+                        else:
+                            m = {}
+                            for r in cur.fetchall():
+                                m[str(r[0])] = round(float(r[1] or 0),2)
+                            results[key] = m
+                    except Exception as e:
+                        print(f"Error in {key}: {e}")
+                        results[key] = (0.0 if key not in ["ms", "ms_ret", "mc", "mp", "rs", "rs_ret", "its", "its_ret"] else {})
 
-            d["collect"]=sc("SELECT NVL(SUM(NVL(CR_AMT,0)),0) FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=2 AND C_CODE IS NOT NULL AND DOC_DATE>="+P+" AND DOC_DATE<"+Q)
-            
-            d["purch"]=sc("SELECT NVL(SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_PI_BILL_MST WHERE BILL_DATE>="+P+" AND BILL_DATE<"+Q)
-            
-            gross = sc("SELECT NVL(SUM((NVL(x.I_QTY,0)*(NVL(x.I_PRICE,0)-NVL(x.DIS_AMT,0)+NVL(x.OTHR_AMT,0))-NVL(x.I_QTY,0)*NVL(x.STK_COST,0)) * DECODE(m.BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_BILL_DTL x JOIN IAS20261.IAS_BILL_MST m ON m.BILL_DOC_TYPE=x.BILL_DOC_TYPE AND m.BILL_NO=x.BILL_NO AND m.BILL_SER=x.BILL_SER WHERE m.BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.BILL_DATE>="+P+" AND m.BILL_DATE<"+Q)
-            gross_ret = sc("SELECT NVL(SUM((NVL(x.I_QTY,0)*(NVL(x.I_PRICE,0)-NVL(x.DIS_AMT,0)+NVL(x.OTHR_AMT,0))-NVL(x.I_QTY,0)*NVL(x.STK_COST,0)) * DECODE(m.RT_BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_RT_BILL_DTL x JOIN IAS20261.IAS_RT_BILL_MST m ON m.RT_BILL_DOC_TYPE=x.RT_BILL_DOC_TYPE AND m.RT_BILL_NO=x.RT_BILL_NO AND m.RT_BILL_SER=x.RT_BILL_SER WHERE m.RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.RT_BILL_DATE>="+P+" AND m.RT_BILL_DATE<"+Q)
-            d["gross"] = round(gross - gross_ret, 2)
-            
-            d["netprofit"]=sc("SELECT NVL(SUM(NVL(p.CR_AMT,0)-NVL(p.DR_AMT,0)),0) FROM IAS20261.IAS_POST_DTL p JOIN IAS20261.ACCOUNT a ON a.A_CODE=p.A_CODE WHERE NVL(p.DOC_POST,0)=1 AND a.A_REPORT=2 AND p.DOC_DATE>="+P+" AND p.DOC_DATE<"+Q)
-            
-            d["recv"]=sc("SELECT NVL(SUM(bal),0) FROM (SELECT SUM(NVL(DR_AMT,0)-NVL(CR_AMT,0)) bal FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND C_CODE IS NOT NULL AND DOC_DATE<"+Q+" GROUP BY C_CODE HAVING SUM(NVL(DR_AMT,0)-NVL(CR_AMT,0))>0)")
-            
-            d["invval"]=sc("SELECT NVL(SUM(NVL(I_QTY,0)*NVL(IN_OUT,0)*NVL(STK_COST,0)),0) FROM IAS20261.ITEM_MOVEMENT WHERE I_DATE<"+Q)
-            
-            ov = sc("SELECT NVL(SUM(NVL(VAT_AMT,0) * DECODE(BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_BILL_MST WHERE BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND BILL_DATE>="+P+" AND BILL_DATE<"+Q)
-            ov_ret = sc("SELECT NVL(SUM(NVL(VAT_AMT,0) * DECODE(RT_BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_RT_BILL_MST WHERE RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND RT_BILL_DATE>="+P+" AND RT_BILL_DATE<"+Q)
-            ov_net = ov - ov_ret
-            
-            iv = sc("SELECT NVL(SUM(NVL(VAT_AMT,0) * DECODE(BILL_DOC_TYPE, 3, -1, 1)),0) FROM IAS20261.IAS_PI_BILL_MST WHERE BILL_DATE>="+P+" AND BILL_DATE<"+Q)
-            d["vat"]=round(ov_net-iv,2)
-            
-            ms=mm("SELECT TO_CHAR(BILL_DATE,'YYYY-MM'), SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_BILL_MST WHERE BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND BILL_DATE>="+P+" AND BILL_DATE<"+Q+" GROUP BY TO_CHAR(BILL_DATE,'YYYY-MM')")
-            ms_ret=mm("SELECT TO_CHAR(RT_BILL_DATE,'YYYY-MM'), SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(RT_BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_RT_BILL_MST WHERE RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND RT_BILL_DATE>="+P+" AND RT_BILL_DATE<"+Q+" GROUP BY TO_CHAR(RT_BILL_DATE,'YYYY-MM')")
-            
-            mc=mm("SELECT TO_CHAR(DOC_DATE,'YYYY-MM'), SUM(CR_AMT) FROM (SELECT DOC_DATE, CR_AMT FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=2 AND C_CODE IS NOT NULL AND DOC_DATE>="+P+" AND DOC_DATE<"+Q+" UNION ALL SELECT DOC_DATE, CR_AMT FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=0 AND DOC_TYPE=2 AND DOC_DATE>="+P+" AND DOC_DATE<"+Q+" UNION ALL SELECT DOC_DATE, CR_AMT FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=1 AND JV_TYPE=2 AND C_CODE IS NOT NULL AND DOC_DATE>="+P+" AND DOC_DATE<"+Q+" UNION ALL SELECT b.BILL_DATE AS DOC_DATE, NVL(p.DR_AMT,0) AS CR_AMT FROM IAS20261.IAS_BILL_MST b JOIN IAS20261.IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%' WHERE b.BILL_DOC_TYPE=1 AND NVL(p.DOC_POST,0)=1 AND p.DR_AMT > 0 AND b.BILL_DATE>="+P+" AND b.BILL_DATE<"+Q+" UNION ALL SELECT DOC_DATE, -CR_AMT FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=5 AND TO_CHAR(A_CODE) LIKE '111%' AND DOC_DATE>="+P+" AND DOC_DATE<"+Q+") GROUP BY TO_CHAR(DOC_DATE,'YYYY-MM')")
-            mp=mm("SELECT TO_CHAR(BILL_DATE,'YYYY-MM'), SUM((NVL(BILL_AMT,0)-(NVL(DISC_AMT,0)-NVL(ADD_DISC_AMT_MST,0))+NVL(VAT_AMT,0)+NVL(OTHR_AMT,0)) * DECODE(BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_PI_BILL_MST WHERE BILL_DATE>="+P+" AND BILL_DATE<"+Q+" GROUP BY TO_CHAR(BILL_DATE,'YYYY-MM')")
-            
-            months=sorted(set(list(ms)+list(ms_ret)+list(mc)+list(mp)))
-            d["months"]=months
-            d["msales"]=[round(ms.get(x,0) - ms_ret.get(x,0), 2) for x in months]
-            d["mcollect"]=[mc.get(x,0) for x in months]
-            d["mpurch"]=[mp.get(x,0) for x in months]
-            
-            rs = mm("SELECT NVL(sm.REPRS_A_NAME, m.REP_CODE), SUM((NVL(m.BILL_AMT,0)-(NVL(m.DISC_AMT,0)-NVL(m.ADD_DISC_AMT_MST,0))+NVL(m.VAT_AMT,0)+NVL(m.OTHR_AMT,0)) * DECODE(m.BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_BILL_MST m LEFT JOIN IAS20261.SALES_MAN sm ON sm.REPRS_CODE=m.REP_CODE WHERE m.BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.BILL_DATE>="+P+" AND m.BILL_DATE<"+Q+" GROUP BY NVL(sm.REPRS_A_NAME,m.REP_CODE)")
-            rs_ret = mm("SELECT NVL(sm.REPRS_A_NAME, m.REP_CODE_BILL), SUM((NVL(m.BILL_AMT,0)-(NVL(m.DISC_AMT,0)-NVL(m.ADD_DISC_AMT_MST,0))+NVL(m.VAT_AMT,0)+NVL(m.OTHR_AMT,0)) * DECODE(m.RT_BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_RT_BILL_MST m LEFT JOIN IAS20261.SALES_MAN sm ON sm.REPRS_CODE=m.REP_CODE_BILL WHERE m.RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.RT_BILL_DATE>="+P+" AND m.RT_BILL_DATE<"+Q+" GROUP BY NVL(sm.REPRS_A_NAME,m.REP_CODE_BILL)")
-            
-            rs_net = {k: round(rs.get(k,0) - rs_ret.get(k,0), 2) for k in set(list(rs)+list(rs_ret))}
-            for k, v in sorted(rs_net.items(), key=lambda item: item[1], reverse=True):
-                if v != 0:
-                    d["rep_labels"].append(str(k))
-                    d["rep_vals"].append(v)
-            
-            its = mm("SELECT NVL(i.I_NAME, x.I_CODE), SUM((NVL(x.I_QTY,0)*(NVL(x.I_PRICE,0)-NVL(x.DIS_AMT,0)+NVL(x.OTHR_AMT,0))) * DECODE(m.BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_BILL_DTL x JOIN IAS20261.IAS_BILL_MST m ON m.BILL_DOC_TYPE=x.BILL_DOC_TYPE AND m.BILL_NO=x.BILL_NO AND m.BILL_SER=x.BILL_SER LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE=x.I_CODE WHERE m.BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.BILL_DATE>="+P+" AND m.BILL_DATE<"+Q+" GROUP BY NVL(i.I_NAME,x.I_CODE)")
-            its_ret = mm("SELECT NVL(i.I_NAME, x.I_CODE), SUM((NVL(x.I_QTY,0)*(NVL(x.I_PRICE,0)-NVL(x.DIS_AMT,0)+NVL(x.OTHR_AMT,0))) * DECODE(m.RT_BILL_DOC_TYPE, 3, -1, 1)) FROM IAS20261.IAS_RT_BILL_DTL x JOIN IAS20261.IAS_RT_BILL_MST m ON m.RT_BILL_DOC_TYPE=x.RT_BILL_DOC_TYPE AND m.RT_BILL_NO=x.RT_BILL_NO AND m.RT_BILL_SER=x.RT_BILL_SER LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE=x.I_CODE WHERE m.RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) AND m.RT_BILL_DATE>="+P+" AND m.RT_BILL_DATE<"+Q+" GROUP BY NVL(i.I_NAME,x.I_CODE)")
-            
-            its_net = {k: round(its.get(k,0) - its_ret.get(k,0), 2) for k in set(list(its)+list(its_ret))}
-            for k, v in sorted(its_net.items(), key=lambda item: item[1], reverse=True)[:50]:
-                if v != 0:
-                    d["itm_labels"].append(str(k)[:22])
-                    d["itm_vals"].append(v)
+        sales = results["sales"]; sales_ret = results["sales_ret"]
+        d["sales"] = round(sales - sales_ret, 2)
+        d["collect"] = results["collect"]
+        d["purch"] = results["purch"]
+        d["gross"] = round(results["gross"] - results["gross_ret"], 2)
+        d["netprofit"] = results["netprofit"]
+        d["recv"] = results["recv"]
+        d["invval"] = results["invval"]
+        d["vat"] = round((results["ov"] - results["ov_ret"]) - results["iv"], 2)
+        
+        ms = results["ms"]; ms_ret = results["ms_ret"]
+        mc = results["mc"]; mp = results["mp"]
+        
+        months=sorted(set(list(ms)+list(ms_ret)+list(mc)+list(mp)))
+        d["months"]=months
+        d["msales"]=[round(ms.get(x,0) - ms_ret.get(x,0), 2) for x in months]
+        d["mcollect"]=[mc.get(x,0) for x in months]
+        d["mpurch"]=[mp.get(x,0) for x in months]
+        
+        rs = results["rs"]; rs_ret = results["rs_ret"]
+        rs_net = {k: round(rs.get(k,0) - rs_ret.get(k,0), 2) for k in set(list(rs)+list(rs_ret))}
+        for k, v in sorted(rs_net.items(), key=lambda item: item[1], reverse=True):
+            if v != 0:
+                d["rep_labels"].append(str(k))
+                d["rep_vals"].append(v)
+        
+        its = results["its"]; its_ret = results["its_ret"]
+        its_net = {k: round(its.get(k,0) - its_ret.get(k,0), 2) for k in set(list(its)+list(its_ret))}
+        for k, v in sorted(its_net.items(), key=lambda item: item[1], reverse=True)[:50]:
+            if v != 0:
+                d["itm_labels"].append(str(k)[:22])
+                d["itm_vals"].append(v)
     except Exception as e:
         d["err"]=str(e)
     return d
@@ -709,6 +779,222 @@ def users_manage():
         return redirect("/users")
         
     return render_template("users_manage.html", users=users, TABS=TABS)
+
+@app.route("/api/users_manage", methods=["GET", "POST"])
+def api_users_manage():
+    from config import load_users, save_users
+    
+    if request.method == "GET":
+        # Return all users and TABS structure for UI
+        users = load_users()
+        safe_users = {}
+        for uname, udata in users.items():
+            safe_users[uname] = {
+                "role": udata.get("role", "user"),
+                "allowed_tabs": udata.get("allowed_tabs", []),
+                "allowed_reports": udata.get("allowed_reports", [])
+                # Not sending passwords for security
+            }
+        
+        # Prepare tabs data
+        tabs_data = []
+        for t in TABS:
+            reports_data = [{"id": r["id"], "title": r["title"]} for r in t["reports"]]
+            tabs_data.append({"id": t["id"], "title": t["title"], "reports": reports_data})
+            
+        return jsonify({"users": safe_users, "tabs": tabs_data})
+
+    elif request.method == "POST":
+        if session.get("role") != "admin":
+            return jsonify({"error": "Unauthorized"}), 403
+            
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+            
+        action = data.get("action")
+        username = data.get("username", "").strip()
+        users = load_users()
+        
+        if action == "add_or_update" and username:
+            password = data.get("password")
+            role = data.get("role", "user")
+            
+            allowed_tabs = data.get("allowed_tabs", [])
+            allowed_reports = data.get("allowed_reports", [])
+            
+            if role == "admin":
+                allowed_tabs = ["*"]
+                allowed_reports = ["*"]
+                
+            users[username] = {
+                "password": password if password else users.get(username, {}).get("password", ""),
+                "role": role,
+                "allowed_tabs": allowed_tabs,
+                "allowed_reports": allowed_reports
+            }
+            save_users(users)
+            return jsonify({"success": True})
+            
+        elif action == "delete" and username:
+            if username in users and username != "admin":
+                del users[username]
+                save_users(users)
+                return jsonify({"success": True})
+            return jsonify({"error": "Cannot delete this user"}), 400
+            
+        return jsonify({"error": "Invalid action"}), 400
+
+@app.route("/api/settings_manage", methods=["GET", "POST"])
+def api_settings_manage():
+    if session.get("role") != "admin":
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    if request.method == "GET":
+        from database import get_pooled_conn as get_db_connection
+        reps = []
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT REPRS_CODE, REPRS_A_NAME FROM IAS20261.SALES_MAN")
+                    for c, n in cur.fetchall():
+                        reps.append({"code": str(c), "name": n or str(c)})
+        except Exception as e:
+            print("Error loading reps:", e)
+            
+        targets_data = load_globals()
+        ht, hr = load_hidden_raw()
+        
+        return jsonify({
+            "reps": reps,
+            "targets": targets_data.get("2026", {}),
+            "hide_profit": load_hide_profit(),
+            "hidden_tabs": list(ht),
+            "hidden_reports": list(hr)
+        })
+
+    elif request.method == "POST":
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+            
+        # Extract fields
+        hide_profit = bool(data.get("hide_profit", False))
+        hidden_tabs = data.get("hidden_tabs", [])
+        hidden_reports = data.get("hidden_reports", [])
+        targets = data.get("targets", {}) # expecting dict of {rep_code: {month: val}}
+        
+        # Save hidden configs
+        save_hidden(hidden_tabs, hidden_reports, hide_profit=hide_profit)
+        
+        # Save targets for 2026
+        targets_data = load_globals()
+        if not targets_data:
+            targets_data = {}
+        targets_data["2026"] = targets
+        save_globals(targets_data)
+        
+        return jsonify({"success": True})
+
+@app.route("/api/tabs")
+def api_tabs():
+    username = session.get('username')
+    from config import check_permission
+    hidden_tabs, hidden_reports = load_hidden()
+    
+    _vis = []
+    for t in TABS:
+        if t["id"] in hidden_tabs: continue
+        if not check_permission(username, t["id"]): continue
+        
+        allowed_reports = []
+        for r in t["reports"]:
+            if r["id"] in hidden_reports: continue
+            if not r.get("hide_from_menu", False):
+                if check_permission(username, t["id"], r["id"]):
+                    allowed_reports.append({"id": r["id"], "title": r["title"]})
+        
+        if allowed_reports:
+            _vis.append({"id": t["id"], "title": t["title"], "reports": allowed_reports})
+            
+    return jsonify({"tabs": _vis})
+
+_DASH_CACHE = {}
+
+@app.route("/api/dashboard")
+def api_dashboard():
+    try:
+        from datetime import datetime
+        import time
+        d_from = request.args.get("date_from", datetime.now().strftime("%Y-01-01"))
+        d_to = request.args.get("date_to", datetime.now().strftime("%Y-12-31"))
+        force_refresh = request.args.get("force_refresh", "0")
+        
+        cache_key = f"{d_from}_{d_to}"
+        current_time = time.time()
+        
+        if force_refresh != "1" and cache_key in _DASH_CACHE:
+            if current_time - _DASH_CACHE[cache_key]['time'] < 300: # 5 minutes TTL
+                dash_data = _DASH_CACHE[cache_key]['data']
+            else:
+                dash_data = compute_dash(d_from, d_to)
+                _DASH_CACHE[cache_key] = {'time': current_time, 'data': dash_data}
+        else:
+            dash_data = compute_dash(d_from, d_to)
+            _DASH_CACHE[cache_key] = {'time': current_time, 'data': dash_data}
+            
+        # Determine if profit should be hidden
+        hide_profit = load_hide_profit()
+        
+        return jsonify({
+            "data": dash_data,
+            "hide_profit": hide_profit,
+            "date_from": d_from,
+            "date_to": d_to
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/reports/<tab_id>/<report_id>")
+def api_report_data(tab_id, report_id):
+    username = session.get('username')
+    # if not check_permission(username, tab_id, report_id):
+    #     return jsonify({"error": "غير مصرح لك بعرض هذا التقرير."}), 403
+        
+    tab, rpt = find_report(tab_id, report_id)
+    if not rpt:
+        return jsonify({"error": "التقرير غير موجود"}), 404
+        
+    try:
+        # Prepare parameters for the frontend UI
+        resolved_params = []
+        for p in rpt.get('params', []):
+            param_def = dict(p) # Copy
+            if callable(param_def.get('get_default')):
+                param_def['default'] = param_def['get_default']()
+                del param_def['get_default']
+            
+            # Convert lookup texts to SearchableSelect options
+            if param_def["name"] in ("rep_code", "c_code", "v_code", "i_code", "a_code", "cc_code", "grp_code"):
+                print(f"DEBUG: Processing param {param_def['name']} with type {param_def.get('type')}")
+                if "options" not in param_def or not param_def["options"]:
+                    try:
+                        print(f"DEBUG: Fetching lookups for {param_def['name']}")
+                        l_items = lookups(param_def["name"])
+                        print(f"DEBUG: Fetched {len(l_items)} items")
+                        param_def["type"] = "select"
+                        param_def["options"] = [["", "الكل / بدون تحديد"]] + [[x, x] for x in l_items]
+                    except Exception as e:
+                        print("Lookup error:", e)
+
+            resolved_params.append(param_def)
+            
+        binds = dict(request.args)
+        
+        cols, rows = run_report(rpt, request.args)
+        return jsonify({"cols": cols, "rows": rows, "params": resolved_params, "binds": binds})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)

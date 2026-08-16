@@ -84,3 +84,18 @@ class InterceptConnection:
 def get_conn():
     return InterceptConnection(oracledb.connect(user=DB_USER, password=DB_PASSWORD, dsn=DB_DSN))
 
+_pool = None
+
+def get_pooled_conn():
+    global _pool
+    if _pool is None:
+        _pool = oracledb.create_pool(
+            user=DB_USER, 
+            password=DB_PASSWORD, 
+            dsn=DB_DSN, 
+            min=2, 
+            max=20, 
+            increment=2
+        )
+    return InterceptConnection(_pool.acquire())
+

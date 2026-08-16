@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+@theme {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  
+  /* Vibrant Accent Colors from User Images */
+  --color-chart-blue: hsl(210 100% 55%);
+  --color-chart-orange: hsl(24 100% 55%);
+  --color-chart-green: hsl(150 100% 40%);
+  --color-chart-purple: hsl(270 100% 60%);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 8px);
+
+  --font-sans: "Cairo", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Inter", monospace;
+}
+
+@layer base {
+  :root {
+    /* Backgrounds: Soft Light Blue (Neumorphism base) */
+    --background: 210 33% 96%; /* #eef2f6 */
+    --foreground: 222.2 84% 15%; /* Dark Blue/Gray for text */
+
+    /* Cards & Popovers: Pure White */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 15%;
+
+    /* Brand Colors (Vibrant Blue gradient base) */
+    --primary: 210 100% 55%; 
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: Soft gray/blue for buttons */
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    /* Muted: Lighter gray for borders and backgrounds */
+    --muted: 210 20% 94%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent: Light blue highlight */
+    --accent: 210 100% 96%; 
+    --accent-foreground: 210 100% 55%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 90%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 210 100% 55%;
+
+    /* Large radius for Neumorphism feel */
+    --radius: 1.25rem; 
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/20 selection:text-primary;
+  }
+
+  /* Soft UI (Neumorphism) Utilities */
+  .soft-card {
+    @apply bg-card text-card-foreground rounded-2xl border-none shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-300;
+  }
+  
+  .soft-card:hover {
+    @apply shadow-[0_12px_40px_rgba(0,0,0,0.08)] translate-y-[-2px];
+  }
+
+  .soft-button {
+    @apply bg-white text-foreground rounded-xl shadow-[0_4px_15px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] border border-gray-100/50 transition-all active:scale-95;
+  }
+  
+  .gradient-primary {
+    @apply bg-gradient-to-r from-[#4facfe] to-[#00f2fe] text-white shadow-[0_8px_20px_rgba(79,172,254,0.3)];
+  }
+  
+  .gradient-orange {
+    @apply bg-gradient-to-r from-[#ff0844] to-[#ffb199] text-white shadow-[0_8px_20px_rgba(255,8,68,0.3)];
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300/70 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400;
+  }
+}
