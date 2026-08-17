@@ -76,7 +76,15 @@ def api_report_data(tab_id, report_id):
             
         binds = dict(request.args)
         
-        cols, rows = run_report(rpt, request.args)
+        if tab_id == 'stock':
+            from modules.warehouses.services import handle_warehouse_report
+            cols, rows = handle_warehouse_report(report_id, rpt, request.args)
+        elif tab_id == 'sales' or (tab_id == 'summary' and report_id in ('workflow_summary', 'debt_movement_summary')):
+            from modules.sales.services import handle_sales_report
+            cols, rows = handle_sales_report(report_id, rpt, request.args)
+        else:
+            cols, rows = run_report(rpt, request.args)
+            
         return jsonify({
             "cols": cols, 
             "rows": rows, 
