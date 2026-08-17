@@ -6,7 +6,7 @@ import os
 app = Flask(__name__, static_folder='public', static_url_path='/')
 CORS(app, supports_credentials=True)
 
-app.secret_key = os.environ.get("SREEN_SECRET", "sreen-reports-2026-secret-key")
+app.secret_key = os.environ.get("SREEN_SECRET", "sreen-dev-secret-key")
 
 @app.before_request
 def set_target_year():

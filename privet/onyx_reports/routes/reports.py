@@ -1,10 +1,28 @@
 # -*- coding: utf-8 -*-
+from functools import wraps
 from flask import Blueprint, request, jsonify, session
 from config import check_permission, load_hidden
 from reports_config import TABS, find_report
 from report_handlers import run_report, lookups
 
 reports_bp = Blueprint('reports', __name__)
+
+def require_report_permission(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        username = session.get('username')
+        if not username:
+            return jsonify({"error": "غير مصرح، الرجاء تسجيل الدخول أولاً."}), 401
+            
+        tab_id = kwargs.get('tab_id')
+        report_id = kwargs.get('report_id')
+        
+        if tab_id and report_id:
+            if not check_permission(username, tab_id, report_id):
+                return jsonify({"error": "عذراً، لا تملك الصلاحية لعرض هذا التقرير."}), 403
+                
+        return f(*args, **kwargs)
+    return decorated_function
 
 @reports_bp.route("/api/tabs")
 def api_tabs():
@@ -29,10 +47,9 @@ def api_tabs():
     return jsonify({"tabs": _vis})
 
 @reports_bp.route("/api/reports/<tab_id>/<report_id>")
+@require_report_permission
 def api_report_data(tab_id, report_id):
     username = session.get('username')
-    # if not check_permission(username, tab_id, report_id):
-    #     return jsonify({"error": "غير مصرح لك بعرض هذا التقرير."}), 403
         
     tab, rpt = find_report(tab_id, report_id)
     if not rpt:
@@ -71,4 +88,5 @@ def api_report_data(tab_id, report_id):
             }
         })
     except Exception as e:
+        print(f"Report execution error for {tab_id}/{report_id}:", e)
         return jsonify({"error": str(e)}), 500

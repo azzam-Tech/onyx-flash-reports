@@ -10,9 +10,9 @@ if os.path.exists(env_path):
                 k, v = line.strip().split('=', 1)
                 os.environ[k.strip()] = v.strip()
 
-DB_USER     = os.environ.get("ORA_USER",     "RPT_USER")
-DB_PASSWORD = os.environ.get("ORA_PASSWORD", "ULT2016")
-DB_DSN      = os.environ.get("ORA_DSN",      "100.100.1.100:1521/ORCL")
+DB_USER     = os.environ.get("ORA_USER")
+DB_PASSWORD = os.environ.get("ORA_PASSWORD")
+DB_DSN      = os.environ.get("ORA_DSN")
 _lib        = os.environ.get("ORA_LIB_DIR")
 
 try:
