@@ -345,7 +345,7 @@ TABS = [
       
     {"id":"stock_bal","title":"أرصدة الأصناف","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"w_code","label":"المستودع (اختياري)","type":"text","default":""},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":""},
     {"id":"stock_move","title":"حركة صنف","params":[{"name":"i_code","label":"كود الصنف","type":"text","default":""},DFROM,DTO],"sql":""},
-    {"id":"stock_dormant","title":"الأصناف الراكدة (لم تُبَع)","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"أيام الركود","type":"number","default":"90"}],"sql":""},
+    {"id":"stock_dormant","title":"الأصناف الراكدة (تطوير الذكي)","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"أيام الركود","type":"number","default":"90"},{"name":"dormancy_pct","label":"نسبة الركود (أقل من %)","type":"number","default":"10"}],"sql":""},
     {"id":"main_wh_movement","title":"حركة الأصناف (7 مستودعات)","fn":"run_main_wh_movement","params":[{"name":"i_code","label":"كود الصنف (اختياري)","type":"text","default":""},DFROM,DTO],"sql":""},
   ]},
   {"id":"general","title":"تقارير عامة","icon":"M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z","reports":[

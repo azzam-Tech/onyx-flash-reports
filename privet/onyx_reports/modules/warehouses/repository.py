@@ -59,8 +59,8 @@ def get_detailed_stock_pivot_sql():
             FROM IAS20261.IAS_ITM_MST m
             LEFT JOIN IAS20261.GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
             LEFT JOIN IAS20261.IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE AND sg.MNG_CODE = m.MNG_CODE AND sg.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DET_I_CODE = m.DETAIL_NO AND dg.SUBG_CODE = m.SUBG_CODE AND dg.MNG_CODE = m.MNG_CODE AND dg.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
+            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
             GROUP BY m.I_CODE
         ),
         inventory_mov AS (
@@ -139,8 +139,8 @@ def get_monthly_movement_pivot_sql():
             FROM IAS20261.IAS_ITM_MST m
             LEFT JOIN IAS20261.GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
             LEFT JOIN IAS20261.IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE AND sg.MNG_CODE = m.MNG_CODE AND sg.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DET_I_CODE = m.DETAIL_NO AND dg.SUBG_CODE = m.SUBG_CODE AND dg.MNG_CODE = m.MNG_CODE AND dg.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
+            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
             GROUP BY m.I_CODE
         ),
         inventory_mov AS (
@@ -420,17 +420,44 @@ def get_stock_move_sql():
 
 def get_stock_dormant_sql():
     return """
-      SELECT * FROM (
-        SELECT mv.I_CODE AS "كود الصنف", MAX(i.I_NAME) AS "اسم الصنف",
-               TO_CHAR(SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))),'FM999,999,990.00') AS "الرصيد",
-               TO_CHAR(MAX(CASE WHEN mv.DOC_TYPE = 1 THEN mv.I_DATE END),'DD/MM/YYYY') AS "آخر صرف",
-               TRUNC(TO_DATE(:as_of,'YYYY-MM-DD')) - TRUNC(MAX(CASE WHEN mv.DOC_TYPE = 1 THEN mv.I_DATE END)) AS "أيام منذ آخر صرف"
-        FROM IAS20261.ITEM_MOVEMENT mv LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE=mv.I_CODE
+      WITH item_stats AS (
+        SELECT mv.I_CODE,
+               MAX(i.I_NAME) AS I_NAME,
+               SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) AS total_bal,
+               SUM(CASE WHEN mv.W_CODE = '103' THEN DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0)) ELSE 0 END) AS bal_103,
+               SUM(CASE WHEN mv.W_CODE = '105' THEN DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0)) ELSE 0 END) AS bal_105,
+               SUM(CASE WHEN mv.W_CODE = '108' THEN DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0)) ELSE 0 END) AS bal_108,
+               SUM(CASE WHEN mv.W_CODE = '118' THEN DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0)) ELSE 0 END) AS bal_118,
+               SUM(CASE WHEN mv.W_CODE = '119' THEN DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0)) ELSE 0 END) AS bal_119,
+               SUM(CASE WHEN mv.W_CODE = '121' THEN DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0)) ELSE 0 END) AS bal_121,
+               SUM(CASE WHEN mv.W_CODE = '122' THEN DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0)) ELSE 0 END) AS bal_122,
+               MAX(CASE WHEN mv.DOC_TYPE IN (1, 7) AND NVL(mv.IN_OUT,0) = -1 THEN mv.I_DATE END) AS last_sale_date,
+               SUM(CASE WHEN NVL(mv.IN_OUT,0) = 1 THEN NVL(mv.I_QTY,0) ELSE 0 END) AS total_in,
+               SUM(CASE WHEN NVL(mv.IN_OUT,0) = -1 AND mv.DOC_TYPE IN (1, 7) THEN NVL(mv.I_QTY,0) 
+                        WHEN NVL(mv.IN_OUT,0) = 1 AND mv.DOC_TYPE = 3 THEN -NVL(mv.I_QTY,0) ELSE 0 END) AS total_sales
+        FROM IAS20261.ITEM_MOVEMENT mv 
+        LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE = mv.I_CODE
         WHERE mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
         GROUP BY mv.I_CODE
-        HAVING SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))) > 0
-           AND ( MAX(CASE WHEN mv.DOC_TYPE = 1 THEN mv.I_DATE END) IS NULL
-                 OR TRUNC(TO_DATE(:as_of,'YYYY-MM-DD')) - TRUNC(MAX(CASE WHEN mv.DOC_TYPE = 1 THEN mv.I_DATE END)) >= :days )
-        ORDER BY SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))) DESC
-      ) """
+        HAVING SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) > 0
+      )
+      SELECT I_CODE AS "كود الصنف",
+             I_NAME AS "اسم الصنف",
+             TO_CHAR(total_bal, 'FM999,999,990.00') AS "إجمالي الرصيد",
+             TO_CHAR(bal_103, 'FM999,999,990.00') AS "الغنامية عيظه (103)",
+             TO_CHAR(bal_105, 'FM999,999,990.00') AS "الغنامية نصرالله (105)",
+             TO_CHAR(bal_108, 'FM999,999,990.00') AS "المنصورية 1 (108)",
+             TO_CHAR(bal_118, 'FM999,999,990.00') AS "الجنوب خميس مشيط (118)",
+             TO_CHAR(bal_119, 'FM999,999,990.00') AS "الدمام (119)",
+             TO_CHAR(bal_121, 'FM999,999,990.00') AS "جده (121)",
+             TO_CHAR(bal_122, 'FM999,999,990.00') AS "الشمال (122)",
+             TO_CHAR(last_sale_date, 'DD/MM/YYYY') AS "آخر صرف",
+             TRUNC(TO_DATE(:as_of,'YYYY-MM-DD')) - TRUNC(last_sale_date) AS "أيام منذ آخر صرف",
+             TO_CHAR(ROUND(NVL((NVL(total_sales,0) / NULLIF(total_in, 0)) * 100, 0), 2), 'FM990.00') || '%' AS "نسبة المبيعات للوارد"
+      FROM item_stats
+      WHERE 
+          ( last_sale_date IS NULL OR TRUNC(TO_DATE(:as_of,'YYYY-MM-DD')) - TRUNC(last_sale_date) >= :days )
+          AND 
+          ( NVL(total_sales, 0) <= 0 OR NVL((NVL(total_sales,0) / NULLIF(total_in, 0)) * 100, 0) <= :dormancy_pct )
+      ORDER BY total_bal DESC"""
 

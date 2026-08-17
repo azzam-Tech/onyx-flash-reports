@@ -2,9 +2,11 @@ import { useState, useEffect, useMemo } from "react"
 import { Card } from "./ui/card"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import { Filter, Download, Printer, Search } from "lucide-react"
+import { Filter, Download, Printer, Search, Check, ChevronsUpDown } from "lucide-react"
 import * as XLSX from 'xlsx'
 import { cn } from "@/lib/utils"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
 import { ReportFilters, type ReportParam } from "./ReportFilters"
 import {
   useReactTable,
@@ -14,38 +16,80 @@ import {
   getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   type SortingState,
   type Column
 } from '@tanstack/react-table'
 
 // Helper component for column filtering
 function ColumnFilter({ column, table }: { column: Column<any, unknown>, table: any }) {
-  const columnFilterValue = column.getFilterValue()
+  const columnFilterValue = column.getFilterValue() as string | undefined
+  const [open, setOpen] = useState(false)
   
-  // Get unique values for this column to build a dropdown
+  // Get unique values for this column based on the faceted rows (respects other filters)
   const uniqueValues = useMemo(() => {
+    const facetedMap = column.getFacetedUniqueValues()
     const values = new Set<string>()
-    table.getPreFilteredRowModel().flatRows.forEach((row: any) => {
-      const val = row.getValue(column.id)
+    facetedMap.forEach((_, val) => {
       if (val !== undefined && val !== null) {
         values.add(String(val))
       }
     })
     return Array.from(values).sort()
-  }, [column.id, table.getPreFilteredRowModel().flatRows])
+  }, [column.getFacetedUniqueValues()])
 
   return (
-    <select
-      value={(columnFilterValue ?? '') as string}
-      onChange={e => column.setFilterValue(e.target.value || undefined)}
-      className="mt-2 w-full text-xs font-normal border-slate-200 rounded-md bg-white p-1 text-slate-600 focus:ring-1 focus:ring-indigo-500 outline-none print:hidden"
-      onClick={e => e.stopPropagation()} // Prevent sort on filter click
-    >
-      <option value="">الكل</option>
-      {uniqueValues.map(val => (
-        <option key={val} value={val}>{val}</option>
-      ))}
-    </select>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={e => e.stopPropagation()} // Prevent sort on filter click
+          className="mt-2 w-full flex items-center justify-between text-xs font-normal border border-slate-200 rounded-md bg-white px-2 py-1.5 text-slate-600 focus:ring-1 focus:ring-primary outline-none print:hidden hover:bg-slate-50 transition-colors"
+        >
+          <span className="truncate w-[85%] text-right">{columnFilterValue || 'الكل'}</span>
+          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 shadow-lg border-slate-200" align="start">
+        <Command className="bg-white text-slate-700">
+          <CommandInput placeholder="بحث..." className="h-9 outline-none border-none focus:ring-0 text-sm text-right bg-white" />
+          <CommandList className="max-h-[220px] overflow-y-auto custom-scrollbar bg-white">
+            <CommandEmpty className="py-4 text-center text-sm text-slate-500">لم يتم العثور على نتيجة.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="الكل"
+                onSelect={() => {
+                  column.setFilterValue(undefined)
+                  setOpen(false)
+                }}
+                className="text-right flex items-center justify-between cursor-pointer hover:bg-slate-100/50 py-1.5 aria-selected:bg-slate-100/50"
+              >
+                <span>الكل</span>
+                {(!columnFilterValue) && (
+                  <Check className="mr-2 h-3 w-3 text-primary" />
+                )}
+              </CommandItem>
+              {uniqueValues.map(val => (
+                <CommandItem
+                  key={val}
+                  value={val}
+                  onSelect={() => {
+                    column.setFilterValue(val === columnFilterValue ? undefined : val)
+                    setOpen(false)
+                  }}
+                  className="text-right flex items-center justify-between cursor-pointer hover:bg-slate-100/50 py-1.5 aria-selected:bg-slate-100/50"
+                >
+                  <span className="truncate">{val}</span>
+                  {columnFilterValue === val && (
+                    <Check className="mr-2 h-3 w-3 text-primary" />
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
 
@@ -194,6 +238,8 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     state: {
