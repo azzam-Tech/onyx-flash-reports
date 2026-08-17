@@ -72,10 +72,13 @@ class InterceptConnection:
             except Exception:
                 pass
         
-        try:
-            cur.execute(f"ALTER SESSION SET CURRENT_SCHEMA = {target_schema}")
-        except Exception as e:
-            print("Alter session warning:", e)
+        current_conn_schema = getattr(self._conn, '_current_schema', None)
+        if current_conn_schema != target_schema:
+            try:
+                cur.execute(f"ALTER SESSION SET CURRENT_SCHEMA = {target_schema}")
+                self._conn._current_schema = target_schema
+            except Exception as e:
+                print("Alter session warning:", e)
             
         return InterceptCursor(cur)
 
