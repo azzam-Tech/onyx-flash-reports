@@ -3,7 +3,7 @@ from functools import wraps
 from flask import Blueprint, request, jsonify, session
 from config import check_permission, load_hidden
 from reports_config import TABS, find_report
-from report_handlers import run_report, lookups
+from report_handlers import run_report, lookups, add_total_row
 
 reports_bp = Blueprint('reports', __name__)
 
@@ -98,6 +98,9 @@ def api_report_data(tab_id, report_id):
             cols, rows = handler(report_id, rpt, request.args)
         else:
             cols, rows = run_report(rpt, request.args)
+            
+        # Add total row for all reports
+        cols, rows = add_total_row(cols, rows, report_id)
             
         return jsonify({
             "cols": cols, 

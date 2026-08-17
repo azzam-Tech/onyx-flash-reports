@@ -241,11 +241,11 @@ def run_report(rpt, args):
         func = globals().get(rpt["fn"])
         if func:
             cols, rows = func(rpt, args)
-            return add_total_row(cols, rows, rpt.get('id', ''))
+            return cols, rows
     if not rpt.get("sql"):
         return [], []
     cols, rows = run_sql_report(rpt, args)
-    return add_total_row(cols, rows, rpt.get('id', ''))
+    return cols, rows
 
 def jv_options():
     global _JV_CACHE
