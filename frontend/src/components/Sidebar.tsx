@@ -1,6 +1,7 @@
 import { ScrollArea } from "./ui/scroll-area"
 import { cn } from "@/lib/utils"
 import type { Tab } from "../App"
+import { useNavigate, useLocation } from "react-router-dom"
 import { 
   LayoutDashboard, 
   FileText, 
@@ -25,14 +26,19 @@ import {
 } from "lucide-react"
 import { useState, useEffect } from "react"
 
-export function Sidebar({ user, tabs, activeTab, activeReport, onSelectReport, onLogout }: { 
+export function Sidebar({ user, tabs, onLogout }: { 
   user: any,
   tabs: Tab[], 
-  activeTab: string, 
-  activeReport: string,
-  onSelectReport: (tabId: string, reportId: string) => void,
   onLogout: () => void
 }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  
+  // Extract tab and report from pathname (e.g., /sales/invoice -> tab: sales, report: invoice)
+  const pathParts = location.pathname.split('/').filter(Boolean)
+  const activeTab = pathParts[0] || ''
+  const activeReport = pathParts[1] || ''
+
   const [expandedTabs, setExpandedTabs] = useState<string[]>([activeTab])
   const [isCollapsed, setIsCollapsed] = useState(false)
 
@@ -136,7 +142,7 @@ export function Sidebar({ user, tabs, activeTab, activeReport, onSelectReport, o
                           key={report.id}
                           onClick={() => {
                             if (isCollapsed) setIsCollapsed(false)
-                            onSelectReport(tab.id, report.id)
+                            navigate(`/${tab.id}/${report.id}`)
                           }}
                           className={cn(
                             "w-full flex items-center text-right font-semibold rounded-xl transition-all duration-200",
@@ -168,7 +174,7 @@ export function Sidebar({ user, tabs, activeTab, activeReport, onSelectReport, o
                 <button 
                   onClick={() => {
                     if (isCollapsed) setIsCollapsed(false)
-                    onSelectReport('tools', 'settings')
+                    navigate('/tools/settings')
                   }}
                   className={cn("flex items-center text-sm text-slate-900 font-bold w-full rounded-xl hover:bg-slate-50 hover:text-black hover:shadow-sm transition-all duration-300",
                     isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
@@ -184,7 +190,7 @@ export function Sidebar({ user, tabs, activeTab, activeReport, onSelectReport, o
                 <button 
                   onClick={() => {
                     if (isCollapsed) setIsCollapsed(false)
-                    onSelectReport('tools', 'users')
+                    navigate('/tools/users')
                   }}
                   className={cn("flex items-center text-sm text-slate-900 font-bold w-full rounded-xl hover:bg-slate-50 hover:text-black hover:shadow-sm transition-all duration-300",
                     isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
