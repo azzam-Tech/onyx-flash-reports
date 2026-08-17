@@ -10,8 +10,8 @@ cur = conn.cursor()
 # Get some sample expenses
 query = """
 SELECT d.DOC_NO, d.DOC_DATE, d.A_CODE, a.A_NAME, d.DOC_TYPE, d.DR_AMT, d.DOC_DESC 
-FROM IAS20261.IAS_POST_DTL d
-LEFT JOIN IAS20261.ACCOUNT a ON d.A_CODE = a.A_CODE
+FROM IAS_POST_DTL d
+LEFT JOIN ACCOUNT a ON d.A_CODE = a.A_CODE
 WHERE (d.DOC_DESC LIKE '%صيان%' OR d.DOC_DESC LIKE '%سيار%') 
   AND d.DR_AMT > 0 
   AND d.A_CODE LIKE '3%'

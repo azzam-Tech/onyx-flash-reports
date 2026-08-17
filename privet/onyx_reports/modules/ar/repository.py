@@ -8,8 +8,8 @@ def get_balances_sql():
              MAX(c.C_A_NAME) AS "اسم العميل",
              MAX(c.REP_CODE) AS "المندوب",
              TO_CHAR(SUM(NVL(p.DR_AMT,0)-NVL(p.CR_AMT,0)),'FM999,999,999,990.00') AS "الرصيد (مدين)"
-      FROM IAS20261.IAS_POST_DTL p
-      LEFT JOIN IAS20261.CUSTOMER c ON c.C_CODE=p.C_CODE
+      FROM IAS_POST_DTL p
+      LEFT JOIN CUSTOMER c ON c.C_CODE=p.C_CODE
       WHERE p.C_CODE IS NOT NULL
         AND NVL(p.DOC_POST,0)=1
         AND p.DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
@@ -23,14 +23,14 @@ def get_statement_sql():
     return """
        WITH open_bal AS (
          SELECT NVL(SUM(NVL(DR_AMT,0)-NVL(CR_AMT,0)),0) as bal
-         FROM IAS20261.IAS_POST_DTL
+         FROM IAS_POST_DTL
          WHERE C_CODE = :c_code AND NVL(DOC_POST,0)=1
            AND (DOC_DATE < TO_DATE(:date_from,'YYYY-MM-DD') OR NVL(DOC_TYPE,0) = 0)
        ),
        trans AS (
          SELECT p.DOC_DATE, NVL(d.JV_NAME, 'قيد يومية') AS jv_name, p.DOC_NO, p.DOC_DESC,
                 NVL(p.DR_AMT,0) dr, NVL(p.CR_AMT,0) cr, p.DOC_SER
-         FROM IAS20261.IAS_POST_DTL p
+         FROM IAS_POST_DTL p
          LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=1 AND d.LANG_NO=1
          WHERE p.C_CODE = :c_code AND NVL(p.DOC_POST,0)=1
            AND NVL(p.DOC_TYPE,0) <> 0
@@ -63,14 +63,14 @@ def get_statement_analytic_sql():
     return """
        WITH open_bal AS (
          SELECT NVL(SUM(NVL(DR_AMT,0)-NVL(CR_AMT,0)),0) as bal
-         FROM IAS20261.IAS_POST_DTL
+         FROM IAS_POST_DTL
          WHERE (AC_CODE_DTL = :ac_code_dtl OR C_V_CODE = :ac_code_dtl OR V_C_CODE = :ac_code_dtl) AND NVL(DOC_POST,0)=1
            AND (DOC_DATE < TO_DATE(:date_from,'YYYY-MM-DD') OR NVL(DOC_TYPE,0) = 0)
        ),
        trans AS (
          SELECT p.DOC_DATE, NVL(d.JV_NAME, 'قيد يومية') AS jv_name, p.DOC_NO, p.DOC_DESC, p.REF_NO,
                 NVL(p.DR_AMT,0) dr, NVL(p.CR_AMT,0) cr, p.DOC_SER
-         FROM IAS20261.IAS_POST_DTL p
+         FROM IAS_POST_DTL p
          LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=1 AND d.LANG_NO=1
          WHERE (p.AC_CODE_DTL = :ac_code_dtl OR p.C_V_CODE = :ac_code_dtl OR p.V_C_CODE = :ac_code_dtl) AND NVL(p.DOC_POST,0)=1
            AND NVL(p.DOC_TYPE,0) <> 0
@@ -107,8 +107,8 @@ def get_dormant_sql():
        SELECT c.C_CODE AS "كود العميل", c.C_A_NAME AS "اسم العميل", c.REP_CODE AS "المندوب",
               TO_CHAR(lb.last_bill,'YYYY-MM-DD') AS "آخر فاتورة",
               (TRUNC(TO_DATE(:as_of,'YYYY-MM-DD'))-TRUNC(lb.last_bill)) AS "أيام منذ آخر تعامل"
-       FROM IAS20261.CUSTOMER c
-       LEFT JOIN (SELECT C_CODE, MAX(BILL_DATE) last_bill FROM IAS20261.IAS_BILL_MST WHERE BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) GROUP BY C_CODE) lb ON lb.C_CODE=c.C_CODE
+       FROM CUSTOMER c
+       LEFT JOIN (SELECT C_CODE, MAX(BILL_DATE) last_bill FROM IAS_BILL_MST WHERE BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8) GROUP BY C_CODE) lb ON lb.C_CODE=c.C_CODE
        WHERE NVL(c.INACTIVE,0)=0 AND (lb.last_bill IS NULL OR lb.last_bill < TO_DATE(:as_of,'YYYY-MM-DD') - :days)
        ORDER BY lb.last_bill NULLS FIRST
      ) """

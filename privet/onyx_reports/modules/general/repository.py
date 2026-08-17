@@ -18,9 +18,9 @@ def get_daily_expenses_sql():
              TO_CHAR(d.DR_AMT, 'FM999,999,990.00') AS "المبلغ",
              TO_CHAR(d.CC_CODE) AS "مركز التكلفة",
              MAX(cc.CC_A_NAME) AS "اسم مركز التكلفة"
-      FROM IAS20261.IAS_POST_DTL d
-      LEFT JOIN IAS20261.ACCOUNT a ON d.A_CODE = a.A_CODE
-      LEFT JOIN IAS20261.COST_CENTERS cc ON d.CC_CODE = cc.CC_CODE
+      FROM IAS_POST_DTL d
+      LEFT JOIN ACCOUNT a ON d.A_CODE = a.A_CODE
+      LEFT JOIN COST_CENTERS cc ON d.CC_CODE = cc.CC_CODE
       WHERE d.DR_AMT > 0 
         AND d.A_CODE LIKE '3%'
         AND d.DOC_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD')
@@ -43,10 +43,10 @@ def get_detailed_net_jrn_sql():
              MAX(a.A_NAME) AS "اسم الحساب",
              MAX(p.DOC_DESC) AS "البيان",
              TO_CHAR(SUM(NVL(p.CR_AMT,0)),'FM999,999,990.00') AS "المبلغ"
-      FROM IAS20261.IAS_POST_DTL p
-      LEFT JOIN IAS20261.CUSTOMER c ON c.C_CODE = p.C_CODE
-      LEFT JOIN IAS20261.SALES_MAN sm ON sm.REPRS_CODE = p.REP_CODE
-      LEFT JOIN IAS20261.ACCOUNT a ON a.A_CODE = p.A_CODE
+      FROM IAS_POST_DTL p
+      LEFT JOIN CUSTOMER c ON c.C_CODE = p.C_CODE
+      LEFT JOIN SALES_MAN sm ON sm.REPRS_CODE = p.REP_CODE
+      LEFT JOIN ACCOUNT a ON a.A_CODE = p.A_CODE
       WHERE NVL(p.DOC_POST,0) = 1 
         AND p.DOC_TYPE = 1 
         AND p.JV_TYPE = 2 

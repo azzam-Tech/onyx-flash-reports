@@ -21,7 +21,7 @@ def generate_final_report():
         cur = conn.cursor()
         
         # 1. Get all items and mapping
-        cur.execute("SELECT I_CODE, I_NAME FROM IAS20261.IAS_ITM_MST")
+        cur.execute("SELECT I_CODE, I_NAME FROM IAS_ITM_MST")
         all_items = cur.fetchall()
         
         db_map = {}
@@ -34,7 +34,7 @@ def generate_final_report():
                 db_map[norm_code].append((i_code, row[1]))
                 
         # 2. Fetch current retail prices
-        cur.execute("SELECT I_CODE, I_PRICE FROM IAS20261.IAS_ITEM_PRICE WHERE LEV_NO = 2")
+        cur.execute("SELECT I_CODE, I_PRICE FROM IAS_ITEM_PRICE WHERE LEV_NO = 2")
         db_prices = {r[0]: r[1] for r in cur.fetchall() if r[0]}
 
         # 3. Read Excel

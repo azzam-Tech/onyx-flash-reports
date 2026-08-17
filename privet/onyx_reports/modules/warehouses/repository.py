@@ -9,7 +9,7 @@ def get_warehouse_names():
         with get_conn() as con:
             with con.cursor() as cur:
                 codes_str = ','.join(MAIN_WAREHOUSES_CODES)
-                cur.execute(f"SELECT W_CODE, W_NAME FROM IAS20261.WAREHOUSE_DETAILS WHERE W_CODE IN ({codes_str})")
+                cur.execute(f"SELECT W_CODE, W_NAME FROM WAREHOUSE_DETAILS WHERE W_CODE IN ({codes_str})")
                 for w_code, w_name in cur.fetchall():
                     wh_mapping[str(w_code)] = w_name
     except Exception as e:
@@ -30,8 +30,8 @@ def get_main_wh_movement_data(date_from_str, date_to_str, i_code_str):
             MAX(m.I_NAME),
             dt.W_CODE,
             SUM(NVL(dt.I_QTY, 0)) AS net_qty
-        FROM IAS20261.ITEM_MOVEMENT dt
-        LEFT JOIN IAS20261.IAS_ITM_MST m ON m.I_CODE = dt.I_CODE
+        FROM ITEM_MOVEMENT dt
+        LEFT JOIN IAS_ITM_MST m ON m.I_CODE = dt.I_CODE
         WHERE dt.I_DATE >= TO_DATE(:df, 'YYYY-MM-DD')
           AND dt.I_DATE < TO_DATE(:dt, 'YYYY-MM-DD') + 1
           AND dt.W_CODE IN (105, 103, 121, 122, 118, 108, 119)
@@ -56,11 +56,11 @@ def get_detailed_stock_pivot_sql():
                 MAX(mg.MNG_A_NAME) AS sub_main_grp,
                 MAX(sg.SUBG_A_NAME) AS sub_grp,
                 MAX(dg.DETAIL_A_NAME) AS dtl_grp
-            FROM IAS20261.IAS_ITM_MST m
-            LEFT JOIN IAS20261.GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
-            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
+            FROM IAS_ITM_MST m
+            LEFT JOIN GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
+            LEFT JOIN IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
+            LEFT JOIN IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
+            LEFT JOIN IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
             GROUP BY m.I_CODE
         ),
         inventory_mov AS (
@@ -85,7 +85,7 @@ def get_detailed_stock_pivot_sql():
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 118 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_118,
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 108 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_108,
                 SUM(CASE WHEN I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 AND W_CODE = 119 THEN NVL(dt.I_QTY,0) * NVL(IN_OUT,1) ELSE 0 END) as end_bal_119
-            FROM IAS20261.ITEM_MOVEMENT dt
+            FROM ITEM_MOVEMENT dt
             WHERE dt.W_CODE IN (105, 103, 121, 122, 118, 108, 119) OR dt.DOC_TYPE IN (1, 2, 3, 4)
             GROUP BY dt.I_CODE
         )
@@ -136,11 +136,11 @@ def get_monthly_movement_pivot_sql():
                 MAX(mg.MNG_A_NAME) AS sub_main_grp,
                 MAX(sg.SUBG_A_NAME) AS sub_grp,
                 MAX(dg.DETAIL_A_NAME) AS dtl_grp
-            FROM IAS20261.IAS_ITM_MST m
-            LEFT JOIN IAS20261.GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
-            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
+            FROM IAS_ITM_MST m
+            LEFT JOIN GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
+            LEFT JOIN IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
+            LEFT JOIN IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
+            LEFT JOIN IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
             GROUP BY m.I_CODE
         ),
         inventory_mov AS (
@@ -194,7 +194,7 @@ def get_monthly_movement_pivot_sql():
                 SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '12' AND DOC_TYPE = 3 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m12_sales_rtn,
                 SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '12' AND DOC_TYPE = 2 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m12_pur,
                 SUM(CASE WHEN TO_CHAR(I_DATE, 'MM') = '12' AND DOC_TYPE = 4 THEN NVL(dt.I_QTY,0) ELSE 0 END) as m12_pur_rtn
-            FROM IAS20261.ITEM_MOVEMENT dt
+            FROM ITEM_MOVEMENT dt
             WHERE dt.DOC_TYPE IN (1, 2, 3, 4) AND TO_CHAR(dt.I_DATE, 'YYYY') = :p_year
             GROUP BY dt.I_CODE
         )
@@ -263,7 +263,7 @@ def get_warehouse_rebalancing_sql():
         WITH wh_stock AS (
             SELECT mv.I_CODE, mv.W_CODE,
                    SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) as qty
-            FROM IAS20261.ITEM_MOVEMENT mv
+            FROM ITEM_MOVEMENT mv
             WHERE mv.W_CODE IN ('105', '103', '121', '122', '118', '108', '119')
               AND mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
             GROUP BY mv.I_CODE, mv.W_CODE
@@ -295,7 +295,7 @@ def get_warehouse_rebalancing_sql():
                TO_CHAR(m.w_119, 'FM999,999,990') AS "الدمام (119)",
                TO_CHAR(m.w_108, 'FM999,999,990') AS "المنصورية 1 (108)"
         FROM item_matrix m
-        JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE = m.I_CODE
+        JOIN IAS_ITM_MST i ON i.I_CODE = m.I_CODE
         WHERE m.min_qty = 0 AND m.max_qty > 0
           AND (:i_code IS NULL OR m.I_CODE = :i_code)
         ORDER BY m.tot_qty DESC
@@ -309,7 +309,7 @@ def get_dead_stock_value_sql():
                    SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) as qty,
                    MAX(NVL(mv.STK_COST,0)) as unit_cost,
                    MAX(CASE WHEN NVL(mv.IN_OUT,0) <> 1 THEN mv.I_DATE END) as last_out_date
-            FROM IAS20261.ITEM_MOVEMENT mv
+            FROM ITEM_MOVEMENT mv
             WHERE mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
             GROUP BY mv.W_CODE, mv.I_CODE
             HAVING SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) > 0
@@ -341,8 +341,8 @@ def get_smart_replenishment_sql():
             SELECT mv.I_CODE, 
                    MAX(i.I_NAME) as I_NAME,
                    SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) as current_qty
-            FROM IAS20261.ITEM_MOVEMENT mv
-            LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE = mv.I_CODE
+            FROM ITEM_MOVEMENT mv
+            LEFT JOIN IAS_ITM_MST i ON i.I_CODE = mv.I_CODE
             WHERE mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
             AND (:i_code IS NULL OR mv.I_CODE = :i_code)
             GROUP BY mv.I_CODE
@@ -353,7 +353,7 @@ def get_smart_replenishment_sql():
                    SUM(CASE WHEN dt.IN_OUT = -1 AND dt.DOC_TYPE IN (1, 7) THEN NVL(dt.I_QTY,0) 
                             WHEN dt.IN_OUT = 1 AND dt.DOC_TYPE = 3 THEN -NVL(dt.I_QTY,0) 
                             ELSE 0 END) as sold_qty
-            FROM IAS20261.ITEM_MOVEMENT dt
+            FROM ITEM_MOVEMENT dt
             WHERE dt.I_DATE >= TO_DATE(:as_of,'YYYY-MM-DD') - :days 
               AND dt.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
               AND (:i_code IS NULL OR dt.I_CODE = :i_code)
@@ -396,7 +396,7 @@ def get_stock_bal_sql():
                TO_CHAR(SUM(CASE WHEN mv.W_CODE = '108' THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "المنصورية 1 (108)",
                TO_CHAR(SUM(CASE WHEN mv.W_CODE NOT IN ('103','121','122','105','118','119','108') THEN DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0)) ELSE 0 END), 'FM999,999,990.00') AS "مستودعات أخرى",
                TO_CHAR(SUM(DECODE(NVL(mv.IN_OUT,0),1,NVL(mv.I_QTY,0),-NVL(mv.I_QTY,0))*NVL(mv.STK_COST,0)),'FM999,999,999,990.00') AS "قيمة الرصيد (تقريبية)"
-        FROM IAS20261.ITEM_MOVEMENT mv LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE=mv.I_CODE
+        FROM ITEM_MOVEMENT mv LEFT JOIN IAS_ITM_MST i ON i.I_CODE=mv.I_CODE
         WHERE mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
           AND (:w_code IS NULL OR mv.W_CODE = :w_code)
           AND (:i_code IS NULL OR mv.I_CODE = :i_code)
@@ -412,7 +412,7 @@ def get_stock_move_sql():
                TO_CHAR(NVL(mv.I_QTY,0),'FM999,999,990.00') AS "الكمية",
                TO_CHAR(NVL(mv.STK_COST,0),'FM999,999,990.00') AS "التكلفة",
                mv.W_CODE AS "المستودع"
-        FROM IAS20261.ITEM_MOVEMENT mv
+        FROM ITEM_MOVEMENT mv
         WHERE mv.I_CODE = :i_code
           AND mv.I_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND mv.I_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
         ORDER BY mv.I_DATE, mv.DOC_NO
@@ -435,8 +435,8 @@ def get_stock_dormant_sql():
                SUM(CASE WHEN NVL(mv.IN_OUT,0) = 1 THEN NVL(mv.I_QTY,0) ELSE 0 END) AS total_in,
                SUM(CASE WHEN NVL(mv.IN_OUT,0) = -1 AND mv.DOC_TYPE IN (1, 7) THEN NVL(mv.I_QTY,0) 
                         WHEN NVL(mv.IN_OUT,0) = 1 AND mv.DOC_TYPE = 3 THEN -NVL(mv.I_QTY,0) ELSE 0 END) AS total_sales
-        FROM IAS20261.ITEM_MOVEMENT mv 
-        LEFT JOIN IAS20261.IAS_ITM_MST i ON i.I_CODE = mv.I_CODE
+        FROM ITEM_MOVEMENT mv 
+        LEFT JOIN IAS_ITM_MST i ON i.I_CODE = mv.I_CODE
         WHERE mv.I_DATE < TO_DATE(:as_of,'YYYY-MM-DD')+1
         GROUP BY mv.I_CODE
         HAVING SUM(DECODE(NVL(mv.IN_OUT,0), 1, NVL(mv.I_QTY,0), -NVL(mv.I_QTY,0))) > 0

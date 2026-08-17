@@ -27,7 +27,7 @@ def run_cust_aging(rpt, args):
     to_dt = datetime.strptime(date_to_str, '%Y-%m-%d').date()
     with get_conn() as con:
         with con.cursor() as cur:
-            sql_cust = 'SELECT TO_CHAR(C_CODE), MAX(C_A_NAME), MAX(TO_CHAR(REP_CODE)), MAX(TO_CHAR(C_GROUP_CODE)) FROM IAS20261.CUSTOMER GROUP BY TO_CHAR(C_CODE)'
+            sql_cust = 'SELECT TO_CHAR(C_CODE), MAX(C_A_NAME), MAX(TO_CHAR(REP_CODE)), MAX(TO_CHAR(C_GROUP_CODE)) FROM CUSTOMER GROUP BY TO_CHAR(C_CODE)'
             cur.execute(sql_cust)
             customers = {}
             for row in cur.fetchall():
@@ -44,7 +44,7 @@ def run_cust_aging(rpt, args):
                 filters.append('TO_CHAR(p.CC_CODE) = :cc')
                 binds['cc'] = cc_code
             filter_str = ' AND ' + ' AND '.join(filters) if filters else ''
-            sql = f"\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.DOC_NO, p.DOC_SER\n                FROM IAS20261.IAS_POST_DTL p\n                WHERE (NVL(p.DOC_POST,0)=1 OR (NVL(p.DOC_POST,0)=0 AND p.DOC_TYPE=2))\n                    AND p.C_CODE IS NOT NULL\n                    AND p.DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1\n                    {filter_str}\n            "
+            sql = f"\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.DOC_NO, p.DOC_SER\n                FROM IAS_POST_DTL p\n                WHERE (NVL(p.DOC_POST,0)=1 OR (NVL(p.DOC_POST,0)=0 AND p.DOC_TYPE=2))\n                    AND p.C_CODE IS NOT NULL\n                    AND p.DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1\n                    {filter_str}\n            "
             cur.execute(sql, binds)
             by_cust = defaultdict(lambda: {'debits': [], 'credits': 0.0, 'returns': []})
             for c_id, ddate, dr, cr, dtype, doc_no, doc_ser in cur.fetchall():
@@ -58,7 +58,7 @@ def run_cust_aging(rpt, args):
                         by_cust[c_id]['credits'] += cr
                 if dr > 0:
                     by_cust[c_id]['debits'].append({'date': d, 'amt': dr, 'type': dtype, 'doc_no': doc_no, 'doc_ser': doc_ser})
-            sql_links = f"\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(d.BILL_NO) as BILL_NO, TO_CHAR(d.BILL_SER) as BILL_SER\n                FROM IAS20261.IAS_POST_DTL p\n                JOIN IAS20261.IAS_RT_BILL_DTL d \n                    ON p.DOC_NO = d.RT_BILL_NO AND p.DOC_SER = d.RT_BILL_SER\n                WHERE p.DOC_TYPE = 5 AND p.CR_AMT > 0 \n                  AND p.DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1\n                  AND d.BILL_NO IS NOT NULL\n                  {filter_str}\n                UNION ALL\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(p.REF_NO) as BILL_NO, '' as BILL_SER\n                FROM IAS20261.IAS_POST_DTL p\n                WHERE p.DOC_TYPE = 15 AND p.CR_AMT > 0\n                  AND p.DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1\n                  AND p.REF_NO IS NOT NULL\n                  {filter_str}\n            "
+            sql_links = f"\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(d.BILL_NO) as BILL_NO, TO_CHAR(d.BILL_SER) as BILL_SER\n                FROM IAS_POST_DTL p\n                JOIN IAS_RT_BILL_DTL d \n                    ON p.DOC_NO = d.RT_BILL_NO AND p.DOC_SER = d.RT_BILL_SER\n                WHERE p.DOC_TYPE = 5 AND p.CR_AMT > 0 \n                  AND p.DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1\n                  AND d.BILL_NO IS NOT NULL\n                  {filter_str}\n                UNION ALL\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(p.REF_NO) as BILL_NO, '' as BILL_SER\n                FROM IAS_POST_DTL p\n                WHERE p.DOC_TYPE = 15 AND p.CR_AMT > 0\n                  AND p.DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1\n                  AND p.REF_NO IS NOT NULL\n                  {filter_str}\n            "
             cur.execute(sql_links, binds)
             links = {}
             for r_no, r_ser, b_no, b_ser in cur.fetchall():
@@ -69,9 +69,9 @@ def run_cust_aging(rpt, args):
                     if k in links:
                         ret['linked_inv'] = links[k]
             if str(args.get('vendor_link', '0')) == '1':
-                cur.execute('SELECT TO_CHAR(C_CODE), TO_CHAR(C_VENDOR) FROM IAS20261.CUSTOMER WHERE C_VENDOR IS NOT NULL')
+                cur.execute('SELECT TO_CHAR(C_CODE), TO_CHAR(C_VENDOR) FROM CUSTOMER WHERE C_VENDOR IS NOT NULL')
                 cust_vendor_map = {c: v for c, v in cur.fetchall()}
-                cur.execute("SELECT TO_CHAR(V_CODE), SUM(NVL(CR_AMT,0) - NVL(DR_AMT,0)) FROM IAS20261.IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND V_CODE IS NOT NULL AND DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1 GROUP BY TO_CHAR(V_CODE)", {'dt': date_to_str})
+                cur.execute("SELECT TO_CHAR(V_CODE), SUM(NVL(CR_AMT,0) - NVL(DR_AMT,0)) FROM IAS_POST_DTL WHERE NVL(DOC_POST,0)=1 AND V_CODE IS NOT NULL AND DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1 GROUP BY TO_CHAR(V_CODE)", {'dt': date_to_str})
                 vendor_balances = {v: float(bal) for v, bal in cur.fetchall()}
                 for c_id, v_id in cust_vendor_map.items():
                     if c_id in by_cust and v_id in vendor_balances and (vendor_balances[v_id] > 0):

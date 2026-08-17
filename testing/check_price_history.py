@@ -9,7 +9,7 @@ cur = conn.cursor()
 try:
     cur.execute("""
         SELECT LEV_NO, PREV_I_PRICE, I_PRICE, AUD_DATE, AUD_U_ID 
-        FROM IAS20261.IAS_ITEM_PRICE_HISTORY 
+        FROM IAS_ITEM_PRICE_HISTORY 
         WHERE I_CODE = 'SR121.' 
         ORDER BY AUD_DATE DESC 
         FETCH FIRST 5 ROWS ONLY
@@ -26,7 +26,7 @@ except Exception as e:
 try:
     cur.execute("""
         SELECT LEV_NO, I_PRICE, UP_DATE, UP_U_ID
-        FROM IAS20261.IAS_ITEM_PRICE
+        FROM IAS_ITEM_PRICE
         WHERE I_CODE = 'SR121.'
     """)
     rows = cur.fetchall()

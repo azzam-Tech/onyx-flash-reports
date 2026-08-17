@@ -26,7 +26,7 @@ def match_items():
         cur = conn.cursor()
         
         # Fetch all items
-        cur.execute("SELECT I_CODE, I_NAME FROM IAS20261.IAS_ITM_MST")
+        cur.execute("SELECT I_CODE, I_NAME FROM IAS_ITM_MST")
         all_items = cur.fetchall()
         
         # Precompute normalized DB codes

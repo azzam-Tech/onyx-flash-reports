@@ -6,7 +6,7 @@ def get_critical_debts_sql():
     return """
       WITH customer_balances AS (
           SELECT C_CODE, SUM(NVL(DR_AMT,0) - NVL(CR_AMT,0)) as balance
-          FROM IAS20261.IAS_POST_DTL
+          FROM IAS_POST_DTL
           WHERE NVL(DOC_POST,0) = 1 AND C_CODE IS NOT NULL
           GROUP BY C_CODE
           HAVING SUM(NVL(DR_AMT,0) - NVL(CR_AMT,0)) > 1000
@@ -15,7 +15,7 @@ def get_critical_debts_sql():
           SELECT C_CODE,
                  MAX(CASE WHEN NVL(CR_AMT,0) > 0 THEN DOC_DATE END) as last_payment_date,
                  MAX(CASE WHEN NVL(DR_AMT,0) > 0 AND DOC_TYPE = 4 THEN DOC_DATE END) as last_invoice_date
-          FROM IAS20261.IAS_POST_DTL
+          FROM IAS_POST_DTL
           WHERE NVL(DOC_POST,0) = 1 AND C_CODE IS NOT NULL
           GROUP BY C_CODE
       )
@@ -29,8 +29,8 @@ def get_critical_debts_sql():
              TRUNC(SYSDATE) - TRUNC(la.last_invoice_date) AS "أيام التوقف عن السحب"
       FROM customer_balances c
       JOIN last_activity la ON c.C_CODE = la.C_CODE
-      JOIN IAS20261.CUSTOMER cust ON c.C_CODE = cust.C_CODE
-      LEFT JOIN IAS20261.SALES_MAN sm ON TO_CHAR(cust.REP_CODE) = TO_CHAR(sm.REPRS_CODE)
+      JOIN CUSTOMER cust ON c.C_CODE = cust.C_CODE
+      LEFT JOIN SALES_MAN sm ON TO_CHAR(cust.REP_CODE) = TO_CHAR(sm.REPRS_CODE)
       WHERE (TRUNC(SYSDATE) - TRUNC(la.last_payment_date) >= :days_threshold OR la.last_payment_date IS NULL)
         AND (TRUNC(SYSDATE) - TRUNC(la.last_invoice_date) >= :days_threshold OR la.last_invoice_date IS NULL)
       GROUP BY c.C_CODE, c.balance, la.last_payment_date, la.last_invoice_date
@@ -58,7 +58,7 @@ def get_true_income_statement_sql():
               SUM(CASE WHEN DOC_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(CR_AMT,0) ELSE 0 END) as op_cr,
               SUM(CASE WHEN DOC_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(DR_AMT,0) ELSE 0 END) as mv_dr,
               SUM(CASE WHEN DOC_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(CR_AMT,0) ELSE 0 END) as mv_cr
-          FROM IAS20261.IAS_POST_DTL
+          FROM IAS_POST_DTL
           WHERE (:rep_code IS NULL OR REP_CODE = :rep_code OR CC_CODE = :rep_code)
             AND NVL(DOC_POST,0)=1
             AND (
@@ -75,8 +75,8 @@ def get_true_income_statement_sql():
               0 as op_cr,
               SUM(CASE WHEN m.BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND m.BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_dr,
               0 as mv_cr
-          FROM IAS20261.IAS_BILL_MST m
-          JOIN IAS20261.IAS_BILL_DTL d ON m.BILL_DOC_TYPE = d.BILL_DOC_TYPE AND m.BILL_NO = d.BILL_NO AND m.BILL_SER = d.BILL_SER
+          FROM IAS_BILL_MST m
+          JOIN IAS_BILL_DTL d ON m.BILL_DOC_TYPE = d.BILL_DOC_TYPE AND m.BILL_NO = d.BILL_NO AND m.BILL_SER = d.BILL_SER
           WHERE (:rep_code IS NULL OR m.REP_CODE = :rep_code OR m.CC_CODE = :rep_code)
         ),
         inv_cogs_ret AS (
@@ -86,8 +86,8 @@ def get_true_income_statement_sql():
               SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as op_cr,
               0 as mv_dr,
               SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_cr
-          FROM IAS20261.IAS_RT_BILL_MST r
-          JOIN IAS20261.IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
+          FROM IAS_RT_BILL_MST r
+          JOIN IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
           WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code OR r.CC_CODE = :rep_code)
             AND r.PREV_YEAR IS NULL
         ),
@@ -98,8 +98,8 @@ def get_true_income_statement_sql():
               SUM(CASE WHEN r.RT_BILL_DATE < TO_DATE(:date_from, 'YYYY-MM-DD') THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as op_cr,
               0 as mv_dr,
               SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_cr
-          FROM IAS20261.IAS_RT_BILL_MST r
-          JOIN IAS20261.IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
+          FROM IAS_RT_BILL_MST r
+          JOIN IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
           WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code OR r.CC_CODE = :rep_code)
             AND r.PREV_YEAR IS NOT NULL
         ),
@@ -130,7 +130,7 @@ def get_true_income_statement_sql():
                    ELSE 0 END, 2), 0), 'FM999,999,990.00'
             ) AS "الأرصدة دائن"
         FROM all_data d
-        LEFT JOIN IAS20261.ACCOUNT a ON a.A_CODE = d.acc_code
+        LEFT JOIN ACCOUNT a ON a.A_CODE = d.acc_code
         GROUP BY d.acc_code
         ORDER BY d.acc_code
       """
@@ -140,61 +140,61 @@ def get_collection_adopted_sql():
 
       WITH 
       grp AS (
-        SELECT 'rep' as typ, TO_CHAR(REPRS_CODE) as cd, MAX(REPRS_A_NAME) as nm FROM IAS20261.SALES_MAN GROUP BY TO_CHAR(REPRS_CODE)
+        SELECT 'rep' as typ, TO_CHAR(REPRS_CODE) as cd, MAX(REPRS_A_NAME) as nm FROM SALES_MAN GROUP BY TO_CHAR(REPRS_CODE)
         UNION ALL 
-        SELECT 'cc' as typ, TO_CHAR(CC_CODE) as cd, MAX(CC_A_NAME) as nm FROM IAS20261.COST_CENTERS GROUP BY TO_CHAR(CC_CODE)
+        SELECT 'cc' as typ, TO_CHAR(CC_CODE) as cd, MAX(CC_A_NAME) as nm FROM COST_CENTERS GROUP BY TO_CHAR(CC_CODE)
         UNION ALL
-        SELECT 'cst' as typ, TO_CHAR(C_CODE) as cd, MAX(C_A_NAME) as nm FROM IAS20261.CUSTOMER GROUP BY TO_CHAR(C_CODE)
+        SELECT 'cst' as typ, TO_CHAR(C_CODE) as cd, MAX(C_A_NAME) as nm FROM CUSTOMER GROUP BY TO_CHAR(C_CODE)
         UNION ALL
         SELECT 'cst' as typ, 'UNKNOWN' as cd, 'عميل نقدي عام' as nm FROM DUAL
       ),
       all_trans AS (
         SELECT CASE WHEN :grp_by='cc' THEN TO_CHAR(CC_CODE) WHEN :grp_by='cst' THEN NVL(TO_CHAR(C_CODE),'UNKNOWN') ELSE TO_CHAR(REP_CODE) END as grp_code,
                CR_AMT as rcpt, 0 as net_jrn, 0 as cash_sales, 0 as inv_disc, 0 as cash_ret, 0 as ext_notice, 0 as rcpt_unknown, 0 as unposted_rcpt, 0 as unposted_unknown
-        FROM IAS20261.IAS_POST_DTL
+        FROM IAS_POST_DTL
         WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=2 AND NVL(CR_AMT,0)>0 AND C_CODE IS NOT NULL
           AND DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
         UNION ALL
         SELECT CASE WHEN :grp_by='cc' THEN TO_CHAR(CC_CODE) WHEN :grp_by='cst' THEN NVL(TO_CHAR(C_CODE),'UNKNOWN') ELSE TO_CHAR(REP_CODE) END,
                0, 0, 0, 0, 0, 0, 0, CR_AMT, 0
-        FROM IAS20261.IAS_POST_DTL
+        FROM IAS_POST_DTL
         WHERE NVL(DOC_POST,0)=0 AND DOC_TYPE=2 AND NVL(CR_AMT,0)>0 AND C_CODE IS NOT NULL
           AND DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
         UNION ALL
         SELECT CASE WHEN :grp_by='cc' THEN TO_CHAR(CC_CODE) WHEN :grp_by='cst' THEN NVL(TO_CHAR(C_CODE),'UNKNOWN') ELSE TO_CHAR(REP_CODE) END,
                0, 0, 0, 0, 0, 0, 0, 0, CR_AMT
-        FROM IAS20261.IAS_POST_DTL
+        FROM IAS_POST_DTL
         WHERE NVL(DOC_POST,0)=0 AND DOC_TYPE=2 AND NVL(CR_AMT,0)>0 AND C_CODE IS NULL
           AND DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
         UNION ALL
         SELECT CASE WHEN :grp_by='cc' THEN TO_CHAR(CC_CODE) WHEN :grp_by='cst' THEN NVL(TO_CHAR(C_CODE),'UNKNOWN') ELSE TO_CHAR(REP_CODE) END,
                0, CR_AMT, 0, 0, 0, 0, 0, 0, 0
-        FROM IAS20261.IAS_POST_DTL
+        FROM IAS_POST_DTL
         WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=1 AND JV_TYPE=2 AND NVL(CR_AMT,0)>0 AND C_CODE IS NOT NULL
           AND DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
         UNION ALL
         SELECT CASE WHEN :grp_by='cc' THEN TO_CHAR(b.CC_CODE) WHEN :grp_by='cst' THEN NVL(TO_CHAR(b.C_CODE),'UNKNOWN') ELSE TO_CHAR(b.REP_CODE) END,
                0, 0, NVL(p.DR_AMT,0), NVL(b.DISC_AMT,0), 0, 0, 0, 0, 0
-        FROM IAS20261.IAS_BILL_MST b
-        JOIN IAS20261.IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%'
+        FROM IAS_BILL_MST b
+        JOIN IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%'
         WHERE b.BILL_DOC_TYPE=1 AND NVL(p.DOC_POST,0)=1 AND p.DR_AMT > 0
           AND b.BILL_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND b.BILL_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
         UNION ALL
         SELECT CASE WHEN :grp_by='cc' THEN TO_CHAR(CC_CODE) WHEN :grp_by='cst' THEN NVL(TO_CHAR(C_CODE),'UNKNOWN') ELSE TO_CHAR(REP_CODE) END,
                0, 0, 0, 0, CR_AMT, 0, 0, 0, 0
-        FROM IAS20261.IAS_POST_DTL
+        FROM IAS_POST_DTL
         WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=5 AND A_CODE LIKE '111%' AND NVL(CR_AMT,0)>0
           AND DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
         UNION ALL
         SELECT CASE WHEN :grp_by='cc' THEN TO_CHAR(CC_CODE) WHEN :grp_by='cst' THEN NVL(TO_CHAR(C_CODE),'UNKNOWN') ELSE TO_CHAR(REP_CODE) END,
                0, 0, 0, 0, 0, CR_AMT, 0, 0, 0
-        FROM IAS20261.IAS_POST_DTL
+        FROM IAS_POST_DTL
         WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=15 AND NVL(CR_AMT,0)>0
           AND DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
         UNION ALL
         SELECT CASE WHEN :grp_by='cc' THEN TO_CHAR(CC_CODE) WHEN :grp_by='cst' THEN NVL(TO_CHAR(C_CODE),'UNKNOWN') ELSE TO_CHAR(REP_CODE) END,
                0, 0, 0, 0, 0, 0, CR_AMT, 0, 0
-        FROM IAS20261.IAS_POST_DTL
+        FROM IAS_POST_DTL
         WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=2 AND NVL(CR_AMT,0)>0 AND C_CODE IS NULL
           AND DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
       ),

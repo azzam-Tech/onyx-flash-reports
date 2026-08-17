@@ -37,7 +37,7 @@ def update_last_three():
         updated_count = 0
         for correct_code, new_price in prices_map.items():
             
-            cur.execute("SELECT I_PRICE FROM IAS20261.IAS_ITEM_PRICE WHERE I_CODE = :1 AND LEV_NO = 2", (correct_code,))
+            cur.execute("SELECT I_PRICE FROM IAS_ITEM_PRICE WHERE I_CODE = :1 AND LEV_NO = 2", (correct_code,))
             res = cur.fetchone()
             
             if not res:
@@ -52,14 +52,14 @@ def update_last_three():
                 
             # History
             cur.execute("""
-                INSERT INTO IAS20261.IAS_ITEM_PRICE_HISTORY 
+                INSERT INTO IAS_ITEM_PRICE_HISTORY 
                 (I_CODE, LEV_NO, PREV_I_PRICE, I_PRICE, AUD_DATE, AUD_U_ID)
                 VALUES (:1, 2, :2, :3, SYSDATE, 999)
             """, (correct_code, old_price, new_price))
             
             # Update
             cur.execute("""
-                UPDATE IAS20261.IAS_ITEM_PRICE
+                UPDATE IAS_ITEM_PRICE
                 SET I_PRICE = :1, UP_DATE = SYSDATE, UP_U_ID = 999
                 WHERE I_CODE = :2 AND LEV_NO = 2
             """, (new_price, correct_code))

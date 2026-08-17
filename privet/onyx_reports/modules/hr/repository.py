@@ -12,7 +12,7 @@ def get_emp_directory_sql():
                 CASE WHEN NVL(e.SLRY_CALC, 0) = 1 THEN 'شهري' WHEN NVL(e.SLRY_CALC, 0) = 2 THEN 'يومي' ELSE 'معياري' END AS "احتساب الراتب",
                 TO_CHAR(NVL(e.WRK_HRS_DY, 8)) AS "ساعات العمل/يوم",
                 TO_CHAR(NVL(e.WRK_DY_MNTH, 30)) AS "أيام العمل/شهر"
-         FROM IAS20261.S_EMP e
+         FROM S_EMP e
          WHERE (:emp_status IS NULL OR (:emp_status = '1' AND NVL(e.INACTIVE, 0) = 0) OR (:emp_status = '0' AND NVL(e.INACTIVE, 0) = 1))
            AND (:emp_search IS NULL OR TO_CHAR(e.EMP_NO) LIKE '%' || :emp_search || '%' OR e.EMP_L_NM LIKE '%' || :emp_search || '%')
          ORDER BY e.EMP_NO
@@ -26,8 +26,8 @@ def get_payroll_financial_summary_sql():
                 TO_CHAR(SUM(NVL(p.DR_AMT,0)), 'FM999,999,990.00') AS "إجمالي الصرف والرواتب",
                 TO_CHAR(SUM(NVL(p.CR_AMT,0)), 'FM999,999,990.00') AS "إجمالي التسويات والدائن",
                 TO_CHAR(SUM(NVL(p.DR_AMT,0) - NVL(p.CR_AMT,0)), 'FM999,999,990.00') AS "الصافي المالي"
-         FROM IAS20261.IAS_POST_DTL p
-         JOIN IAS20261.ACCOUNT a ON a.A_CODE = p.A_CODE
+         FROM IAS_POST_DTL p
+         JOIN ACCOUNT a ON a.A_CODE = p.A_CODE
          WHERE (p.A_CODE LIKE '321%' OR p.A_CODE LIKE '324%' OR p.A_CODE LIKE '11402%' OR p.A_CODE LIKE '21104%')
            AND NVL(p.DOC_POST, 0) = 1
            AND p.DOC_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD')
@@ -45,8 +45,8 @@ def get_employee_advances_loans_sql():
                 TO_CHAR(NVL(p.DR_AMT, 0), 'FM999,999,990.00') AS "سلفة / راتب / مدين",
                 TO_CHAR(NVL(p.CR_AMT, 0), 'FM999,999,990.00') AS "سداد / تسوية / دائن",
                 NVL(p.DOC_DESC, 'قيد تلقائي') AS "اسم الموظف / البيان والتفاصيل"
-         FROM IAS20261.IAS_POST_DTL p
-         LEFT JOIN IAS20261.SALES_MAN sm ON TO_CHAR(sm.REPRS_CODE) = TO_CHAR(p.CC_CODE)
+         FROM IAS_POST_DTL p
+         LEFT JOIN SALES_MAN sm ON TO_CHAR(sm.REPRS_CODE) = TO_CHAR(p.CC_CODE)
          WHERE (p.A_CODE LIKE '11402%' OR p.A_CODE LIKE '321%' OR p.A_CODE LIKE '324%')
            AND NVL(p.DOC_POST, 0) = 1
            AND p.DOC_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD')
@@ -64,8 +64,8 @@ def get_salesmen_hr_link_sql():
                 NVL(e.EMP_NO, sm.REPRS_CODE) AS "كود الموظف المربوط",
                 NVL(TRIM(e.EMP_L_NM), 'غير موصول برقم موظف') AS "اسم الموظف في HR",
                 CASE WHEN e.EMP_NO IS NOT NULL THEN 'مربوط بسجل HR' ELSE 'غير مربوط' END AS "حالة الربط"
-         FROM IAS20261.SALES_MAN sm
-         LEFT JOIN IAS20261.S_EMP e ON e.EMP_NO = sm.REPRS_CODE
+         FROM SALES_MAN sm
+         LEFT JOIN S_EMP e ON e.EMP_NO = sm.REPRS_CODE
          WHERE (:rep_code IS NULL OR sm.REPRS_CODE = :rep_code)
          ORDER BY sm.REPRS_CODE
          """

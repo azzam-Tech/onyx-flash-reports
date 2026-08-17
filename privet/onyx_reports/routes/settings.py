@@ -15,7 +15,7 @@ def api_settings_manage():
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("SELECT REPRS_CODE, REPRS_A_NAME FROM IAS20261.SALES_MAN")
+                    cur.execute("SELECT REPRS_CODE, REPRS_A_NAME FROM SALES_MAN")
                     for c, n in cur.fetchall():
                         reps.append({"code": str(c), "name": n or str(c)})
         except Exception as e:

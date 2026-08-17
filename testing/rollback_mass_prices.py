@@ -37,7 +37,7 @@ def rollback_wholesale_prices():
         for code, old_price in old_prices.items():
             
             # Get current price
-            cur.execute("SELECT I_PRICE FROM IAS20261.IAS_ITEM_PRICE WHERE I_CODE = :1 AND LEV_NO = 1", (code,))
+            cur.execute("SELECT I_PRICE FROM IAS_ITEM_PRICE WHERE I_CODE = :1 AND LEV_NO = 1", (code,))
             res = cur.fetchone()
             
             if not res:
@@ -51,14 +51,14 @@ def rollback_wholesale_prices():
                 
             # Insert History again to log the rollback
             cur.execute("""
-                INSERT INTO IAS20261.IAS_ITEM_PRICE_HISTORY 
+                INSERT INTO IAS_ITEM_PRICE_HISTORY 
                 (I_CODE, LEV_NO, PREV_I_PRICE, I_PRICE, AUD_DATE, AUD_U_ID)
                 VALUES (:1, 1, :2, :3, SYSDATE, 999)
             """, (code, current_price, old_price))
             
             # Update Price back to original
             cur.execute("""
-                UPDATE IAS20261.IAS_ITEM_PRICE
+                UPDATE IAS_ITEM_PRICE
                 SET I_PRICE = :1, UP_DATE = SYSDATE, UP_U_ID = 999
                 WHERE I_CODE = :2 AND LEV_NO = 1
             """, (old_price, code))

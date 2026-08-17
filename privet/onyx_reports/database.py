@@ -36,16 +36,6 @@ class InterceptCursor:
         self._cur = cur
 
     def execute(self, statement, parameters=None, **keyword_parameters):
-        import sys
-        if 'flask' in sys.modules:
-            try:
-                from flask import g
-                target_year = getattr(g, 'target_year', None)
-                if target_year and str(target_year).isdigit() and len(str(target_year)) == 4:
-                    statement = statement.replace("IAS20261", f"IAS{target_year}1")
-                    statement = statement.replace("ias20261", f"ias{target_year}1")
-            except Exception:
-                pass
         if parameters is not None:
             return self._cur.execute(statement, parameters, **keyword_parameters)
         return self._cur.execute(statement, **keyword_parameters)
@@ -70,7 +60,24 @@ class InterceptConnection:
         self._conn = conn
 
     def cursor(self):
-        return InterceptCursor(self._conn.cursor())
+        cur = self._conn.cursor()
+        import sys
+        target_schema = os.environ.get("DEFAULT_SCHEMA", "IAS20261")
+        if 'flask' in sys.modules:
+            try:
+                from flask import g
+                target_year = getattr(g, 'target_year', None)
+                if target_year and str(target_year).isdigit() and len(str(target_year)) == 4:
+                    target_schema = f"IAS{target_year}1"
+            except Exception:
+                pass
+        
+        try:
+            cur.execute(f"ALTER SESSION SET CURRENT_SCHEMA = {target_schema}")
+        except Exception as e:
+            print("Alter session warning:", e)
+            
+        return InterceptCursor(cur)
 
     def __getattr__(self, name):
         return getattr(self._conn, name)

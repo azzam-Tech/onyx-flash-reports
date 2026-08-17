@@ -22,7 +22,7 @@ def generate_identical_excel():
         conn = oracledb.connect(user='RPT_USER', password='ULT2016', dsn='100.100.1.100:1521/ORCL')
         cur = conn.cursor()
         
-        cur.execute("SELECT I_CODE, I_NAME FROM IAS20261.IAS_ITM_MST")
+        cur.execute("SELECT I_CODE, I_NAME FROM IAS_ITM_MST")
         all_items = cur.fetchall()
         
         db_map = {}
@@ -35,7 +35,7 @@ def generate_identical_excel():
                 db_map[norm_code].append((i_code, row[1]))
                 
         # Fetch current retail prices for all items to speed up
-        cur.execute("SELECT I_CODE, I_PRICE FROM IAS20261.IAS_ITEM_PRICE WHERE LEV_NO = 2")
+        cur.execute("SELECT I_CODE, I_PRICE FROM IAS_ITEM_PRICE WHERE LEV_NO = 2")
         price_rows = cur.fetchall()
         db_prices = {r[0]: r[1] for r in price_rows if r[0]}
 

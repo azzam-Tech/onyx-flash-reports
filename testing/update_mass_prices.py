@@ -32,7 +32,7 @@ def get_identical_prices():
             if code.startswith('.'):
                 code = code[1:] + '.'
                 
-            cur.execute("SELECT I_PRICE FROM IAS20261.IAS_ITEM_PRICE WHERE I_CODE = :1 AND LEV_NO = 2", (code,))
+            cur.execute("SELECT I_PRICE FROM IAS_ITEM_PRICE WHERE I_CODE = :1 AND LEV_NO = 2", (code,))
             res = cur.fetchone()
             
             if not res:

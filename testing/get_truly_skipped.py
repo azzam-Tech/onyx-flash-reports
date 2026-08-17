@@ -23,13 +23,13 @@ def get_truly_skipped():
         # 1. Get ALL items updated today by our script
         cur.execute("""
             SELECT DISTINCT I_CODE 
-            FROM IAS20261.IAS_ITEM_PRICE_HISTORY 
+            FROM IAS_ITEM_PRICE_HISTORY 
             WHERE AUD_U_ID = 999 AND AUD_DATE >= TRUNC(SYSDATE)
         """)
         updated_codes = {r[0] for r in cur.fetchall() if r[0]}
         
         # 2. Get all DB items
-        cur.execute("SELECT I_CODE, I_NAME FROM IAS20261.IAS_ITM_MST")
+        cur.execute("SELECT I_CODE, I_NAME FROM IAS_ITM_MST")
         all_items = cur.fetchall()
         
         db_map = {}
@@ -42,7 +42,7 @@ def get_truly_skipped():
                 db_map[norm_code].append((i_code, row[1]))
                 
         # 3. Get current retail prices
-        cur.execute("SELECT I_CODE, I_PRICE FROM IAS20261.IAS_ITEM_PRICE WHERE LEV_NO = 2")
+        cur.execute("SELECT I_CODE, I_PRICE FROM IAS_ITEM_PRICE WHERE LEV_NO = 2")
         db_prices = {r[0]: r[1] for r in cur.fetchall() if r[0]}
 
         # 4. Read Excel

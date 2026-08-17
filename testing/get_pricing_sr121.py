@@ -18,7 +18,7 @@ def get_pricing_info(item_no):
         # 1. Master Item metrics (IAS_ITM_MST)
         cur.execute("""
             SELECT PRIMARY_COST, INIT_PRIMARY_COST, VNDR_PRICE, I_NAME
-            FROM IAS20261.IAS_ITM_MST
+            FROM IAS_ITM_MST
             WHERE I_CODE = :item_no
         """, item_no=item_no)
         res = cur.fetchone()
@@ -34,7 +34,7 @@ def get_pricing_info(item_no):
         # 2. Sales Price Lists (IAS_ITEM_PRICE)
         cur.execute("""
             SELECT LEV_NO, I_PRICE, ITM_UNT
-            FROM IAS20261.IAS_ITEM_PRICE
+            FROM IAS_ITEM_PRICE
             WHERE I_CODE = :item_no
             ORDER BY LEV_NO
         """, item_no=item_no)
@@ -51,7 +51,7 @@ def get_pricing_info(item_no):
         # 3. Stock Cost / WAC (ITEM_MOVEMENT)
         cur.execute("""
             SELECT STK_COST, I_COST, I_DATE
-            FROM IAS20261.ITEM_MOVEMENT
+            FROM ITEM_MOVEMENT
             WHERE I_CODE = :item_no
             ORDER BY I_DATE DESC
             FETCH FIRST 5 ROWS ONLY
@@ -68,8 +68,8 @@ def get_pricing_info(item_no):
         # 4. Purchase Prices (IAS_PI_BILL_DTL)
         cur.execute("""
             SELECT m.BILL_DATE, d.I_PRICE, d.DIS_AMT, d.I_QTY
-            FROM IAS20261.IAS_PI_BILL_DTL d
-            JOIN IAS20261.IAS_PI_BILL_MST m ON m.BILL_NO = d.BILL_NO AND m.BILL_DOC_TYPE = d.BILL_DOC_TYPE AND m.BILL_SER = d.BILL_SER
+            FROM IAS_PI_BILL_DTL d
+            JOIN IAS_PI_BILL_MST m ON m.BILL_NO = d.BILL_NO AND m.BILL_DOC_TYPE = d.BILL_DOC_TYPE AND m.BILL_SER = d.BILL_SER
             WHERE d.I_CODE = :item_no
             ORDER BY m.BILL_DATE DESC
             FETCH FIRST 5 ROWS ONLY
@@ -86,8 +86,8 @@ def get_pricing_info(item_no):
         # 5. Sales Prices (IAS_BILL_DTL)
         cur.execute("""
             SELECT m.BILL_DATE, d.I_PRICE, d.DIS_AMT, d.STK_COST, d.I_QTY
-            FROM IAS20261.IAS_BILL_DTL d
-            JOIN IAS20261.IAS_BILL_MST m ON m.BILL_NO = d.BILL_NO AND m.BILL_DOC_TYPE = d.BILL_DOC_TYPE AND m.BILL_SER = d.BILL_SER
+            FROM IAS_BILL_DTL d
+            JOIN IAS_BILL_MST m ON m.BILL_NO = d.BILL_NO AND m.BILL_DOC_TYPE = d.BILL_DOC_TYPE AND m.BILL_SER = d.BILL_SER
             WHERE d.I_CODE = :item_no
             ORDER BY m.BILL_DATE DESC
             FETCH FIRST 5 ROWS ONLY

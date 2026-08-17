@@ -41,23 +41,23 @@ def run_perf_aging_fifo(rpt, args):
     to_dt = datetime.strptime(date_to_str, '%Y-%m-%d').date()
     with get_conn() as con:
         with con.cursor() as cur:
-            cur.execute('SELECT C_CODE, REP_CODE, C_GROUP_CODE FROM IAS20261.CUSTOMER')
+            cur.execute('SELECT C_CODE, REP_CODE, C_GROUP_CODE FROM CUSTOMER')
             res_cust = cur.fetchall()
             cust_rep = {str(c): str(r) if r else '' for c, r, g in res_cust}
             cust_grp = {str(c): str(g) if g else '' for c, r, g in res_cust}
-            cur.execute('SELECT REPRS_CODE, REPRS_A_NAME FROM IAS20261.SALES_MAN')
+            cur.execute('SELECT REPRS_CODE, REPRS_A_NAME FROM SALES_MAN')
             rep_name = {str(c): n for c, n in cur.fetchall()}
-            sql_cash = "\n                SELECT TO_CHAR(b.REP_CODE), SUM(NVL(p.DR_AMT,0))\n                FROM IAS20261.IAS_BILL_MST b\n                JOIN IAS20261.IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%'\n                WHERE b.BILL_DOC_TYPE=1 AND NVL(p.DOC_POST,0)=1 AND p.DR_AMT > 0\n                  AND b.BILL_DATE >= TO_DATE(:df,'YYYY-MM-DD') AND b.BILL_DATE < TO_DATE(:dt,'YYYY-MM-DD')+1\n                GROUP BY TO_CHAR(b.REP_CODE)\n            "
+            sql_cash = "\n                SELECT TO_CHAR(b.REP_CODE), SUM(NVL(p.DR_AMT,0))\n                FROM IAS_BILL_MST b\n                JOIN IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%'\n                WHERE b.BILL_DOC_TYPE=1 AND NVL(p.DOC_POST,0)=1 AND p.DR_AMT > 0\n                  AND b.BILL_DATE >= TO_DATE(:df,'YYYY-MM-DD') AND b.BILL_DATE < TO_DATE(:dt,'YYYY-MM-DD')+1\n                GROUP BY TO_CHAR(b.REP_CODE)\n            "
             cur.execute(sql_cash, {'df': date_from_str, 'dt': date_to_str})
             cash_sales_by_rep = {r: float(amt) for r, amt in cur.fetchall() if r}
-            sql_ret_null = "\n                SELECT NVL(TO_CHAR(REP_CODE), 'UNKNOWN'), SUM(NVL(CR_AMT,0))\n                FROM IAS20261.IAS_POST_DTL\n                WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=5 AND A_CODE LIKE '111%' AND C_CODE IS NULL AND NVL(CR_AMT,0)>0\n                  AND DOC_DATE >= TO_DATE(:df,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:dt,'YYYY-MM-DD')+1\n                GROUP BY TO_CHAR(REP_CODE)\n            "
+            sql_ret_null = "\n                SELECT NVL(TO_CHAR(REP_CODE), 'UNKNOWN'), SUM(NVL(CR_AMT,0))\n                FROM IAS_POST_DTL\n                WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=5 AND A_CODE LIKE '111%' AND C_CODE IS NULL AND NVL(CR_AMT,0)>0\n                  AND DOC_DATE >= TO_DATE(:df,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:dt,'YYYY-MM-DD')+1\n                GROUP BY TO_CHAR(REP_CODE)\n            "
             cur.execute(sql_ret_null, {'df': date_from_str, 'dt': date_to_str})
             cash_ret_null_by_rep = {r: float(amt) for r, amt in cur.fetchall()}
             rep_filter = ' AND (TO_CHAR(p.REP_CODE) = :rep_code OR TO_CHAR(p.CC_CODE) = :rep_code)' if rep_code else ''
             binds_fifo = {}
             if rep_code:
                 binds_fifo['rep_code'] = rep_code
-            sql = f'\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.JV_TYPE, p.A_CODE, p.DOC_NO, p.DOC_SER\n                FROM IAS20261.IAS_POST_DTL p\n                WHERE (NVL(p.DOC_POST,0)=1 OR (NVL(p.DOC_POST,0)=0 AND p.DOC_TYPE=2))\n                    AND (NVL(p.DR_AMT,0) > 0 OR NVL(p.CR_AMT,0) > 0)\n                    AND p.C_CODE IS NOT NULL\n                    {rep_filter}\n            '
+            sql = f'\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.JV_TYPE, p.A_CODE, p.DOC_NO, p.DOC_SER\n                FROM IAS_POST_DTL p\n                WHERE (NVL(p.DOC_POST,0)=1 OR (NVL(p.DOC_POST,0)=0 AND p.DOC_TYPE=2))\n                    AND (NVL(p.DR_AMT,0) > 0 OR NVL(p.CR_AMT,0) > 0)\n                    AND p.C_CODE IS NOT NULL\n                    {rep_filter}\n            '
             cur.execute(sql, binds_fifo)
             byc = defaultdict(lambda: {'debits': [], 'credits': [], 'returns': []})
             for ccode, ddate, dr, cr, dtype, jvtype, acode, doc_no, doc_ser in cur.fetchall():
@@ -82,7 +82,7 @@ def run_perf_aging_fifo(rpt, args):
                             byc[str(ccode)]['credits'].append((d, valid_cr))
                 if dr > 0:
                     byc[str(ccode)]['debits'].append({'date': d, 'amt': dr, 'doc_no': doc_no, 'doc_ser': doc_ser})
-            sql_links = f"\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(d.BILL_NO) as BILL_NO, TO_CHAR(d.BILL_SER) as BILL_SER\n                FROM IAS20261.IAS_POST_DTL p\n                JOIN IAS20261.IAS_RT_BILL_DTL d \n                    ON p.DOC_NO = d.RT_BILL_NO AND p.DOC_SER = d.RT_BILL_SER\n                WHERE p.DOC_TYPE = 5 AND p.CR_AMT > 0 \n                  AND p.C_CODE IS NOT NULL\n                  AND d.BILL_NO IS NOT NULL\n                  {rep_filter}\n                UNION ALL\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(p.REF_NO) as BILL_NO, '' as BILL_SER\n                FROM IAS20261.IAS_POST_DTL p\n                WHERE p.DOC_TYPE = 15 AND p.CR_AMT > 0\n                  AND p.C_CODE IS NOT NULL\n                  AND p.REF_NO IS NOT NULL\n                  {rep_filter}\n            "
+            sql_links = f"\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(d.BILL_NO) as BILL_NO, TO_CHAR(d.BILL_SER) as BILL_SER\n                FROM IAS_POST_DTL p\n                JOIN IAS_RT_BILL_DTL d \n                    ON p.DOC_NO = d.RT_BILL_NO AND p.DOC_SER = d.RT_BILL_SER\n                WHERE p.DOC_TYPE = 5 AND p.CR_AMT > 0 \n                  AND p.C_CODE IS NOT NULL\n                  AND d.BILL_NO IS NOT NULL\n                  {rep_filter}\n                UNION ALL\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(p.REF_NO) as BILL_NO, '' as BILL_SER\n                FROM IAS_POST_DTL p\n                WHERE p.DOC_TYPE = 15 AND p.CR_AMT > 0\n                  AND p.C_CODE IS NOT NULL\n                  AND p.REF_NO IS NOT NULL\n                  {rep_filter}\n            "
             cur.execute(sql_links, binds_fifo)
             links = {}
             for r_no, r_ser, b_no, b_ser in cur.fetchall():
@@ -233,7 +233,7 @@ def run_perf_aging_analytical(rpt, args):
     to_dt = datetime.strptime(date_to_str, '%Y-%m-%d').date()
     with get_conn() as con:
         with con.cursor() as cur:
-            cur.execute('SELECT C_CODE, REP_CODE, C_A_NAME, C_GROUP_CODE FROM IAS20261.CUSTOMER')
+            cur.execute('SELECT C_CODE, REP_CODE, C_A_NAME, C_GROUP_CODE FROM CUSTOMER')
             cust_rep = {}
             cust_names = {}
             cust_grp = {}
@@ -241,19 +241,19 @@ def run_perf_aging_analytical(rpt, args):
                 cust_rep[str(c)] = str(r)
                 cust_names[str(c)] = str(n)
                 cust_grp[str(c)] = str(g) if g else ''
-            cur.execute('SELECT REPRS_CODE, REPRS_A_NAME FROM IAS20261.SALES_MAN')
+            cur.execute('SELECT REPRS_CODE, REPRS_A_NAME FROM SALES_MAN')
             rep_name = {str(c): n for c, n in cur.fetchall()}
-            sql_cash = "\n                SELECT TO_CHAR(b.REP_CODE), SUM(NVL(p.DR_AMT,0))\n                FROM IAS20261.IAS_BILL_MST b\n                JOIN IAS20261.IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%'\n                WHERE b.BILL_DOC_TYPE=1 AND NVL(p.DOC_POST,0)=1 AND p.DR_AMT > 0\n                  AND b.BILL_DATE >= TO_DATE(:df,'YYYY-MM-DD') AND b.BILL_DATE < TO_DATE(:dt,'YYYY-MM-DD')+1\n                GROUP BY TO_CHAR(b.REP_CODE)\n            "
+            sql_cash = "\n                SELECT TO_CHAR(b.REP_CODE), SUM(NVL(p.DR_AMT,0))\n                FROM IAS_BILL_MST b\n                JOIN IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%'\n                WHERE b.BILL_DOC_TYPE=1 AND NVL(p.DOC_POST,0)=1 AND p.DR_AMT > 0\n                  AND b.BILL_DATE >= TO_DATE(:df,'YYYY-MM-DD') AND b.BILL_DATE < TO_DATE(:dt,'YYYY-MM-DD')+1\n                GROUP BY TO_CHAR(b.REP_CODE)\n            "
             cur.execute(sql_cash, {'df': date_from_str, 'dt': date_to_str})
             cash_sales_by_rep = {r: float(amt) for r, amt in cur.fetchall() if r}
-            sql_ret_null = "\n                SELECT NVL(TO_CHAR(REP_CODE), 'UNKNOWN'), SUM(NVL(CR_AMT,0))\n                FROM IAS20261.IAS_POST_DTL\n                WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=5 AND A_CODE LIKE '111%' AND C_CODE IS NULL AND NVL(CR_AMT,0)>0\n                  AND DOC_DATE >= TO_DATE(:df,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:dt,'YYYY-MM-DD')+1\n                GROUP BY TO_CHAR(REP_CODE)\n            "
+            sql_ret_null = "\n                SELECT NVL(TO_CHAR(REP_CODE), 'UNKNOWN'), SUM(NVL(CR_AMT,0))\n                FROM IAS_POST_DTL\n                WHERE NVL(DOC_POST,0)=1 AND DOC_TYPE=5 AND A_CODE LIKE '111%' AND C_CODE IS NULL AND NVL(CR_AMT,0)>0\n                  AND DOC_DATE >= TO_DATE(:df,'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:dt,'YYYY-MM-DD')+1\n                GROUP BY TO_CHAR(REP_CODE)\n            "
             cur.execute(sql_ret_null, {'df': date_from_str, 'dt': date_to_str})
             cash_ret_null_by_rep = {r: float(amt) for r, amt in cur.fetchall()}
             rep_filter = ' AND (TO_CHAR(p.REP_CODE) = :rep_code OR TO_CHAR(p.CC_CODE) = :rep_code)' if rep_code else ''
             binds_fifo = {}
             if rep_code:
                 binds_fifo['rep_code'] = rep_code
-            sql = f'\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.JV_TYPE, p.A_CODE, p.DOC_NO, p.DOC_SER\n                FROM IAS20261.IAS_POST_DTL p\n                WHERE (NVL(p.DOC_POST,0)=1 OR (NVL(p.DOC_POST,0)=0 AND p.DOC_TYPE=2))\n                    AND (NVL(p.DR_AMT,0) > 0 OR NVL(p.CR_AMT,0) > 0)\n                    AND p.C_CODE IS NOT NULL\n                    {rep_filter}\n            '
+            sql = f'\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.JV_TYPE, p.A_CODE, p.DOC_NO, p.DOC_SER\n                FROM IAS_POST_DTL p\n                WHERE (NVL(p.DOC_POST,0)=1 OR (NVL(p.DOC_POST,0)=0 AND p.DOC_TYPE=2))\n                    AND (NVL(p.DR_AMT,0) > 0 OR NVL(p.CR_AMT,0) > 0)\n                    AND p.C_CODE IS NOT NULL\n                    {rep_filter}\n            '
             cur.execute(sql, binds_fifo)
             byc = defaultdict(lambda: {'debits': [], 'credits': [], 'returns': []})
             for ccode, ddate, dr, cr, dtype, jvtype, acode, doc_no, doc_ser in cur.fetchall():
@@ -276,7 +276,7 @@ def run_perf_aging_analytical(rpt, args):
                             byc[str(ccode)]['credits'].append((d, valid_cr))
                 if dr > 0:
                     byc[str(ccode)]['debits'].append({'date': d, 'amt': dr, 'doc_no': doc_no, 'doc_ser': doc_ser})
-            sql_links = f"\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(d.BILL_NO) as BILL_NO, TO_CHAR(d.BILL_SER) as BILL_SER\n                FROM IAS20261.IAS_POST_DTL p\n                JOIN IAS20261.IAS_RT_BILL_DTL d \n                    ON p.DOC_NO = d.RT_BILL_NO AND p.DOC_SER = d.RT_BILL_SER\n                WHERE p.DOC_TYPE = 5 AND p.CR_AMT > 0 \n                  AND p.C_CODE IS NOT NULL\n                  AND d.BILL_NO IS NOT NULL\n                  {rep_filter}\n                UNION ALL\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(p.REF_NO) as BILL_NO, '' as BILL_SER\n                FROM IAS20261.IAS_POST_DTL p\n                WHERE p.DOC_TYPE = 15 AND p.CR_AMT > 0\n                  AND p.C_CODE IS NOT NULL\n                  AND p.REF_NO IS NOT NULL\n                  {rep_filter}\n            "
+            sql_links = f"\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(d.BILL_NO) as BILL_NO, TO_CHAR(d.BILL_SER) as BILL_SER\n                FROM IAS_POST_DTL p\n                JOIN IAS_RT_BILL_DTL d \n                    ON p.DOC_NO = d.RT_BILL_NO AND p.DOC_SER = d.RT_BILL_SER\n                WHERE p.DOC_TYPE = 5 AND p.CR_AMT > 0 \n                  AND p.C_CODE IS NOT NULL\n                  AND d.BILL_NO IS NOT NULL\n                  {rep_filter}\n                UNION ALL\n                SELECT DISTINCT p.DOC_NO, p.DOC_SER, TO_CHAR(p.REF_NO) as BILL_NO, '' as BILL_SER\n                FROM IAS_POST_DTL p\n                WHERE p.DOC_TYPE = 15 AND p.CR_AMT > 0\n                  AND p.C_CODE IS NOT NULL\n                  AND p.REF_NO IS NOT NULL\n                  {rep_filter}\n            "
             cur.execute(sql_links, binds_fifo)
             links = {}
             for r_no, r_ser, b_no, b_ser in cur.fetchall():
