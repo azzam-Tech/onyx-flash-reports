@@ -102,6 +102,9 @@ export default function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />
   }
 
+  const hasDashboard = tabs.some(t => t.id === 'dashboard')
+  const defaultPath = tabs.length > 0 ? `/${tabs[0].id}/${tabs[0].reports[0].id}` : "/"
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden print:h-auto print:overflow-visible print:block print:bg-white" dir="rtl">
       <Sidebar 
@@ -111,11 +114,11 @@ export default function App() {
       />
       <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible print:block">
         <Routes>
-          <Route path="/dashboard/main" element={<Dashboard />} />
+          {hasDashboard && <Route path="/dashboard/main" element={<Dashboard />} />}
           <Route path="/tools/users" element={<UsersManagement />} />
           <Route path="/tools/settings" element={<SettingsManagement />} />
           <Route path="/:tabId/:reportId" element={<ReportViewerWrapper tabs={tabs} />} />
-          <Route path="*" element={<Navigate to="/dashboard/main" replace />} />
+          <Route path="*" element={<Navigate to={defaultPath} replace />} />
         </Routes>
       </div>
     </div>
