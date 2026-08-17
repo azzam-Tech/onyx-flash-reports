@@ -79,9 +79,23 @@ def api_report_data(tab_id, report_id):
         if tab_id == 'stock':
             from modules.warehouses.services import handle_warehouse_report
             cols, rows = handle_warehouse_report(report_id, rpt, request.args)
-        elif tab_id == 'sales' or (tab_id == 'summary' and report_id in ('workflow_summary', 'debt_movement_summary')):
+        elif tab_id == 'sales' or (tab_id == 'summary' and report_id in ('workflow_summary', 'debt_movement_summary', 'net_debt_movement_summary')):
             from modules.sales.services import handle_sales_report
             cols, rows = handle_sales_report(report_id, rpt, request.args)
+        elif tab_id == 'fin' or report_id in ('perf_aging_dynamic', 'perf_aging_dynamic_analytical', 'perf_aging_exact'):
+            from modules.fin.services import handle_fin_report
+            cols, rows = handle_fin_report(report_id, rpt, request.args)
+        elif tab_id == 'ar' or (tab_id == 'summary' and report_id == 'statement_analytic'):
+            from modules.ar.services import handle_ar_report
+            cols, rows = handle_ar_report(report_id, rpt, request.args)
+        elif tab_id == 'pur':
+            from modules.pur.services import handle_pur_report
+            cols, rows = handle_pur_report(report_id, rpt, request.args)
+        elif tab_id in ('tax', 'prof', 'general', 'dts', 'summary', 'hr'):
+            import importlib
+            module = importlib.import_module(f"modules.{tab_id}.services")
+            handler = getattr(module, f"handle_{tab_id}_report")
+            cols, rows = handler(report_id, rpt, request.args)
         else:
             cols, rows = run_report(rpt, request.args)
             
