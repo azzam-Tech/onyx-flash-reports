@@ -53,7 +53,7 @@ def compute_dash(f, t):
                                 m[str(r[0])] = round(float(r[1] or 0),2)
                             results[key] = m
                     except Exception as e:
-                        print(f"Error in {key}: {e}")
+                        logger.error("Exception occurred:", exc_info=True)
                         results[key] = (0.0 if key not in ["ms", "ms_ret", "mc", "mp", "rs", "rs_ret", "its", "its_ret"] else {})
 
         sales = results["sales"]; sales_ret = results["sales_ret"]
@@ -102,12 +102,13 @@ def api_dashboard():
         cache_key = f"{d_from}_{d_to}"
         current_time = time.time()
         
+        # التنظيف التلقائي لمنع تسرب الذاكرة (Memory Leak)
+        expired_keys = [k for k, v in _DASH_CACHE.items() if current_time - v['time'] >= 900]
+        for k in expired_keys:
+            del _DASH_CACHE[k]
+            
         if force_refresh != "1" and cache_key in _DASH_CACHE:
-            if current_time - _DASH_CACHE[cache_key]['time'] < 300: # 5 minutes TTL
-                dash_data = _DASH_CACHE[cache_key]['data']
-            else:
-                dash_data = compute_dash(d_from, d_to)
-                _DASH_CACHE[cache_key] = {'time': current_time, 'data': dash_data}
+            dash_data = _DASH_CACHE[cache_key]['data']
         else:
             dash_data = compute_dash(d_from, d_to)
             _DASH_CACHE[cache_key] = {'time': current_time, 'data': dash_data}

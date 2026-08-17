@@ -29,8 +29,12 @@ def set_target_year():
 def require_login():
     if request.method == 'OPTIONS':
         return None
-    if request.path.startswith('/api/'):
+    if request.path in ['/api/login', '/api/logout', '/api/session']:
         return None
+    if request.path.startswith('/api/'):
+        if not session.get('logged_in'):
+            from flask import jsonify
+            return jsonify({"error": "Unauthorized"}), 401
     return None
 
 # Import and register blueprints

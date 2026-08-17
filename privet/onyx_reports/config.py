@@ -1,3 +1,4 @@
+from utils.logger import logger
 import os
 import json
 
