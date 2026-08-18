@@ -50,7 +50,7 @@ function SearchableSelect({
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="truncate text-slate-700 font-medium">{selectedLabel}</span>
+        <span className="truncate text-black font-medium">{selectedLabel}</span>
         <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", isOpen && "rotate-180 text-primary")} />
       </div>
       
@@ -215,7 +215,7 @@ export function ReportFilters({
 
         return (
           <div key={p.name} className="flex flex-col gap-2 min-w-[180px] flex-1 max-w-[280px]">
-            <label className="text-[13px] font-bold text-slate-500 uppercase tracking-wide px-1">{p.label}</label>
+            <label className="text-[13px] font-bold text-black uppercase tracking-wide px-1">{p.label}</label>
             
             {p.type === 'select' ? (
               <SearchableSelect 

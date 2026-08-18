@@ -337,8 +337,8 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
           ) : data.cols.length > 0 ? (
             <>
               <div className="overflow-auto flex-1 p-2">
-                <table className="w-full text-sm text-right print:text-[10px] border-collapse">
-                  <thead className="bg-slate-50/80 backdrop-blur-md text-slate-600 sticky top-0 z-10 print:static print:bg-gray-100 rounded-t-xl">
+                <table className="w-full text-sm text-right print:text-[10px] border-collapse text-black">
+                  <thead className="bg-slate-50/80 backdrop-blur-md text-black sticky top-0 z-10 print:static print:bg-gray-100 rounded-t-xl">
                     {table.getHeaderGroups().map(headerGroup => (
                       <tr key={headerGroup.id}>
                         {headerGroup.headers.map(header => (
@@ -378,7 +378,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                       </tr>
                     ))}
                   </thead>
-                  <tbody className="divide-y divide-slate-100/50 print:divide-slate-400">
+                  <tbody className="divide-y divide-slate-100/50 print:divide-slate-400 text-black">
                     {totalRow && (
                       <tr className="bg-primary/5 font-extrabold text-primary border-b-2 border-primary/10 shadow-sm relative z-0 print:bg-slate-200 print:border-b-2 print:border-b-slate-800 print:text-slate-900 print:shadow-none">
                         {table.getVisibleLeafColumns().map((col) => {
@@ -395,7 +395,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                       table.getRowModel().rows.map((row) => (
                         <tr 
                           key={row.id} 
-                          className="hover:bg-slate-50/50 text-slate-600 font-medium transition-colors duration-200 print:text-slate-800"
+                          className="hover:bg-slate-50/50 text-black font-medium transition-colors duration-200 print:text-slate-800"
                         >
                           {row.getVisibleCells().map(cell => (
                             <td key={cell.id} className="px-4 py-1.5 whitespace-nowrap print:whitespace-normal print:border print:border-slate-400 text-right print:px-1 print:py-0.5">

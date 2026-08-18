@@ -27,17 +27,23 @@
       "stock"
     ],
     "allowed_reports": [
-      "stock/detailed_stock_pivot"
+      "stock/detailed_stock_pivot",
+      "stock/monthly_movement_pivot",
+      "stock/warehouse_rebalancing",
+      "stock/dead_stock_value",
+      "stock/smart_replenishment",
+      "stock/stock_bal",
+      "stock/stock_move",
+      "stock/stock_dormant",
+      "stock/main_wh_movement"
     ]
   },
   "s": {
-    "password": "00900",
+    "password": "z123",
     "role": "user",
     "allowed_tabs": [
       "summary",
-      "sales",
       "ar",
-      "dts",
       "prof",
       "stock"
     ],
@@ -50,24 +56,16 @@
       "summary/perf_aging_dynamic",
       "summary/true_income_statement",
       "summary/collection_adopted",
-      "sales/bills",
       "sales/net_sales_cc",
       "sales/sales_collection_summary",
-      "sales/workflow_summary",
-      "sales/debt_movement_summary",
-      "ar/balances",
       "ar/statement",
       "ar/statement_analytic",
       "ar/aging",
-      "ar/dormant",
-      "dts/collection_adopted",
-      "dts/perf_aging_dynamic_analytical",
-      "dts/perf_aging_dynamic",
       "prof/true_income_statement",
       "stock/detailed_stock_pivot",
       "stock/monthly_movement_pivot",
-      "stock/dead_stock_value",
       "stock/warehouse_rebalancing",
+      "stock/dead_stock_value",
       "stock/smart_replenishment",
       "stock/stock_bal",
       "stock/stock_move",
