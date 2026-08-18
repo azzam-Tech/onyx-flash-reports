@@ -44,7 +44,7 @@ def run_cust_aging(rpt, args):
                 filters.append('TO_CHAR(p.CC_CODE) = :cc')
                 binds['cc'] = cc_code
             filter_str = ' AND ' + ' AND '.join(filters) if filters else ''
-            sql = f"\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.DOC_NO, p.DOC_SER\n                FROM IAS_POST_DTL p\n                WHERE (NVL(p.DOC_POST,0)=1 OR (NVL(p.DOC_POST,0)=0 AND p.DOC_TYPE=2))\n                    AND p.C_CODE IS NOT NULL\n                    AND p.DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1\n                    {filter_str}\n            "
+            sql = f"\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.DOC_NO, p.DOC_SER\n                FROM IAS_POST_DTL p\n                WHERE (1=1)\n                    AND p.C_CODE IS NOT NULL\n                    AND p.DOC_DATE < TO_DATE(:dt, 'YYYY-MM-DD')+1\n                    {filter_str}\n            "
             cur.execute(sql, binds)
             by_cust = defaultdict(lambda: {'debits': [], 'credits': 0.0, 'returns': []})
             for c_id, ddate, dr, cr, dtype, doc_no, doc_ser in cur.fetchall():

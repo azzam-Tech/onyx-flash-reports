@@ -57,7 +57,7 @@ def run_perf_aging_fifo(rpt, args):
             binds_fifo = {}
             if rep_code:
                 binds_fifo['rep_code'] = rep_code
-            sql = f'\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.JV_TYPE, p.A_CODE, p.DOC_NO, p.DOC_SER\n                FROM IAS_POST_DTL p\n                WHERE (NVL(p.DOC_POST,0)=1 OR (NVL(p.DOC_POST,0)=0 AND p.DOC_TYPE=2))\n                    AND (NVL(p.DR_AMT,0) > 0 OR NVL(p.CR_AMT,0) > 0)\n                    AND p.C_CODE IS NOT NULL\n                    {rep_filter}\n            '
+            sql = f'\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.JV_TYPE, p.A_CODE, p.DOC_NO, p.DOC_SER\n                FROM IAS_POST_DTL p\n                WHERE (1=1)\n                    AND (NVL(p.DR_AMT,0) > 0 OR NVL(p.CR_AMT,0) > 0)\n                    AND p.C_CODE IS NOT NULL\n                    {rep_filter}\n            '
             cur.execute(sql, binds_fifo)
             byc = defaultdict(lambda: {'debits': [], 'credits': [], 'returns': []})
             for ccode, ddate, dr, cr, dtype, jvtype, acode, doc_no, doc_ser in cur.fetchall():
@@ -253,7 +253,7 @@ def run_perf_aging_analytical(rpt, args):
             binds_fifo = {}
             if rep_code:
                 binds_fifo['rep_code'] = rep_code
-            sql = f'\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.JV_TYPE, p.A_CODE, p.DOC_NO, p.DOC_SER\n                FROM IAS_POST_DTL p\n                WHERE (NVL(p.DOC_POST,0)=1 OR (NVL(p.DOC_POST,0)=0 AND p.DOC_TYPE=2))\n                    AND (NVL(p.DR_AMT,0) > 0 OR NVL(p.CR_AMT,0) > 0)\n                    AND p.C_CODE IS NOT NULL\n                    {rep_filter}\n            '
+            sql = f'\n                SELECT TO_CHAR(p.C_CODE), p.DOC_DATE, NVL(p.DR_AMT,0), NVL(p.CR_AMT,0), p.DOC_TYPE, p.JV_TYPE, p.A_CODE, p.DOC_NO, p.DOC_SER\n                FROM IAS_POST_DTL p\n                WHERE (1=1)\n                    AND (NVL(p.DR_AMT,0) > 0 OR NVL(p.CR_AMT,0) > 0)\n                    AND p.C_CODE IS NOT NULL\n                    {rep_filter}\n            '
             cur.execute(sql, binds_fifo)
             byc = defaultdict(lambda: {'debits': [], 'credits': [], 'returns': []})
             for ccode, ddate, dr, cr, dtype, jvtype, acode, doc_no, doc_ser in cur.fetchall():
