@@ -308,7 +308,7 @@ def get_true_income_statement_sql():
               SUM(CASE WHEN DOC_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(DR_AMT,0) ELSE 0 END) as mv_dr,
               SUM(CASE WHEN DOC_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND DOC_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(CR_AMT,0) ELSE 0 END) as mv_cr
           FROM IAS_POST_DTL
-          WHERE (:rep_code IS NULL OR REP_CODE = :rep_code OR CC_CODE = :rep_code)
+          WHERE (:cc_code IS NULL OR CC_CODE = :cc_code)
             AND NVL(DOC_POST,0)=1
             AND (
                 A_CODE LIKE '31102%' OR A_CODE LIKE '31104%' OR A_CODE LIKE '31105%' OR A_CODE LIKE '31109%' OR A_CODE LIKE '31110%' OR
@@ -326,7 +326,7 @@ def get_true_income_statement_sql():
               0 as mv_cr
           FROM IAS_BILL_MST m
           JOIN IAS_BILL_DTL d ON m.BILL_DOC_TYPE = d.BILL_DOC_TYPE AND m.BILL_NO = d.BILL_NO AND m.BILL_SER = d.BILL_SER
-          WHERE (:rep_code IS NULL OR m.REP_CODE = :rep_code OR m.CC_CODE = :rep_code)
+          WHERE (:cc_code IS NULL OR m.CC_CODE = :cc_code)
         ),
         inv_cogs_ret AS (
           SELECT 
@@ -337,7 +337,7 @@ def get_true_income_statement_sql():
               SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_cr
           FROM IAS_RT_BILL_MST r
           JOIN IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
-          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code OR r.CC_CODE = :rep_code)
+          WHERE (:cc_code IS NULL OR r.CC_CODE = :cc_code)
             AND r.PREV_YEAR IS NULL
         ),
         inv_cogs_ret_prev AS (
@@ -349,7 +349,7 @@ def get_true_income_statement_sql():
               SUM(CASE WHEN r.RT_BILL_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD') AND r.RT_BILL_DATE < TO_DATE(:date_to, 'YYYY-MM-DD')+1 THEN NVL(d.I_QTY,0) * NVL(d.I_PRICE_LEV_NO,0) ELSE 0 END) as mv_cr
           FROM IAS_RT_BILL_MST r
           JOIN IAS_RT_BILL_DTL d ON r.RT_BILL_DOC_TYPE = d.RT_BILL_DOC_TYPE AND r.RT_BILL_NO = d.RT_BILL_NO AND r.RT_BILL_SER = d.RT_BILL_SER
-          WHERE (:rep_code IS NULL OR r.REP_CODE = :rep_code OR r.CC_CODE = :rep_code)
+          WHERE (:cc_code IS NULL OR r.CC_CODE = :cc_code)
             AND r.PREV_YEAR IS NOT NULL
         ),
         all_data AS (

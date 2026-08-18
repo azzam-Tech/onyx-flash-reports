@@ -24,7 +24,8 @@
     "password": "111",
     "role": "user",
     "allowed_tabs": [
-      "stock"
+      "stock",
+      "general"
     ],
     "allowed_reports": [
       "stock/detailed_stock_pivot",
@@ -35,11 +36,12 @@
       "stock/stock_bal",
       "stock/stock_move",
       "stock/stock_dormant",
-      "stock/main_wh_movement"
+      "stock/main_wh_movement",
+      "general/item_prices_and_stock"
     ]
   },
   "s": {
-    "password": "z123",
+    "password": "123",
     "role": "user",
     "allowed_tabs": [
       "summary",
@@ -71,6 +73,16 @@
       "stock/stock_move",
       "stock/stock_dormant",
       "stock/main_wh_movement"
+    ]
+  },
+  "Raid": {
+    "password": "12121",
+    "role": "user",
+    "allowed_tabs": [
+      "general"
+    ],
+    "allowed_reports": [
+      "general/item_prices_and_stock"
     ]
   }
 }

@@ -126,6 +126,7 @@ DFROM = {"name":"date_from","label":"من تاريخ","type":"date","get_default
 DTO   = {"name":"date_to","label":"إلى تاريخ","type":"date","get_default": get_default_date_to}
 PYEAR = {"name":"p_year","label":"السنة","type":"text","default":str(datetime.now().year)}
 REP   = {"name":"rep_code","label":"المندوب (اختياري)","type":"text","default":""}
+CC    = {"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""}
 INCR  = {"name":"inc_rcpt","label":"سندات القبض","type":"select","default":"1","options":[["1","تضمين"],["0","استبعاد"]]}
 INCN  = {"name":"inc_net","label":"قيود الشبكة المنفصلة","type":"select","default":"1","options":[["1","تضمين"],["0","استبعاد"]]}
 INCC  = {"name":"inc_cash","label":"المبيعات النقدية","type":"select","default":"1","options":[["1","تضمين"],["0","استبعاد"]]}
@@ -332,7 +333,7 @@ TABS = [
     {"id":"prof_item","title":"ربحية الصنف","params":[DFROM,DTO,ITM,REP],"sql":""},
     {"id":"prof_cust","title":"ربحية العميل","params":[DFROM,DTO,CST,REP],"sql":""},
     {"id":"prof_rep","title":"ربحية المندوب","params":[DFROM,DTO,REP],"sql":""},
-    {"id":"true_income_statement","title":"قائمة الدخل (الحقيقية)","params":[DFROM,DTO,REP],"sql":""}
+    {"id":"true_income_statement","title":"قائمة الدخل (الحقيقية)","params":[DFROM,DTO,CC],"sql":""}
   ]},
  {"id":"stock","title":"المخزون","icon":"M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10","reports":[
     {"id":"detailed_stock_pivot","pivot_type":"detailed_stock","title":"حركة وأرصدة المخزون الشامل","params":[DFROM,DTO],"sql":""},
@@ -354,7 +355,8 @@ TABS = [
       {"name":"ac_code","label":"رقم الحساب (اختياري)","type":"text","default":""},
       {"name":"text_search","label":"بحث في البيان (اختياري)","type":"text","default":""}
     ],"sql":""},
-    {"id":"detailed_net_jrn","title":"قيود الشبكة التفصيلي","params":[DFROM,DTO,REP,CST],"sql":""}
+    {"id":"detailed_net_jrn","title":"قيود الشبكة التفصيلي","params":[DFROM,DTO,REP,CST],"sql":""},
+    {"id":"item_prices_and_stock","title":"الأسعار","params":[ITM],"sql":""}
   ]},
   {"id":"hr","title":"الموظفين والرواتب","icon":"M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z","reports":[
          {"id":"emp_directory","title":"كشف ورصيد الموظفين الشامل (170 موظف)","params":[EMPST,EMPSRCH],"sql":""},
