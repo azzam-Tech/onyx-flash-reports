@@ -148,7 +148,11 @@ TXTSRCH = {"name":"text_search","label":"بحث بالاسم/البيان","type
 TABS = [
 
  {"id":"summary","title":"ملخص التقارير","icon":"M13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8zM3 3h8v8H3z","reports":[
-       {"id":"workflow_summary","title":"ملخص سير العمل","fn":"run_workflow_summary","params":[
+    {"id":"detailed_stock_pivot","pivot_type":"detailed_stock","title":"حركة وأرصدة المخزون الشامل","params":[DFROM,DTO],"sql":""},
+    {"id":"item_prices_and_stock","title":"الأسعار","params":[ITM],"sql":""},
+    {"id":"dead_stock_value","title":"القيمة المالية للركود (مراكز التكلفة)","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"أيام الركود","type":"number","default":"90"}],"sql":""},
+    {"id":"aging","title":"أعمار الديون","fn":"run_cust_aging","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DTO,AGETR,{"name":"rep_code","label":"المندوب (اختياري)","type":"text","default":""},{"name":"c_code","label":"كود العميل (اختياري)","type":"text","default":""}],"sql":""},
+    {"id":"workflow_summary","title":"ملخص سير العمل","fn":"run_workflow_summary","params":[
       {"name":"year_val","label":"السنة","type":"select","default":"2026","options":[["2026","2026"],["2025","2025"],["2024","2024"],["2023","2023"],["2022","2022"]]},
       {"name":"period_type","label":"نوع التقرير","type":"select","default":"monthly","options":[["monthly","شهري"],["quarterly","ربعي"],["semi_annual","نصفي"],["annual","سنوي"]]},
       {"name":"period_val","label":"الشهر / الربع / النصف","type":"select","default":"all","options":[
