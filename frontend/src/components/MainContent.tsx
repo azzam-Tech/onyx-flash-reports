@@ -145,7 +145,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
       const groups = [
         { header: 'معلومات الصنف', colspan: 6 },
         { header: 'الرصيد الافتتاحي', colspan: 7 },
-        { header: 'الحركة (صادر / وارد)', colspan: 4 },
+        { header: 'الحركة (صادر / وارد)', colspan: 2 },
         { header: 'الرصيد النهائي', colspan: 7 },
       ]
       
@@ -195,22 +195,22 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
       const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
       let monthIdx = 0
       
-      for (let i = 6; i < rawCols.length; i += 4) {
+      for (let i = 6; i < rawCols.length; i += 2) {
         const monthGroup = []
-        for (let j = 0; j < 4; j++) {
+        for (let j = 0; j < 2; j++) {
           const cIdx = i + j
           if (cIdx < rawCols.length && !hiddenColsList.includes(rawCols[cIdx])) {
-             const cleanCol = rawCols[cIdx].replace(/يناير |فبراير |مارس |أبريل |مايو |يونيو |يوليو |أغسطس |سبتمبر |أكتوبر |نوفمبر |ديسمبر /g, '')
+             const cleanCol = rawCols[cIdx].replace(/يناير |فبراير |مارس |أبريل |مايو |يونيو |يوليو |أغسطس |سبتمبر |أكتوبر |نوفمبر |ديسمبر /g, '').replace(/\s*ش\d+/g, '').trim()
              monthGroup.push({
                header: cleanCol,
                accessorFn: (row: any[]) => row[cIdx],
                id: `col_${cIdx}`,
-               meta: { originalIndex: cIdx }
+               meta: { originalIndex: cIdx, monthIdx }
              })
           }
         }
         if (monthGroup.length > 0) {
-           finalCols.push({ header: months[monthIdx] || `شهر ${monthIdx+1}`, columns: monthGroup, id: `group_m_${monthIdx}` })
+           finalCols.push({ header: months[monthIdx] || `شهر ${monthIdx+1}`, columns: monthGroup, id: `group_m_${monthIdx}`, meta: { isMonth: true, monthIdx } })
            monthIdx++
         }
       }
@@ -341,19 +341,32 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                   <thead className="bg-slate-50/80 backdrop-blur-md text-black sticky top-0 z-10 print:static print:bg-gray-100 rounded-t-xl">
                     {table.getHeaderGroups().map(headerGroup => (
                       <tr key={headerGroup.id}>
-                        {headerGroup.headers.map(header => (
+                        {headerGroup.headers.map(header => {
+                          const mIdx = (header.column.columnDef.meta as any)?.monthIdx;
+                          const monthColors = [
+                            'text-blue-700 bg-blue-50/80 border-b-blue-200', 'text-emerald-700 bg-emerald-50/80 border-b-emerald-200', 
+                            'text-violet-700 bg-violet-50/80 border-b-violet-200', 'text-amber-700 bg-amber-50/80 border-b-amber-200',
+                            'text-rose-700 bg-rose-50/80 border-b-rose-200', 'text-cyan-700 bg-cyan-50/80 border-b-cyan-200',
+                            'text-fuchsia-700 bg-fuchsia-50/80 border-b-fuchsia-200', 'text-orange-700 bg-orange-50/80 border-b-orange-200',
+                            'text-teal-700 bg-teal-50/80 border-b-teal-200', 'text-indigo-700 bg-indigo-50/80 border-b-indigo-200',
+                            'text-pink-700 bg-pink-50/80 border-b-pink-200', 'text-lime-700 bg-lime-50/80 border-b-lime-200'
+                          ];
+                          const mColorClass = mIdx !== undefined ? monthColors[mIdx % monthColors.length] : '';
+
+                          return (
                           <th 
                             key={header.id} 
                             colSpan={header.colSpan}
                             className={cn(
                               "px-4 py-2.5 font-bold whitespace-nowrap align-top select-none print:border print:border-slate-400 print:border-b-2 print:border-b-slate-800 min-w-[140px] print:min-w-0 first:rounded-tr-xl last:rounded-tl-xl border-b border-slate-200 text-right print:bg-slate-100 print:text-slate-800 print:text-[9px] print:px-1 print:py-1 print:whitespace-normal",
-                              header.colSpan > 1 ? "text-center bg-slate-100/80 print:text-center" : ""
+                              header.colSpan > 1 ? "text-center print:text-center" : "",
+                              mColorClass ? mColorClass : (header.colSpan > 1 ? "bg-slate-100/80" : "")
                             )}
                           >
                             {header.isPlaceholder ? null : (
                               <>
                                 <div 
-                                  className={cn("flex items-center gap-1 cursor-pointer hover:text-primary transition-colors", header.colSpan > 1 ? "justify-center" : "justify-start")}
+                                  className={cn("flex items-center gap-1 cursor-pointer hover:opacity-80 transition-colors", header.colSpan > 1 ? "justify-center" : "justify-start")}
                                   onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
                                 >
                                   {header.column.getCanSort() ? (
@@ -374,7 +387,7 @@ export function MainContent({ tabId, reportId, reportTitle }: { tabId: string, r
                               </>
                             )}
                           </th>
-                        ))}
+                        )})}
                       </tr>
                     ))}
                   </thead>
