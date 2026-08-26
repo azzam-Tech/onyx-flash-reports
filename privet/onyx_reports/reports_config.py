@@ -123,6 +123,7 @@ def get_target_amount(year_val, period_type, period_val, grp_by, row_code=None):
     return total_target
 
 DFROM = {"name":"date_from","label":"من تاريخ","type":"date","get_default": get_default_date_from}
+ASOF  = {"name":"as_of","label":"حتى تاريخ","type":"date","get_default": get_default_date_to}
 DTO   = {"name":"date_to","label":"إلى تاريخ","type":"date","get_default": get_default_date_to}
 PYEAR = {"name":"p_year","label":"السنة","type":"text","default":str(datetime.now().year)}
 REP   = {"name":"rep_code","label":"المندوب (اختياري)","type":"text","default":""}
@@ -150,7 +151,7 @@ TABS = [
  {"id":"summary","title":"ملخص التقارير","icon":"M13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8zM3 3h8v8H3z","reports":[
     {"id":"detailed_stock_pivot","pivot_type":"detailed_stock","title":"حركة وأرصدة المخزون الشامل","params":[DFROM,DTO],"sql":""},
     {"id":"item_prices_and_stock","title":"الأسعار","params":[ITM],"sql":""},
-    {"id":"dead_stock_value","title":"القيمة المالية للركود (مراكز التكلفة)","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"أيام الركود","type":"number","default":"90"}],"sql":""},
+    {"id":"dead_stock_value","title":"القيمة المالية للركود (مراكز التكلفة)","params":[ASOF,{"name":"days","label":"أيام الركود","type":"number","default":"90"}],"sql":""},
     {"id":"aging","title":"أعمار الديون","fn":"run_cust_aging","params":[{"name":"vendor_link","label":"عميل مرتبط بمورد","type":"checkbox","default":"0"},{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DTO,AGETR,{"name":"rep_code","label":"المندوب (اختياري)","type":"text","default":""},{"name":"c_code","label":"كود العميل (اختياري)","type":"text","default":""}],"sql":""},
     {"id":"workflow_summary","title":"ملخص سير العمل","fn":"run_workflow_summary","params":[
       {"name":"year_val","label":"السنة","type":"select","default":"2026","options":[["2026","2026"],["2025","2025"],["2024","2024"],["2023","2023"],["2022","2022"]]},
@@ -301,7 +302,7 @@ TABS = [
      {"name":"rep_code","label":"المندوب (اختياري)","type":"text","default":""},
      {"name":"c_code","label":"كود العميل (اختياري)","type":"text","default":""}
    ]},
-   {"id":"dormant","title":"العملاء الخاملون","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"أيام الخمول","type":"number","default":"90"}],"sql":""}
+   {"id":"dormant","title":"العملاء الخاملون","params":[ASOF,{"name":"days","label":"أيام الخمول","type":"number","default":"90"}],"sql":""}
 ]},
  {"id":"dts","title":"التوزيع والمناديب","icon":"M3 13l3-7h7l3 4h4v5M3 13h17M6 18a2 2 0 100-4 2 2 0 000 4zm11 0a2 2 0 100-4 2 2 0 000 4z","reports":[
         {"id":"collection_adopted","title":"التحصيل المعتمد (ديناميكي)","params":[DFROM,DTO,GRP,REP,INCR,INCN,INCC,INCRT],"sql":""},
@@ -314,13 +315,13 @@ TABS = [
    {"id":"pi_by_vendor","title":"حسب المورد","params":[DFROM,DTO],"sql":""},
    {"id":"pi_by_item","title":"حسب الصنف","params":[DFROM,DTO,{"name":"i_code","label":"الصنف (اختياري)","type":"text","default":""}],"sql":""},
    {"id":"vendor_statement","title":"كشف حساب مورد","params":[{"name":"v_code","label":"كود المورد","type":"text","default":"222"},DFROM,DTO],"sql":""},
-   {"id":"vendor_aging","title":"أعمار الدائنين","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"}],"sql":""},
+   {"id":"vendor_aging","title":"أعمار الدائنين","params":[ASOF],"sql":""},
  ]},
  {"id":"fin","title":"المالية والمحاسبة","icon":"M4 20V4h16v16zM8 16v-4M12 16V8M16 16v-6","reports":[
    {"id":"trial_balance","title":"ميزان المراجعة","params":[DFROM,DTO],"sql":""},
    {"id":"income_statement","title":"قائمة الدخل","params":[DFROM,DTO],"sql":""},
    {"id":"cost_centers","title":"مراكز التكلفة","params":[DFROM,DTO],"sql":""},
-   {"id":"journal","title":"قيود اليومية","params":[{"name":"date_from","label":"من تاريخ","type":"date","default":"2026-07-01"},{"name":"date_to","label":"إلى تاريخ","type":"date","default":"2026-07-31"},{"name":"a_code","label":"الحساب (اختياري)","type":"text","default":""}],"sql":""},
+   {"id":"journal","title":"قيود اليومية","params":[DFROM,DTO,{"name":"a_code","label":"الحساب (اختياري)","type":"text","default":""}],"sql":""},
         
         {"id":"perf_aging_dynamic_analytical","title":"أعمار التحصيل الصافي (تحليلي)","fn":"run_perf_aging_analytical","params":[{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":""},
         {"id":"perf_aging_dynamic","title":"أعمار التحصيل الصافي (ديناميكي)","fn":"run_perf_aging_fifo","params":[{"name":"grp_code","label":"مجموعة العملاء (اختياري)","type":"text","default":""},{"name":"cc_code","label":"مركز التكلفة (اختياري)","type":"text","default":""},DFROM,DTO,REP,AGETR,INCR,INCN,INCC,INCRT],"sql":""},
@@ -344,13 +345,13 @@ TABS = [
 
           {"id":"monthly_movement_pivot","pivot_type":"monthly_movement","title":"حركة الأصناف الشهرية (مبيعات/مشتريات)","params":[PYEAR],"sql":""},
 
-      {"id":"warehouse_rebalancing","title":"إعادة التوازن (نقل المخزون لتفادي الشراء)","params":[{"name":"as_of","label":"إلى تاريخ","type":"date","default":"2026-07-31"},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":""},
-      {"id":"dead_stock_value","title":"القيمة المالية للركود (مراكز التكلفة)","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"أيام الركود","type":"number","default":"90"}],"sql":""},
-      {"id":"smart_replenishment","title":"ذكاء المشتريات (تغطية المخزون)","params":[{"name":"as_of","label":"إلى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"فترة سحب المبيعات (أيام)","type":"number","default":"90"},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":""},
+      {"id":"warehouse_rebalancing","title":"إعادة التوازن (نقل المخزون لتفادي الشراء)","params":[ASOF,{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":""},
+      {"id":"dead_stock_value","title":"القيمة المالية للركود (مراكز التكلفة)","params":[ASOF,{"name":"days","label":"أيام الركود","type":"number","default":"90"}],"sql":""},
+      {"id":"smart_replenishment","title":"ذكاء المشتريات (تغطية المخزون)","params":[ASOF,{"name":"days","label":"فترة سحب المبيعات (أيام)","type":"number","default":"90"},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":""},
       
-    {"id":"stock_bal","title":"أرصدة الأصناف","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"w_code","label":"المستودع (اختياري)","type":"text","default":""},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":""},
+    {"id":"stock_bal","title":"أرصدة الأصناف","params":[ASOF,{"name":"w_code","label":"المستودع (اختياري)","type":"text","default":""},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":""},
     {"id":"stock_move","title":"حركة صنف","params":[{"name":"i_code","label":"كود الصنف","type":"text","default":""},DFROM,DTO],"sql":""},
-    {"id":"stock_dormant","title":"الأصناف الراكدة (تطوير الذكي)","params":[{"name":"as_of","label":"حتى تاريخ","type":"date","default":"2026-07-31"},{"name":"days","label":"أيام الركود","type":"number","default":"90"},{"name":"dormancy_pct","label":"نسبة الركود (أقل من %)","type":"number","default":"10"}],"sql":""},
+    {"id":"stock_dormant","title":"الأصناف الراكدة (تطوير الذكي)","params":[ASOF,{"name":"days","label":"أيام الركود","type":"number","default":"90"},{"name":"dormancy_pct","label":"نسبة الركود (أقل من %)","type":"number","default":"10"}],"sql":""},
     {"id":"main_wh_movement","title":"حركة الأصناف (7 مستودعات)","fn":"run_main_wh_movement","params":[{"name":"i_code","label":"كود الصنف (اختياري)","type":"text","default":""},DFROM,DTO],"sql":""},
   ]},
   {"id":"general","title":"تقارير عامة","icon":"M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z","reports":[

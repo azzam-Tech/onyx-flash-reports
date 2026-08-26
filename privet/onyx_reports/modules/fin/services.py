@@ -34,9 +34,13 @@ def run_perf_aging_fifo(rpt, args):
     date_from_str = args.get('date_from', '')
     date_to_str = args.get('date_to', '')
     if not date_from_str:
-        date_from_str = '2026-07-01'
+        now = datetime.now()
+        date_from_str = f"{now.year}-{now.month:02d}-01"
     if not date_to_str:
-        date_to_str = '2026-07-31'
+        import calendar
+        now = datetime.now()
+        last_day = calendar.monthrange(now.year, now.month)[1]
+        date_to_str = f"{now.year}-{now.month:02d}-{last_day:02d}"
     from_dt = datetime.strptime(date_from_str, '%Y-%m-%d').date()
     to_dt = datetime.strptime(date_to_str, '%Y-%m-%d').date()
     with get_conn() as con:
@@ -226,9 +230,13 @@ def run_perf_aging_analytical(rpt, args):
     date_from_str = args.get('date_from', '')
     date_to_str = args.get('date_to', '')
     if not date_from_str:
-        date_from_str = '2026-07-01'
+        now = datetime.now()
+        date_from_str = f"{now.year}-{now.month:02d}-01"
     if not date_to_str:
-        date_to_str = '2026-07-31'
+        import calendar
+        now = datetime.now()
+        last_day = calendar.monthrange(now.year, now.month)[1]
+        date_to_str = f"{now.year}-{now.month:02d}-{last_day:02d}"
     from_dt = datetime.strptime(date_from_str, '%Y-%m-%d').date()
     to_dt = datetime.strptime(date_to_str, '%Y-%m-%d').date()
     with get_conn() as con:

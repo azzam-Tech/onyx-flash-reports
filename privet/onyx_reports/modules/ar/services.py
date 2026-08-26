@@ -23,7 +23,7 @@ def run_cust_aging(rpt, args):
         c_code = c_code.split(' - ')[0].strip()
     date_to_str = args.get('date_to', '')
     if not date_to_str:
-        date_to_str = '2026-07-31'
+        date_to_str = '2026-08-31'
     to_dt = datetime.strptime(date_to_str, '%Y-%m-%d').date()
     with get_conn() as con:
         with con.cursor() as cur:
