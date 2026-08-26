@@ -12,7 +12,7 @@ export interface ReportParam {
   _list?: string[]
 }
 
-function SearchableSelect({ 
+export function SearchableSelect({ 
   options, 
   value, 
   onChange, 

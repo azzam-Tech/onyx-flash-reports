@@ -98,7 +98,10 @@ def run_debt_movement_summary(rpt, args):
     rep_code = args.get('rep_code', '')
     if not rep_code:
         rep_code = None
-    date_from, date_to = get_date_range(year_val, period_type, period_val)
+    date_from = args.get('date_from')
+    date_to = args.get('date_to')
+    if not date_from or not date_to:
+        date_from, date_to = get_date_range(year_val, period_type, period_val)
     rep_filter = ''
     rep_filter = ''
     if grp_by == 'rep':
