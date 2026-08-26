@@ -1,0 +1,1 @@
+import oracledb; oracledb.init_oracle_client(lib_dir=r'C:\oracle\instantclient\instantclient_23_0'); con = oracledb.connect(user='RPT_USER', password='ULT2016', dsn='100.100.1.100:1521/ORCL'); cur = con.cursor(); cur.execute('SELECT INACTIVE, BLK_LST, COUNT(*) FROM IAS20261.CUSTOMER GROUP BY INACTIVE, BLK_LST'); print([r for r in cur.fetchall()])

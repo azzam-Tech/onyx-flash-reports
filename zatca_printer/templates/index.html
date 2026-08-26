@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SREEN - ZATCA Invoice Printer</title>
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="apple-touch-icon" href="/static/logo.png">
+    <meta name="apple-mobile-web-app-title" content="SREEN">
+    <meta name="application-name" content="SREEN">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Cairo', Arial, Tahoma, sans-serif;
+            background-color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .navbar-light {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .a4-page {
+            font-family: Arial, Tahoma, Helvetica, sans-serif !important;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 8mm;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.04);
+            color: #000;
+            box-sizing: border-box;
+        }
+
+        .qr-code-img {
+            width: 142px;
+            height: 142px;
+            image-rendering: pixelated;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        @media print {
+            body, html {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            #scaleWrapper {
+                height: auto !important;
+                overflow: visible !important;
+                padding: 0 !important;
+            }
+            #invoiceContainer {
+                transform: none !important;
+                width: 100% !important;
+            }
+            .no-print { display: none !important; }
+            .a4-page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 8mm !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                border: none !important;
+                page-break-after: always;
+                break-after: page;
+                box-sizing: border-box !important;
+            }
+            .a4-page:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        .info-td {
+            padding: 2px 4px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid #000;
+        }
+        
+        .items-th {
+            background-color: #e5e5e5;
+            border: 0.5px solid #a3a3a3;
+            padding: 1.5px 2px;
+            text-align: center;
+        }
+
+        .th-ar {
+            font-family: "Simplified Arabic", Arial, Tahoma, sans-serif;
+            font-size: 13px;
+            font-weight: bold;
+            line-height: 1.1;
+            display: block;
+        }
+
+        .th-en {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+            line-height: 1.1;
+            display: block;
+        }
+        
+        .items-td {
+            border: 0.5px solid #a3a3a3;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 4px;
+        }
+        
+        .dotted-bg {
+            background-image: radial-gradient(#9ca3af 1px, transparent 1px);
+            background-size: 4px 4px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+</head>
+<body class="text-slate-900">
+
+    <!-- Responsive Modern Navbar -->
+    <nav class="navbar-light sticky top-0 z-50 px-4 md:px-8 py-3.5 no-print shadow-sm">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <!-- Right: App Title & Icon -->
+            <div class="flex items-center justify-between w-full md:w-auto">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-xl shrink-0 shadow-sm">
+                        🧾
+                    </div>
+                </div>
+                <!-- Mobile Back Button -->
+                <a href="/dashboard" class="md:hidden text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="rotate-180"><path d="m15 18-6-6 6-6"/></svg>
+                    العودة
+                </a>
+            </div>
+
+            <!-- Search & Actions -->
+            <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-stretch sm:justify-end">
+                <div class="relative flex-1 sm:w-64 min-w-[200px]">
+                    <input type="text" id="searchInput" placeholder="رقم الفاتورة (مثال: 2617200004)..." 
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-left text-slate-900 outline-none text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition shadow-sm font-sans" dir="ltr"
+                           onkeydown="if(event.key === 'Enter') fetchInvoice()">
+                </div>
+                
+                <button onclick="fetchInvoice()" class="flex-1 sm:flex-initial text-white bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-xl font-bold text-sm active:scale-95 transition shadow-sm flex items-center justify-center gap-1.5 shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    بحث وعرض
+                </button>
+                
+                <button onclick="shareWhatsApp()" class="flex-1 sm:flex-initial text-white bg-green-500 hover:bg-green-600 px-4 py-2.5 rounded-xl font-bold text-sm active:scale-95 transition shadow-sm flex items-center justify-center gap-1.5 shrink-0" title="مشاركة عبر الواتساب">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                </button>
+                
+                <button onclick="window.print()" class="flex-1 sm:flex-initial text-white bg-slate-800 hover:bg-slate-900 px-4 py-2.5 rounded-xl font-bold text-sm active:scale-95 transition shadow-sm flex items-center justify-center gap-1.5 shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                    طباعة
+                </button>
+                
+                <a href="/dashboard" class="hidden md:flex text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-4 py-2.5 rounded-xl font-bold text-sm transition shrink-0 items-center gap-1.5 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="rotate-180"><path d="m15 18-6-6 6-6"/></svg>
+                    العودة
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="statusMessage" class="no-print text-center text-red-500 font-bold my-4"></div>
+
+    <!-- Responsive Multi-page Invoice Container (Scaled Preview on Narrow Screens) -->
+    <div id="scaleWrapper" class="w-full flex justify-center px-0 sm:px-4 pb-12 overflow-hidden min-h-screen">
+        <div id="invoiceContainer" class="w-[210mm] hidden origin-top transition-transform duration-200">
+            <!-- Rendered Pages go here via JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const billNo = urlParams.get('bill_no');
+            if(billNo) {
+                document.getElementById('searchInput').value = billNo;
+                fetchInvoice();
+            }
+        });
+
+        function adjustScale() {
+            const wrapper = document.getElementById('scaleWrapper');
+            const container = document.getElementById('invoiceContainer');
+            
+            if (!container || container.classList.contains('hidden')) {
+                if (wrapper) wrapper.style.height = 'auto';
+                return;
+            }
+
+            const a4Width = 794; // ~210mm in pixels at 96 DPI
+            const availableWidth = wrapper.clientWidth - 16;
+
+            if (availableWidth < a4Width && availableWidth > 0) {
+                const scale = availableWidth / a4Width;
+                container.style.transform = `scale(${scale})`;
+                
+                // Adjust wrapper height to prevent excess scroll space
+                const originalHeight = container.offsetHeight;
+                wrapper.style.height = (originalHeight * scale) + 60 + 'px'; 
+            } else {
+                container.style.transform = 'none';
+                wrapper.style.height = 'auto';
+            }
+        }
+
+        window.addEventListener('resize', adjustScale);
+        window.addEventListener('afterprint', adjustScale);
+
+        function formatMoney(n) {
+            return parseFloat(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        function buildHeaderHTML(data, pageNum, totalPages) {
+            let pm = data.payment_method;
+            if(pm.includes('آجل') || pm.includes('اجل')) { pm = 'آجل / Credit'; }
+            else if(pm.includes('نقد')) { pm = 'نقد / Cash'; }
+
+            const s = data.seller;
+            const b = data.buyer;
+
+            return `
+                <!-- Header (Structural Match - Bottom Aligned QR) -->
+                <div class="flex justify-between items-end w-full mb-3" dir="ltr" style="font-family: Arial, Helvetica, sans-serif;">
+                    
+                    <!-- 1. QR Code (Left - Flush with Bottom Edge) -->
+                    <div class="shrink-0 self-end pt-0 mb-0.5" style="width: 142px; min-height: 142px;">
+                        <div class="qrcode-placeholder m-0 p-0"></div>
+                    </div>
+
+                    <!-- Right Side (Takes up remaining space) -->
+                    <div class="flex flex-col justify-start flex-grow ml-8">
+                        
+                        <!-- Company Name (Top Right) -->
+                        <div class="font-bold text-[17px] text-black mb-0 text-right w-full">مؤسسة عاصمة المجد للتجارة - سرين</div>
+                        
+                        <!-- Logo + Meta Table (Aligned to bottom with subtle gap) -->
+                        <div class="flex justify-between items-end w-full gap-3">
+                            
+                            <!-- 2. Logo & Cyan Box & Nested Page Info -->
+                            <div class="flex flex-col items-start shrink-0 mb-0.5 ml-4">
+                                <!-- Logo (Enlarged height to 78px, width 154px expanded towards barcode) -->
+                                <img src="/static/logo.png" alt="SREEN" style="position: relative; top: -25px; left: -8px; height: 78px; width: 154px; object-fit: fill;" class="ml-0">
+                                
+                                <!-- Wrapper for Cyan Box to allow absolute positioning of Page Info -->
+                                <div class="relative">
+                                    <!-- Page Info (Absolute Bottom Right over the Cyan Box) -->
+                                    <div class="absolute bottom-full right-2 mb-0.5 text-[#000080] text-[13px] font-bold text-center leading-none font-sans">
+                                        <div class="mb-0.5">Page</div>
+                                        <div>${pageNum} of ${totalPages}</div>
+                                    </div>
+
+                                    <!-- Cyan Box (Adjusted width to 205px) -->
+                                    <div class="w-[205px] text-center font-bold py-1.5 leading-none" style="background-color: #e6ffff; color: black;">
+                                        <div class="text-[17px] tracking-wide mb-1">${data.invoice_type_ar}</div>
+                                        <div class="text-[16px] tracking-wide font-sans">${data.invoice_type_en}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 3. Meta Table (Aligned Bottom - Refined compact size) -->
+                            <div class="flex items-start justify-end gap-3 shrink-0" dir="ltr">
+                                <table class="text-[12.5px] font-bold text-black border-collapse shrink-0" dir="ltr">
+                                    <tr>
+                                        <td class="text-left pb-1 pr-2.5 whitespace-nowrap">Invoice Number / رقم الفاتورة</td>
+                                        <td class="text-[#a00000] text-left pb-1 whitespace-nowrap">${data.invoice_no}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-left pb-1 pr-2.5 whitespace-nowrap">Invoice Date / تاريخ الفاتورة</td>
+                                        <td class="text-left pb-1 whitespace-nowrap">${data.invoice_date} ${data.invoice_time || "00:00:00"}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-left pb-1 pr-2.5 whitespace-nowrap">Due Date . / تاريخ الإستحقاق</td>
+                                        <td class="text-left pb-1 whitespace-nowrap">${data.due_date}</td>
+                                    </tr>
+                                    <tr style="background-color: #e6ffff;">
+                                        <td class="text-left py-0.5 pr-2.5 whitespace-nowrap border-b border-transparent">Payment Method / طريقة الدفع</td>
+                                        <td class="text-left py-0.5 whitespace-nowrap border-b border-transparent">${pm}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seller / Buyer Cards (Exact Onyx Match: Balanced Layout & Clear Gap) -->
+                <div class="flex gap-3 w-full mb-1" dir="ltr" style="font-family: Arial, Helvetica, sans-serif;">
+                    
+                    <!-- 1. Seller Box (Left) -->
+                    <div class="w-1/2 text-[11.5px] font-bold p-1" style="border: 3px solid #000 !important;">
+                        <div class="bg-[#e0e0e0] px-1.5 py-[2px] flex justify-between items-center text-[12px]" style="margin-bottom: 6px;">
+                            <span>Seller :</span>
+                            <span class="font-sans">: المورد</span>
+                        </div>
+                        <table class="w-full border-collapse">
+                            <tbody>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] w-[27%] whitespace-nowrap leading-tight">Name :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${s.name}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] w-[27%] whitespace-nowrap leading-tight">: الإسم</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Bulding :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${s.building}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: المبنى</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Street :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${s.street}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الشارع</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">District :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${s.district}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الحي</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">City :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${s.city}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: المدينة</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Country :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${s.country}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الدولة</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Postal Code :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${s.postal_code}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الرمز البريدي</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Additional No</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${s.additional_no}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الرقم الإضافي</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Vat No :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${s.vat_no}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الرقم الضريبي</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">CRN :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${s.crn}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: السجل التجاري</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Other ID :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${s.other_id}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: معرف آخر</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 2. Buyer Box (Right) -->
+                    <div class="w-1/2 text-[11.5px] font-bold p-1" style="border: 3px solid #000 !important;">
+                        <div class="bg-[#e0e0e0] px-1.5 py-[2px] flex justify-between items-center text-[12px]" style="margin-bottom: 6px;">
+                            <span>Buyer :</span>
+                            <span class="font-sans">: العميل</span>
+                        </div>
+                        <table class="w-full border-collapse">
+                            <tbody>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] w-[27%] whitespace-nowrap leading-tight">Name :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${b.name}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] w-[27%] whitespace-nowrap leading-tight">: الإسم</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Bulding :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${b.building}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: المبنى</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Street :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${b.street}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الشارع</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">District :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${b.district}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الحي</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">City :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${b.city}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: المدينة</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Country :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold leading-tight">${b.country}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الدولة</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Postal Code :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${b.postal_code}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الرمز البريدي</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Additional No</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${b.additional_no}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الرقم الإضافي</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Vat No :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${b.vat_no}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: الرقم الضريبي</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">CRN :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${b.crn}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: السجل التجاري</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-[#e0e0e0] text-left pl-1 py-[1.2px] whitespace-nowrap leading-tight">Other ID :</td>
+                                    <td class="text-center py-[1.2px] px-1 font-bold font-sans leading-tight">${b.other_id}</td>
+                                    <td class="bg-[#e0e0e0] text-right pr-1 py-[1.2px] whitespace-nowrap leading-tight">: معرف آخر</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pre-table Description Row (Exact Onyx Image 2 Match) -->
+                <div class="flex items-center w-full mt-1 mb-1.5" dir="ltr" style="font-family: Arial, Helvetica, sans-serif;">
+                    <div class="font-bold text-[12px] pr-6 whitespace-nowrap">Description / البيان</div>
+                    <div class="flex-1 bg-[#e0e0e0] py-[1.2px] px-4 text-left font-bold text-[12px] ml-16">عليكم فاتورة مبيعات</div>
+                </div>
+            `;
+        }
+
+        function buildItemsTableHTML(itemsSlice) {
+            let rowsHTML = "";
+            itemsSlice.forEach((item, idx) => {
+                const bgClass = (idx % 2 === 1) ? 'bg-[#e6ffff]' : 'bg-white';
+                rowsHTML += `
+                    <tr class="${bgClass}">
+                        <td class="items-td text-center font-sans font-bold leading-snug py-1 break-words">${item.item_id}</td>
+                        <td class="items-td text-right pr-2 font-bold leading-snug py-1 break-words" dir="rtl">${item.item_name}</td>
+                        <td class="items-td text-center font-sans font-bold leading-tight py-1">
+                            <div class="text-[10px]">حبة</div>
+                            <div>${item.quantity}</div>
+                        </td>
+                        <td class="items-td text-right pr-2 font-sans font-bold leading-tight py-1">${formatMoney(item.amount)}</td>
+                        <td class="items-td text-right pr-2 font-sans font-bold leading-tight py-1">${formatMoney(item.discount)}</td>
+                        <td class="items-td text-right pr-2 font-sans font-bold leading-tight py-1">${formatMoney(item.tax)}</td>
+                        <td class="items-td text-right pr-2 font-sans font-bold leading-tight py-1">${formatMoney(item.total_due)}</td>
+                    </tr>
+                `;
+            });
+
+            return `
+                <table class="w-full mb-0 border-collapse" dir="ltr">
+                    <thead>
+                        <tr>
+                            <th class="items-th w-[13%]"><span class="th-ar">الكود</span><span class="th-en">Item ID</span></th>
+                            <th class="items-th w-[37%]"><span class="th-ar">اسم الصنف / البيان</span><span class="th-en">Item Name / Descreption</span></th>
+                            <th class="items-th w-[8%]"><span class="th-ar">الكمية</span><span class="th-en">Quantity</span></th>
+                            <th class="items-th w-[11%]"><span class="th-ar">القيمة</span><span class="th-en">Amount</span></th>
+                            <th class="items-th w-[9%]"><span class="th-ar">الخصم</span><span class="th-en">Discount</span></th>
+                            <th class="items-th w-[9%]"><span class="th-ar">الضريبة</span><span class="th-en">Tax</span></th>
+                            <th class="items-th w-[13%]"><span class="th-ar">الإجمالي</span><span class="th-en">Total Due</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHTML}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function buildBottomHTML(totals) {
+            return `
+                <!-- Tafqeet Bar (Wider Right Cell extending to the left without affecting table columns above) -->
+                <div class="flex text-[10.5px] font-bold border-l border-r border-b border-[#a3a3a3] mb-0 bg-[#f2f2f2] items-stretch h-8" dir="ltr">
+                    <div class="flex-1 flex items-center justify-end px-2 gap-2" dir="ltr">
+                        <span class="font-bold text-[11px] text-black" dir="rtl">${totals.text}</span>
+                        <span class="border border-[#a3a3a3] px-2.5 py-0.5 font-sans font-bold text-[11px] bg-white rounded-[1px]">SAR</span>
+                    </div>
+                    <div class="w-[18%] flex items-center justify-center px-2 border-l border-[#a3a3a3]">
+                        <div class="w-full border border-[#a3a3a3] py-0.5 px-1 text-center font-sans font-bold text-[12px] bg-white rounded-[1px]" style="color: #800000;">${formatMoney(totals.total_with_tax)}</div>
+                    </div>
+                </div>
+
+                <!-- Totals & QTY Container (Single Clean Outer Border with subtle padding) -->
+                <div class="border-l border-r border-b border-[#a3a3a3] flex items-stretch mb-2 p-1" dir="ltr">
+                    <div class="w-[35%] flex flex-col items-center justify-center p-2">
+                        <div class="font-bold text-[12px]"><span class="font-sans">Total QTY</span> / إجمالي الكمية</div>
+                        <div class="text-blue-800 font-sans font-bold text-base mt-0.5">${totals.total_qty}</div>
+                    </div>
+
+                    <div class="w-[65%]">
+                        <table class="w-full text-[11.5px] font-bold" dir="ltr">
+                            <tbody>
+                                <tr>
+                                    <td class="py-[0.5px] px-3 text-right leading-tight"><span class="font-sans">Total Excluding VAT</span> / الإجمالي غير شامل ضريبة القيمة المضافة</td>
+                                    <td class="font-sans py-[0.5px] pr-4 text-right w-36 font-bold leading-tight" style="color: #800000;">${formatMoney(totals.total_excluding_vat)}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-[0.5px] px-3 text-right leading-tight"><span class="font-sans">Discount</span> / الخصم</td>
+                                    <td class="font-sans py-[0.5px] pr-4 text-right w-36 font-bold leading-tight" style="color: #800000;">${formatMoney(totals.discount)}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-[0.5px] px-3 text-right leading-tight"><span class="font-sans">Charges</span> / الأعباء</td>
+                                    <td class="font-sans py-[0.5px] pr-4 text-right w-36 font-bold leading-tight" style="color: #800000;">0.00</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-[0.5px] px-3 text-right leading-tight"><span class="font-sans">Total Taxable Amount</span> / الإجمالي الخاضع للضريبة</td>
+                                    <td class="font-sans py-[0.5px] pr-4 text-right w-36 font-bold leading-tight" style="color: #800000;">${formatMoney(totals.total_taxable)}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-[0.5px] px-3 text-right leading-tight"><span class="font-sans">Tax 15%</span> / الضريبة</td>
+                                    <td class="font-sans py-[0.5px] pr-4 text-right w-36 font-bold leading-tight" style="color: #800000;">${formatMoney(totals.tax)}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-[1.5px] px-3 text-right font-bold text-[12px] leading-tight"><span class="font-sans">Total Amt With Tax</span> / الإجمالي النهائي شامل الضريبة</td>
+                                    <td class="bg-[#e5e5e5] font-sans py-[1.5px] pr-4 text-right w-36 font-bold text-[12px] leading-tight" style="color: #800000;">${formatMoney(totals.total_with_tax)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Signatures -->
+                <div class="flex justify-between font-bold text-[13px] mt-12 px-16">
+                    <div class="text-center">
+                        <div class="border-b border-black w-48 mb-1"></div>
+                        <div>التوقيع / <span class="font-sans">Sign</span></div>
+                    </div>
+                    <div class="text-center">
+                        <div class="border-b border-black w-48 mb-1"></div>
+                        <div>الختم / <span class="font-sans">The Seal</span></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function fetchInvoice() {
+            const billNo = document.getElementById('searchInput').value;
+            const status = document.getElementById('statusMessage');
+            const container = document.getElementById('invoiceContainer');
+            
+            if(!billNo) {
+                status.innerText = "الرجاء إدخال رقم الفاتورة";
+                return;
+            }
+
+            status.innerText = "جاري جلب البيانات...";
+            container.classList.add('hidden');
+            container.innerHTML = "";
+
+            try {
+                const res = await fetch('/api/invoice/' + billNo);
+                const data = await res.json();
+
+                if(data.error) {
+                    status.innerText = data.error;
+                    return;
+                }
+
+                status.innerText = "";
+                
+                // Pagination calculation (Filling every page completely)
+                const items = data.items || [];
+                const totalItems = items.length;
+                let pageChunks = [];
+
+                const MAX_INTERMEDIATE = 16;
+                const MAX_LAST = 8;
+
+                if (totalItems <= MAX_LAST) {
+                    pageChunks.push(items);
+                } else {
+                    let remaining = [...items];
+                    while (remaining.length > 0) {
+                        if (remaining.length <= MAX_LAST) {
+                            pageChunks.push(remaining);
+                            break;
+                        }
+                        
+                        // Greedily fill this intermediate page up to MAX_INTERMEDIATE (16)
+                        let take = Math.min(MAX_INTERMEDIATE, remaining.length - 1);
+                        if (remaining.length - take > MAX_LAST) {
+                            take = MAX_INTERMEDIATE;
+                        }
+
+                        pageChunks.push(remaining.slice(0, take));
+                        remaining = remaining.slice(take);
+                    }
+                }
+
+                const totalPages = pageChunks.length;
+
+                // Render each page
+                pageChunks.forEach((chunk, pageIdx) => {
+                    const isLastPage = (pageIdx === totalPages - 1);
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'a4-page mx-auto';
+                    pageDiv.setAttribute('dir', 'rtl');
+
+                    let pageHTML = buildHeaderHTML(data, pageIdx + 1, totalPages);
+                    pageHTML += buildItemsTableHTML(chunk);
+
+                    if(isLastPage) {
+                        pageHTML += buildBottomHTML(data.totals);
+                    }
+
+                    pageDiv.innerHTML = pageHTML;
+
+                    // Generate QR Code for this page
+                    if(data.qr_base64) {
+                        const qrPlaceholder = pageDiv.querySelector('.qrcode-placeholder');
+                        if(qrPlaceholder) {
+                            const typeNumber = 0;
+                            const errorCorrectionLevel = 'M';
+                            const qr = qrcode(typeNumber, errorCorrectionLevel);
+                            qr.addData(data.qr_base64);
+                            qr.make();
+                            qrPlaceholder.innerHTML = qr.createImgTag(5, 0); 
+                            const img = qrPlaceholder.querySelector('img');
+                            if(img) img.classList.add('qr-code-img');
+                        }
+                    }
+
+                    container.appendChild(pageDiv);
+                });
+
+                container.classList.remove('hidden');
+                
+                // Apply scale adjustment based on screen size
+                setTimeout(adjustScale, 50);
+
+            } catch (err) {
+                status.innerText = "حدث خطأ في جلب البيانات: " + err.message;
+            }
+        }
+
+        async function shareWhatsApp() {
+            const container = document.getElementById('invoiceContainer');
+            if (container.classList.contains('hidden') || container.innerHTML.trim() === '') {
+                alert("الرجاء عرض الفاتورة أولاً");
+                return;
+            }
+
+            const status = document.getElementById('statusMessage');
+            status.innerText = "جاري تجهيز الفاتورة كصورة عالية الدقة لضمان وضوح النص العربي...";
+            
+            // Temporary reset transform to ensure proper full-size image generation
+            const oldTransform = container.style.transform;
+            container.style.transform = 'none';
+
+            const invoiceNo = document.getElementById('searchInput').value;
+            const filename = `Invoice_${invoiceNo}.jpeg`;
+
+            try {
+                // Generate Image as a blob using html-to-image (preserves Arabic natively)
+                const blob = await htmlToImage.toBlob(container, {
+                    quality: 0.95,
+                    backgroundColor: '#ffffff',
+                    pixelRatio: 2 // High resolution
+                });
+                
+                // Restore transform for screen display
+                container.style.transform = oldTransform;
+                
+                const file = new File([blob], filename, { type: 'image/jpeg' });
+
+                // Use Web Share API if supported
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    status.innerText = "";
+                    await navigator.share({
+                        files: [file],
+                        title: 'فاتورة ضريبية',
+                        text: 'مرفق فاتورتك الضريبية.'
+                    });
+                } else {
+                    // Fallback: Download the file automatically and instruct user
+                    status.innerText = "";
+                    alert("المشاركة المباشرة غير مدعومة في متصفحك. سيتم تحميل الفاتورة كصورة لتتمكن من إرسالها يدوياً.");
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = filename;
+                    link.click();
+                }
+            } catch (error) {
+                console.error('Error creating Image:', error);
+                status.innerText = "حدث خطأ أثناء تجهيز الفاتورة للمشاركة.";
+                container.style.transform = oldTransform;
+            }
+        }
+    </script>
+</body>
+</html>

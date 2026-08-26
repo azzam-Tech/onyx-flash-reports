@@ -1,0 +1,22 @@
+[
+    "UP_CNT",
+    "PR_REP",
+    "AD_TRMNL_NM",
+    "UP_TRMNL_NM",
+    "RGN_SHRT_F",
+    "IS_SUB_CTY",
+    "AD_U_ID",
+    "AD_DATE",
+    "UP_U_ID",
+    "UP_DATE",
+    "RGN_GEO",
+    "RGN_GPS",
+    "R_CODE",
+    "R_A_NAME",
+    "R_E_NAME",
+    "CNTRY_NO",
+    "PROV_NO",
+    "CITY_NO",
+    "RGN_SHRT",
+    "ZONE_NO"
+]

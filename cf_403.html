@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SREEN - ZATCA Invoice Printer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        .a4-container {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .qr-code-img {
+            width: 134px;
+            height: 134px;
+            image-rendering: pixelated;
+        }
+
+        .border-black-thick {
+            border: 1px solid #000;
+        }
+
+        @media print {
+            body { background: white; }
+            .no-print { display: none !important; }
+            .a4-container {
+                box-shadow: none;
+                margin: 0;
+                padding: 10mm;
+                width: 100%;
+            }
+            .print-exact {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .info-table td, .info-table th {
+            padding: 2px 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .items-table th {
+            background-color: #e2e8f0;
+            border: 1px solid black;
+            font-size: 12px;
+            padding: 4px;
+            text-align: center;
+        }
+        
+        .items-table td {
+            border: 1px solid black;
+            font-size: 12px;
+            padding: 4px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .info-card {
+            border: 2px solid #64748b;
+            border-radius: 4px;
+        }
+
+        .bg-cyan-100-custom {
+            background-color: #cffafe;
+        }
+    </style>
+    <!-- Add QR code generator library for frontend rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+
+    <!-- Search UI -->
+    <div class="no-print bg-white p-4 shadow-sm mb-6 flex justify-center items-center gap-4">
+        <h1 class="text-xl font-bold text-slate-700">نظام طباعة فواتير الزكاة</h1>
+        <input type="text" id="searchInput" placeholder="أدخل رقم الفاتورة..." class="border p-2 rounded w-64 text-left" dir="ltr" value="26314600409">
+        <button onclick="fetchInvoice()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700 transition">بحث وعرض</button>
+        <button onclick="window.print()" class="bg-slate-800 text-white px-4 py-2 rounded font-bold hover:bg-slate-900 transition">طباعة الفاتورة</button>
+    </div>
+
+    <!-- Error/Loading Container -->
+    <div id="statusMessage" class="no-print text-center text-red-500 font-bold mb-4"></div>
+
+    <!-- A4 Invoice Container -->
+    <div id="invoiceContainer" class="a4-container hidden">
+        <!-- Header -->
+        <div class="flex justify-between items-start mb-2">
+            
+            <!-- Company & Invoice Meta (Right in RTL) -->
+            <div class="flex flex-col items-start text-sm font-bold w-[45%]">
+                <div class="text-lg mb-1 text-right w-full" id="headerCompanyName">مؤسسة عاصمة المجد للتجارة - سرين</div>
+                <table class="w-full text-right font-bold text-[11px] whitespace-nowrap" dir="rtl">
+                    <tr>
+                        <td class="py-1 w-1/2">Invoice Number / رقم الفاتورة</td>
+                        <td id="valInvoiceNo" class="text-red-700 text-sm font-sans text-left py-1">26314600409</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1">Invoice Date / تاريخ الفاتورة</td>
+                        <td id="valInvoiceDate" class="font-sans text-left py-1">08/08/2026 06:09:02 PM</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1">Due Date / تاريخ الإستحقاق</td>
+                        <td id="valDueDate" class="font-sans text-left py-1">08/08/2026</td>
+                    </tr>
+                    <tr class="bg-[#e0f7fa] print-exact">
+                        <td class="py-1">Payment Method / طريقة الدفع</td>
+                        <td id="valPayMethod" class="text-left font-sans py-1">Cash / نقد</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Logo & Title (Center) -->
+            <div class="flex flex-col items-center mt-2 flex-1">
+                <img src="/static/logo.png" alt="SREEN" class="h-14 mb-2">
+                <div class="flex items-center gap-2">
+                    <div class="text-xs text-blue-800 font-sans font-bold text-center leading-tight">Page<br>1 of 1</div>
+                    <div class="bg-[#e0f7fa] border border-black px-6 py-1 text-center font-bold text-sm print-exact w-48">
+                        <div id="invTypeAr">فاتورة ضريبية</div>
+                        <div class="font-sans" id="invTypeEn">Tax Invoice</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code (Left in RTL) -->
+            <div id="qrcodeWrapper" class="p-1 flex justify-center items-center w-[140px] h-[140px]"></div>
+            
+        </div>
+
+        <!-- Info Boxes (Seller / Buyer) -->
+        <div class="flex justify-between gap-4 mb-2">
+            
+            <!-- Buyer Box (Right in RTL layout, meaning it appears on the Right) -->
+            <div class="w-1/2 border border-gray-500 print-exact overflow-hidden">
+                <table class="w-full text-center text-[10px] font-bold" dir="ltr" style="table-layout: fixed;">
+                    <tr class="border-b border-gray-500 bg-[#e5e7eb] print-exact">
+                        <td class="border-r border-gray-500 font-sans text-left px-1 py-1 w-[28%]">Buyer :</td>
+                        <td class="px-1 text-center py-1 w-[44%]"></td>
+                        <td class="border-l border-gray-500 text-right px-1 py-1 w-[28%]">: العميل</td>
+                    </tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Name :</td><td class="px-1 text-center leading-tight py-[2px]" id="b_name">شركة نبع الماء الصافي للمياه</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الإسم</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Bulding :</td><td class="px-1 text-center py-[2px]" id="b_building">7572</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: المبنى</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Street :</td><td class="px-1 text-center py-[2px]" id="b_street">ملقان</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الشارع</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">District :</td><td class="px-1 text-center py-[2px]" id="b_district">المصفاة</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الحي</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">City :</td><td class="px-1 text-center py-[2px]" id="b_city">الرياض</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: المدينة</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Country :</td><td class="px-1 text-center py-[2px]" id="b_country">المملكة العربية السعودية</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الدولة</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Postal Code :</td><td class="px-1 text-center font-sans py-[2px]" id="b_postal">14548</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الرمز البريدي</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Additional No :</td><td class="px-1 text-center font-sans py-[2px]" id="b_additional">14548</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الرقم الإضافي</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Vat No :</td><td class="px-1 text-center font-sans py-[2px]" id="b_vat">311658809400003</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الرقم الضريبي</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">CRN :</td><td class="px-1 text-center font-sans py-[2px]" id="b_crn">7017137709</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: السجل التجاري</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Other ID :</td><td class="px-1 text-center font-sans py-[2px]" id="b_other">7017137709</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: معرف آخر</td></tr>
+                </table>
+            </div>
+            
+            <!-- Seller Box (Left in RTL layout, meaning it appears on the Left) -->
+            <div class="w-1/2 border border-gray-500 print-exact overflow-hidden">
+                <table class="w-full text-center text-[10px] font-bold" dir="ltr" style="table-layout: fixed;">
+                    <tr class="border-b border-gray-500 bg-[#e5e7eb] print-exact">
+                        <td class="border-r border-gray-500 font-sans text-left px-1 py-1 w-[28%]">Seller :</td>
+                        <td class="px-1 text-center py-1 w-[44%]"></td>
+                        <td class="border-l border-gray-500 text-right px-1 py-1 w-[28%]">: المورد</td>
+                    </tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Name :</td><td class="px-1 text-center leading-tight py-[2px]" id="s_name">مؤسسة عاصمة المجد للتجارة - سرين</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الإسم</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Bulding :</td><td class="px-1 text-center py-[2px]" id="s_building">7252</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: المبنى</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Street :</td><td class="px-1 text-center py-[2px]" id="s_street">معاذ بن جبل</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الشارع</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">District :</td><td class="px-1 text-center py-[2px]" id="s_district">حي العزيزية</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الحي</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">City :</td><td class="px-1 text-center py-[2px]" id="s_city">الرياض</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: المدينة</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Country :</td><td class="px-1 text-center py-[2px]" id="s_country">المملكة العربية السعودية</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الدولة</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Postal Code :</td><td class="px-1 text-center font-sans py-[2px]" id="s_postal">14511</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الرمز البريدي</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Additional No :</td><td class="px-1 text-center font-sans py-[2px]" id="s_additional">3729</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الرقم الإضافي</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Vat No :</td><td class="px-1 text-center font-sans py-[2px]" id="s_vat">302145687600003</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: الرقم الضريبي</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">CRN :</td><td class="px-1 text-center font-sans py-[2px]" id="s_crn">1010270881</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: السجل التجاري</td></tr>
+                    <tr><td class="bg-[#e5e7eb] border-r border-gray-500 font-sans text-left px-1 py-[2px] print-exact">Other ID :</td><td class="px-1 text-center font-sans py-[2px]" id="s_other">CRN</td><td class="bg-[#e5e7eb] border-l border-gray-500 text-right px-1 py-[2px] print-exact">: معرف آخر</td></tr>
+                </table>
+            </div>
+
+        </div>
+
+        <div class="flex justify-between text-xs font-bold mb-1 px-1">
+            <span>البيان / Description</span>
+            <span>Outstanding Sales Invoice</span>
+            <span></span>
+        </div>
+
+        <!-- Items Table -->
+        <table class="items-table mb-2 print-exact">
+            <thead>
+                <tr>
+                    <th class="w-16">الكود<br>Item ID</th>
+                    <th>اسم الصنف / البيان<br>Item Name / Description</th>
+                    <th class="w-16">الكمية<br>Quantity</th>
+                    <th class="w-20">القيمة<br>Amount</th>
+                    <th class="w-20">الخصم<br>Discount</th>
+                    <th class="w-20">الضريبة<br>Tax</th>
+                    <th class="w-24">الإجمالي<br>Total Due</th>
+                </tr>
+            </thead>
+            <tbody id="itemsBody">
+                <!-- Items inserted via JS -->
+            </tbody>
+        </table>
+
+        <!-- Text Total Bar -->
+        <div class="border border-black flex text-sm font-bold bg-slate-50 print-exact mb-2 relative">
+            <div class="border-l border-black px-2 flex items-center justify-center font-sans">SAR</div>
+            <div class="flex-1 text-center px-4 py-1 relative">
+                <!-- Dotted background -->
+                <div class="absolute inset-0 z-0" style="background-image: radial-gradient(#000 1px, transparent 1px); background-size: 8px 8px; margin-top: 10px; height: 10px;"></div>
+                <!-- Text with white bg to hide dots behind it -->
+                <span class="bg-slate-50 px-2 relative z-10" id="textTotal">ثلاثة عشر ألف و مئتين و خمسة و عشرون ريال سعودي</span>
+            </div>
+            <div class="border-r border-black px-4 py-1 text-red-700 font-sans" id="valTotalText">
+                13,225.00
+            </div>
+        </div>
+
+        <!-- Totals Box -->
+        <div class="flex justify-between items-start mt-4">
+            
+            <!-- Totals Table (Right in RTL) -->
+            <div class="w-[350px]">
+                <table class="w-full text-sm font-bold text-right" dir="ltr" style="border: 1px solid black;">
+                    <tr>
+                        <td class="text-red-700 font-sans border-b border-r border-black p-1" id="totExcluding">11,500.00</td>
+                        <td class="border-b border-black p-1">الإجمالي غير شامل ضريبة القيمة المضافة / Total Excluding VAT</td>
+                    </tr>
+                    <tr>
+                        <td class="text-red-700 font-sans border-b border-r border-black p-1" id="totDiscount">0.00</td>
+                        <td class="border-b border-black p-1">الخصم / Discount</td>
+                    </tr>
+                    <tr>
+                        <td class="text-red-700 font-sans border-b border-r border-black p-1">0.00</td>
+                        <td class="border-b border-black p-1">الأعباء / Charges</td>
+                    </tr>
+                    <tr>
+                        <td class="text-red-700 font-sans border-b border-r border-black p-1" id="totTaxable">11,500.00</td>
+                        <td class="border-b border-black p-1">الإجمالي الخاضع للضريبة / Total Taxable Amount</td>
+                    </tr>
+                    <tr>
+                        <td class="text-red-700 font-sans border-b border-r border-black p-1" id="totTax">1,725.00</td>
+                        <td class="border-b border-black p-1">الضريبة / Tax 15%</td>
+                    </tr>
+                    <tr class="bg-slate-200 print-exact">
+                        <td class="text-red-700 font-sans border-r border-black p-1" id="totWithTax">13,225.00</td>
+                        <td class="p-1">الإجمالي النهائي شامل الضريبة / Total Amt With Tax</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Total QTY (Left in RTL) -->
+            <div class="text-center font-bold text-sm mt-4 ml-8">
+                <div>إجمالي الكمية / Total QTY</div>
+                <div class="text-blue-800 font-sans mt-1 text-base" id="valTotalQty">50</div>
+            </div>
+
+        </div>
+
+        <!-- Footer Signatures -->
+        <div class="flex justify-between font-bold text-base mt-16 px-12">
+            <div class="border-b border-black w-48 text-center pb-1">الختم / The Seal</div>
+            <div class="border-b border-black w-48 text-center pb-1">التوقيع / Sign</div>
+        </div>
+
+    </div>
+
+    <script>
+        function formatMoney(n) {
+            return parseFloat(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        async function fetchInvoice() {
+            const billNo = document.getElementById('searchInput').value;
+            const status = document.getElementById('statusMessage');
+            const container = document.getElementById('invoiceContainer');
+            
+            if(!billNo) {
+                status.innerText = "الرجاء إدخال رقم الفاتورة";
+                return;
+            }
+
+            status.innerText = "جاري جلب البيانات...";
+            container.classList.add('hidden');
+
+            try {
+                const res = await fetch('/api/invoice/' + billNo);
+                const data = await res.json();
+
+                if(data.error) {
+                    status.innerText = data.error;
+                    return;
+                }
+
+                status.innerText = "";
+                
+                // Set Header
+                document.getElementById('valInvoiceNo').innerText = data.invoice_no;
+                document.getElementById('valInvoiceDate').innerText = data.invoice_date + " " + (data.invoice_time || "00:00:00");
+                document.getElementById('valDueDate').innerText = data.due_date;
+                document.getElementById('valPayMethod').innerText = data.payment_method;
+                if(data.invoice_type_ar) document.getElementById('invTypeAr').innerText = data.invoice_type_ar;
+                if(data.invoice_type_en) document.getElementById('invTypeEn').innerText = data.invoice_type_en;
+
+                // Seller
+                const s = data.seller;
+                document.getElementById('headerCompanyName').innerText = s.name;
+                document.getElementById('s_name').innerText = s.name;
+                document.getElementById('s_building').innerText = s.building;
+                document.getElementById('s_street').innerText = s.street;
+                document.getElementById('s_district').innerText = s.district;
+                document.getElementById('s_city').innerText = s.city;
+                document.getElementById('s_country').innerText = s.country;
+                document.getElementById('s_postal').innerText = s.postal_code;
+                document.getElementById('s_additional').innerText = s.additional_no;
+                document.getElementById('s_vat').innerText = s.vat_no;
+                document.getElementById('s_crn').innerText = s.crn;
+                document.getElementById('s_other').innerText = s.other_id;
+
+                // Buyer
+                const b = data.buyer;
+                document.getElementById('b_name').innerText = b.name;
+                document.getElementById('b_building').innerText = b.building;
+                document.getElementById('b_street').innerText = b.street;
+                document.getElementById('b_district').innerText = b.district;
+                document.getElementById('b_city').innerText = b.city;
+                document.getElementById('b_country').innerText = b.country;
+                document.getElementById('b_postal').innerText = b.postal_code;
+                document.getElementById('b_additional').innerText = b.additional_no;
+                document.getElementById('b_vat').innerText = b.vat_no;
+                document.getElementById('b_crn').innerText = b.crn;
+                document.getElementById('b_other').innerText = b.other_id;
+
+                // Items
+                const tbody = document.getElementById('itemsBody');
+                tbody.innerHTML = "";
+                data.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="font-sans">${item.item_id}</td>
+                        <td>${item.item_name}</td>
+                        <td class="font-sans font-bold">
+                            <div>حبة</div>
+                            <div>${item.quantity}</div>
+                        </td>
+                        <td class="font-sans">${formatMoney(item.amount)}</td>
+                        <td class="font-sans">${formatMoney(item.discount)}</td>
+                        <td class="font-sans">${formatMoney(item.tax)}</td>
+                        <td class="font-sans">${formatMoney(item.total_due)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Totals
+                const t = data.totals;
+                document.getElementById('valTotalQty').innerText = t.total_qty;
+                document.getElementById('totExcluding').innerText = formatMoney(t.total_excluding_vat);
+                document.getElementById('totDiscount').innerText = formatMoney(t.discount);
+                document.getElementById('totTaxable').innerText = formatMoney(t.total_taxable);
+                document.getElementById('totTax').innerText = formatMoney(t.tax);
+                document.getElementById('totWithTax').innerText = formatMoney(t.total_with_tax);
+                
+                document.getElementById('valTotalText').innerText = formatMoney(t.total_with_tax);
+                document.getElementById('textTotal').innerText = data.amount_in_words || t.text; // Text representation
+
+                // QR Code
+                const qrWrapper = document.getElementById('qrcodeWrapper');
+                qrWrapper.innerHTML = "";
+                if(data.qr_base64) {
+                    const typeNumber = 0;
+                    const errorCorrectionLevel = 'M';
+                    const qr = qrcode(typeNumber, errorCorrectionLevel);
+                    // The JS library expects plain text to encode into QR.
+                    // However, we already have the Base64 generated by backend which is what ZATCA needs inside the QR.
+                    // Oh wait! The QR must contain the RAW BYTES of the TLV data, or the Base64 representation of it?
+                    // Actually, ZATCA Phase 1 standard: "The QR code must contain the base64 encoded TLV data."
+                    // Wait, ZATCA app scans the QR code and expects the content to be the Base64 string directly, 
+                    // OR does it expect binary TLV data inside the QR code which is then base64 encoded for transmission?
+                    // According to ZATCA rules, the string stored INSIDE the QR code is the Base64 string.
+                    qr.addData(data.qr_base64);
+                    qr.make();
+                    qrWrapper.innerHTML = qr.createImgTag(4, 0); // cell size, margin
+                    qrWrapper.querySelector('img').classList.add('qr-code-img');
+                }
+
+                container.classList.remove('hidden');
+
+            } catch (err) {
+                status.innerText = "حدث خطأ في جلب البيانات: " + err.message;
+            }
+        }
+    </script>
+</body>
+</html>

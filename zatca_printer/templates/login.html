@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - بوابة المناديب</title>
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="apple-touch-icon" href="/static/logo.png">
+    <meta name="apple-mobile-web-app-title" content="SREEN">
+    <meta name="application-name" content="SREEN">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #0f172a; /* slate-900 */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+        .input-light {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s ease;
+        }
+        .input-light:focus {
+            background-color: #ffffff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            outline: none;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: #ffffff;
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        .logo-icon {
+            background-color: #eff6ff;
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body class="text-slate-900">
+
+    <div class="login-card rounded-3xl p-8 md:p-12 w-[90%] max-w-md mx-auto">
+        
+        <div class="text-center mb-10">
+            <div class="logo-icon w-20 h-20 rounded-2xl flex items-center justify-center text-4xl mx-auto mb-6">
+                💼
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight text-slate-900 mb-2">بوابة المناديب</h1>
+            <p class="text-slate-500 text-sm font-medium">مرحباً بك مجدداً، يرجى تسجيل الدخول</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="mb-8">
+              {% for message in messages %}
+                <div class="bg-rose-50 border-r-4 border-rose-500 text-rose-700 p-4 rounded-xl text-sm mb-2 text-right shadow-sm flex items-start gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                    <span>{{ message }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('login') }}" class="space-y-6">
+            <div class="space-y-2 text-right">
+                <label for="rep_code" class="block text-sm font-bold text-slate-700">اسم المستخدم</label>
+                <input type="text" id="rep_code" name="rep_code" placeholder="اسم المستخدم" required autocomplete="off" 
+                       class="input-light w-full px-5 py-3.5 rounded-xl text-slate-900 placeholder-slate-400 text-right font-semibold text-lg">
+            </div>
+            
+            <div class="space-y-2 text-right">
+                <label for="password" class="block text-sm font-bold text-slate-700">كلمة المرور</label>
+                <input type="password" id="password" name="password" placeholder="••••••••" required
+                       class="input-light w-full px-5 py-3.5 rounded-xl text-slate-900 placeholder-slate-400 text-right font-semibold text-lg">
+            </div>
+
+            <button type="submit" class="btn-primary w-full py-4 rounded-xl font-bold text-lg mt-6 flex justify-center items-center gap-3">
+                تسجيل الدخول
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+        </form>
+    </div>
+
+</body>
+</html>
