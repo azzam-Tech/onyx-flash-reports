@@ -64,7 +64,7 @@ def get_statement_analytic_sql():
        WITH open_bal AS (
          SELECT NVL(SUM(NVL(DR_AMT,0)-NVL(CR_AMT,0)),0) as bal
          FROM IAS_POST_DTL
-         WHERE (AC_CODE_DTL = :ac_code_dtl OR C_V_CODE = :ac_code_dtl OR V_C_CODE = :ac_code_dtl) AND NVL(DOC_POST,0)=1
+         WHERE (AC_CODE_DTL = :ac_code_dtl OR C_V_CODE = :ac_code_dtl OR V_C_CODE = :ac_code_dtl)
            AND (DOC_DATE < TO_DATE(:date_from,'YYYY-MM-DD') OR NVL(DOC_TYPE,0) = 0)
        ),
        trans AS (
@@ -72,7 +72,7 @@ def get_statement_analytic_sql():
                 NVL(p.DR_AMT,0) dr, NVL(p.CR_AMT,0) cr, p.DOC_SER
          FROM IAS_POST_DTL p
          LEFT JOIN IAS_SYS.IAS_DOCJV_TYPE_SYSTEMS d ON d.DOC_TYPE=p.DOC_TYPE AND d.JV_TYPE=1 AND d.LANG_NO=1
-         WHERE (p.AC_CODE_DTL = :ac_code_dtl OR p.C_V_CODE = :ac_code_dtl OR p.V_C_CODE = :ac_code_dtl) AND NVL(p.DOC_POST,0)=1
+         WHERE (p.AC_CODE_DTL = :ac_code_dtl OR p.C_V_CODE = :ac_code_dtl OR p.V_C_CODE = :ac_code_dtl)
            AND NVL(p.DOC_TYPE,0) <> 0
            AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD')
            AND p.DOC_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
