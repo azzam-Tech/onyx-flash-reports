@@ -5,6 +5,7 @@ import qrcode
 import base64
 from datetime import datetime
 import time
+import json
 from functools import wraps
 from dotenv import load_dotenv
 import oracledb
@@ -223,15 +224,27 @@ def get_salesman_metrics(rep_code):
                 cur.execute(sql, {'date_from': month_start, 'date_to': month_end, 'rep_code': rep_code})
                 m_row = cur.fetchone()
                 
+                # Load mapping to link salesman code to employee code (since they differ in Onyx)
+                emp_code = str(rep_code).strip()
+                try:
+                    mapping_path = os.path.join(os.path.dirname(__file__), 'rep_mapping.json')
+                    if os.path.exists(mapping_path):
+                        with open(mapping_path, 'r', encoding='utf-8') as f:
+                            mapping = json.load(f)
+                            if emp_code in mapping:
+                                emp_code = mapping[emp_code]
+                except Exception as e:
+                    print("Error loading rep_mapping.json:", e)
+
                 # Employee / Salesman Debt
                 emp_debt_sql = """
                     SELECT SUM(NVL(p.CR_AMT, 0) - NVL(p.DR_AMT, 0))
                     FROM IAS20261.IAS_POST_DTL p
                     WHERE (p.A_CODE LIKE '11402%' OR p.A_CODE LIKE '321%' OR p.A_CODE LIKE '324%')
-                      AND (TO_CHAR(p.AC_CODE_DTL) = :rep_code OR TO_CHAR(p.CC_CODE) = :rep_code)
+                      AND TO_CHAR(p.AC_CODE_DTL) = :emp_code
                       AND NVL(p.DOC_POST, 0) = 1
                 """
-                cur.execute(emp_debt_sql, {'rep_code': rep_code})
+                cur.execute(emp_debt_sql, {'emp_code': emp_code})
                 emp_row = cur.fetchone()
                 total_employee_debt = float(emp_row[0]) if emp_row and emp_row[0] is not None else 0.0
                 
