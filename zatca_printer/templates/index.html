@@ -131,6 +131,7 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="text-slate-900">
 
@@ -666,27 +667,44 @@
             }
 
             const status = document.getElementById('statusMessage');
-            status.innerText = "جاري تجهيز الفاتورة كصورة عالية الدقة لضمان وضوح النص العربي...";
+            status.innerText = "جاري تجهيز الفاتورة كملف PDF (لضمان وضوح النص العربي والتصميم)...";
             
             // Temporary reset transform to ensure proper full-size image generation
             const oldTransform = container.style.transform;
             container.style.transform = 'none';
 
             const invoiceNo = document.getElementById('searchInput').value;
-            const filename = `Invoice_${invoiceNo}.jpeg`;
+            const filename = `Invoice_${invoiceNo}.pdf`;
 
             try {
-                // Generate Image as a blob using html-to-image (preserves Arabic natively)
-                const blob = await htmlToImage.toBlob(container, {
-                    quality: 0.95,
-                    backgroundColor: '#ffffff',
-                    pixelRatio: 2 // High resolution
-                });
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pages = container.querySelectorAll('.a4-page');
+                
+                // Process each page individually to support multi-page PDFs
+                for (let i = 0; i < pages.length; i++) {
+                    const page = pages[i];
+                    
+                    // Generate High-Res Image for this specific page (preserves Arabic natively)
+                    const dataUrl = await htmlToImage.toJpeg(page, {
+                        quality: 0.95,
+                        backgroundColor: '#ffffff',
+                        pixelRatio: 2
+                    });
+                    
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    // A4 dimensions: 210 x 297 mm
+                    pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 297);
+                }
                 
                 // Restore transform for screen display
                 container.style.transform = oldTransform;
                 
-                const file = new File([blob], filename, { type: 'image/jpeg' });
+                const pdfBlob = pdf.output('blob');
+                const file = new File([pdfBlob], filename, { type: 'application/pdf' });
 
                 // Use Web Share API if supported
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -694,19 +712,19 @@
                     await navigator.share({
                         files: [file],
                         title: 'فاتورة ضريبية',
-                        text: 'مرفق فاتورتك الضريبية.'
+                        text: 'مرفق فاتورتك الضريبية بصيغة PDF.'
                     });
                 } else {
                     // Fallback: Download the file automatically and instruct user
                     status.innerText = "";
-                    alert("المشاركة المباشرة غير مدعومة في متصفحك. سيتم تحميل الفاتورة كصورة لتتمكن من إرسالها يدوياً.");
+                    alert("المشاركة المباشرة غير مدعومة في متصفحك. سيتم تحميل الفاتورة كـ PDF لتتمكن من إرسالها يدوياً عبر الواتساب.");
                     const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
+                    link.href = URL.createObjectURL(pdfBlob);
                     link.download = filename;
                     link.click();
                 }
             } catch (error) {
-                console.error('Error creating Image:', error);
+                console.error('Error creating PDF:', error);
                 status.innerText = "حدث خطأ أثناء تجهيز الفاتورة للمشاركة.";
                 container.style.transform = oldTransform;
             }
