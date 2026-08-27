@@ -6,8 +6,20 @@ import base64
 from datetime import datetime
 from dotenv import load_dotenv
 import oracledb
+import sys
 
 load_dotenv()
+
+# Add onyx_reports path to use its functions directly
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+reports_path = os.path.join(parent_dir, 'privet', 'onyx_reports')
+if reports_path not in sys.path:
+    sys.path.append(reports_path)
+    
+try:
+    from modules.ar.services import run_cust_aging
+except ImportError:
+    run_cust_aging = None
 
 app = Flask(__name__)
 app.secret_key = "super_secret_onyx_key_123"
@@ -112,10 +124,136 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+def get_salesman_metrics(rep_code):
+    try:
+        now = datetime.now()
+        current_year = now.year
+        current_month = now.month
+        
+        # Calculate dates
+        year_start = f"{current_year}-01-01"
+        year_end = f"{current_year}-12-31"
+        
+        month_start = f"{current_year}-{current_month:02d}-01"
+        month_end = f"{current_year}-{current_month:02d}-31"
+        
+        sql = """
+        WITH sales_base AS (
+            SELECT SUM(NVL(BILL_AMT,0) - NVL(DISC_AMT_MST,0) + NVL(VAT_AMT,0)) as sales
+            FROM IAS20261.IAS_BILL_MST
+            WHERE BILL_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') 
+              AND BILL_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
+              AND BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8)
+              AND TO_CHAR(CC_CODE) = TRIM(:rep_code)
+        ),
+        returns_base AS (
+            SELECT SUM(NVL(BILL_AMT,0) - NVL(DISC_AMT_MST,0) + NVL(VAT_AMT,0)) as returns
+            FROM IAS20261.IAS_RT_BILL_MST
+            WHERE RT_BILL_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') 
+              AND RT_BILL_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
+              AND RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8)
+              AND TO_CHAR(CC_CODE) = TRIM(:rep_code)
+        ),
+        ext_disc_base AS (
+            SELECT SUM(NVL(p.CR_AMT,0)) as ext_disc
+            FROM IAS20261.IAS_POST_DTL p
+            WHERE p.DOC_TYPE = 15 AND NVL(p.CR_AMT,0) > 0 AND NVL(p.DOC_POST,0) = 1
+              AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') 
+              AND p.DOC_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
+              AND TO_CHAR(p.CC_CODE) = TRIM(:rep_code)
+        ),
+        col_trans AS (
+          SELECT p.CR_AMT as rcpt, 0 as net_jrn, 0 as cash_sales, 0 as cash_ret
+          FROM IAS20261.IAS_POST_DTL p
+          WHERE NVL(p.DOC_POST,0)=1 AND p.DOC_TYPE=2 AND NVL(p.CR_AMT,0)>0 AND p.C_CODE IS NOT NULL
+            AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND p.DOC_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
+            AND TO_CHAR(p.CC_CODE) = TRIM(:rep_code)
+          UNION ALL
+          SELECT 0, p.CR_AMT, 0, 0
+          FROM IAS20261.IAS_POST_DTL p
+          WHERE NVL(p.DOC_POST,0)=1 AND p.DOC_TYPE=1 AND p.JV_TYPE=2 AND NVL(p.CR_AMT,0)>0 AND p.C_CODE IS NOT NULL
+            AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND p.DOC_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
+            AND TO_CHAR(p.CC_CODE) = TRIM(:rep_code)
+          UNION ALL
+          SELECT 0, 0, NVL(p.DR_AMT,0), 0
+          FROM IAS20261.IAS_BILL_MST b
+          JOIN IAS20261.IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%'
+          WHERE b.BILL_DOC_TYPE=1 AND NVL(p.DOC_POST,0)=1 AND p.DR_AMT > 0
+            AND b.BILL_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND b.BILL_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
+            AND TO_CHAR(b.CC_CODE) = TRIM(:rep_code)
+          UNION ALL
+          SELECT 0, 0, 0, p.CR_AMT
+          FROM IAS20261.IAS_POST_DTL p
+          WHERE NVL(p.DOC_POST,0)=1 AND p.DOC_TYPE=5 AND p.A_CODE LIKE '111%' AND NVL(p.CR_AMT,0)>0
+            AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND p.DOC_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
+            AND TO_CHAR(p.CC_CODE) = TRIM(:rep_code)
+        )
+        SELECT 
+          NVL((SELECT NVL(sales, 0) FROM sales_base), 0) - NVL((SELECT NVL(returns, 0) FROM returns_base), 0) - NVL((SELECT NVL(ext_disc, 0) FROM ext_disc_base), 0) as net_sales,
+          NVL((SELECT NVL(SUM(rcpt + net_jrn + cash_sales - cash_ret), 0) FROM col_trans), 0) as total_collection
+        FROM DUAL
+        """
+        
+        with get_conn() as con:
+            with con.cursor() as cur:
+                # Year Metrics
+                cur.execute(sql, {'date_from': year_start, 'date_to': year_end, 'rep_code': rep_code})
+                y_row = cur.fetchone()
+                
+                # Month Metrics
+                cur.execute(sql, {'date_from': month_start, 'date_to': month_end, 'rep_code': rep_code})
+                m_row = cur.fetchone()
+                
+                # Employee / Salesman Debt
+                emp_debt_sql = """
+                    SELECT SUM(NVL(p.CR_AMT, 0) - NVL(p.DR_AMT, 0))
+                    FROM IAS20261.IAS_POST_DTL p
+                    WHERE (p.A_CODE LIKE '11402%' OR p.A_CODE LIKE '321%' OR p.A_CODE LIKE '324%')
+                      AND (TO_CHAR(p.AC_CODE_DTL) = :rep_code OR TO_CHAR(p.CC_CODE) = :rep_code)
+                      AND NVL(p.DOC_POST, 0) = 1
+                """
+                cur.execute(emp_debt_sql, {'rep_code': rep_code})
+                emp_row = cur.fetchone()
+                total_employee_debt = float(emp_row[0]) if emp_row and emp_row[0] is not None else 0.0
+                
+                # Customer debt using exact SREEN logic with vendor_link enabled
+                total_cust_debt = 0.0
+                if run_cust_aging:
+                    try:
+                        rpt = {}
+                        args = {
+                            'rep_code': rep_code,
+                            'date_to': now.strftime('%Y-%m-%d'),
+                            'vendor_link': '1'  # Always enable vendor linking
+                        }
+                        cols, rows = run_cust_aging(rpt, args)
+                        total_cust_debt = sum(float(str(r[-1]).replace(',', '')) for r in rows)
+                    except Exception as e:
+                        print("Error in run_cust_aging:", e)
+                
+        return {
+            'current_month': current_month,
+            'current_year': current_year,
+            'year_sales': float(y_row[0] or 0),
+            'year_col': float(y_row[1] or 0),
+            'month_sales': float(m_row[0] or 0),
+            'month_col': float(m_row[1] or 0),
+            'total_cust_debt': total_cust_debt,
+            'total_employee_debt': total_employee_debt
+        }
+    except Exception as e:
+        print("Error getting metrics:", e)
+        return {
+            'current_month': datetime.now().month,
+            'current_year': datetime.now().year,
+            'year_sales': 0, 'year_col': 0, 'month_sales': 0, 'month_col': 0, 'total_cust_debt': 0, 'total_employee_debt': 0
+        }
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     customers = []
+    metrics = get_salesman_metrics(current_user.rep_code)
     try:
         with get_conn() as con:
             with con.cursor() as cur:
@@ -135,7 +273,7 @@ def dashboard():
     except Exception as e:
         flash(f'خطأ في جلب بيانات العملاء: {str(e)}')
         
-    return render_template('dashboard.html', salesman_name=current_user.name, customers=customers)
+    return render_template('dashboard.html', salesman_name=current_user.name, customers=customers, metrics=metrics)
 
 @app.route('/customer/<path:c_code>')
 @login_required
