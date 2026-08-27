@@ -1,14 +1,39 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import os
 import qrcode
 import base64
 from datetime import datetime
+import time
+from functools import wraps
 from dotenv import load_dotenv
 import oracledb
 import sys
 
 load_dotenv()
+
+# ---------------------------------------------------------
+# TTL Caching Decorator
+# ---------------------------------------------------------
+def timed_cache(seconds: int):
+    def decorator(func):
+        cache = {}
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            force_refresh = kwargs.pop('force_refresh', False)
+            key = str(args) + str(kwargs)
+            now = time.time()
+            
+            if not force_refresh and key in cache:
+                result, timestamp = cache[key]
+                if now - timestamp < seconds:
+                    return result
+                    
+            result = func(*args, **kwargs)
+            cache[key] = (result, now)
+            return result
+        return wrapper
+    return decorator
 
 # Add onyx_reports path to use its functions directly
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -108,6 +133,7 @@ def login():
                         if password == decrypted_pwd:
                             user = User(id=u_id, rep_code=r_code, name=u_name)
                             login_user(user)
+                            session['rep_code'] = r_code
                             return redirect(url_for('dashboard'))
                         else:
                             flash('كلمة المرور غير صحيحة')
@@ -122,8 +148,10 @@ def login():
 @login_required
 def logout():
     logout_user()
+    session.pop('rep_code', None)
     return redirect(url_for('login'))
 
+@timed_cache(seconds=600)  # Cache for 10 minutes
 def get_salesman_metrics(rep_code):
     try:
         now = datetime.now()
@@ -248,6 +276,19 @@ def get_salesman_metrics(rep_code):
             'current_year': datetime.now().year,
             'year_sales': 0, 'year_col': 0, 'month_sales': 0, 'month_col': 0, 'total_cust_debt': 0, 'total_employee_debt': 0
         }
+
+@app.route('/refresh_dashboard')
+@login_required
+def refresh_dashboard():
+    if 'rep_code' not in session:
+        return redirect(url_for('login'))
+    
+    rep_code = session['rep_code']
+    get_salesman_metrics(rep_code, force_refresh=True)
+    get_salesman_customers(rep_code, force_refresh=True)
+    
+    flash('تم تحديث البيانات بنجاح!', 'success')
+    return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
 @login_required
