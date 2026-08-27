@@ -468,7 +468,8 @@ def get_invoice(bill_no):
                         m.TAX_BILL_TYP,
                         TO_CHAR(m.AD_DATE, 'HH24:MI:SS'),
                         ci.CITY_A_NAME,
-                        co.CNTRY_A_NAME
+                        co.CNTRY_A_NAME,
+                        TO_CHAR(NVL(m.BILL_DUE_DATE, m.BILL_DATE), 'DD/MM/YYYY')
                     FROM IAS20261.IAS_BILL_MST m
                     LEFT JOIN IAS20261.CUSTOMER c ON c.C_CODE = m.C_CODE
                     LEFT JOIN IAS20261.IAS_CASH_CUSTMR cash_c ON m.C_CODE_CSH = cash_c.CUST_CODE
@@ -481,7 +482,7 @@ def get_invoice(bill_no):
                 if not mst_row:
                     return jsonify({"error": "الفاتورة غير موجودة"}), 404
                     
-                b_no, b_date, b_time, b_amt, v_amt, c_name, raw_date, doc_type, c_building, c_street, c_district, c_postal, c_add_no, c_vat, c_crn, c_other_id, tax_bill_typ, time_24h, c_city, c_country = mst_row
+                b_no, b_date, b_time, b_amt, v_amt, c_name, raw_date, doc_type, c_building, c_street, c_district, c_postal, c_add_no, c_vat, c_crn, c_other_id, tax_bill_typ, time_24h, c_city, c_country, due_date_str = mst_row
                 
                 # Payment method string
                 pay_method = "نقد / Cash" if str(doc_type) == '1' else "آجل / Credit"
@@ -578,7 +579,7 @@ def get_invoice(bill_no):
                     "invoice_no": b_no,
                     "invoice_date": b_date,
                     "invoice_time": b_time,
-                    "due_date": b_date,
+                    "due_date": due_date_str,
                     "payment_method": pay_method,
                     "invoice_type_ar": inv_type_ar,
                     "invoice_type_en": inv_type_en,
