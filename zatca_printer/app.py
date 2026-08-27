@@ -35,16 +35,7 @@ def timed_cache(seconds: int):
         return wrapper
     return decorator
 
-# Add onyx_reports path to use its functions directly
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-reports_path = os.path.join(parent_dir, 'privet', 'onyx_reports')
-if reports_path not in sys.path:
-    sys.path.append(reports_path)
-    
-try:
-    from modules.ar.services import run_cust_aging
-except ImportError:
-    run_cust_aging = None
+# No external dependencies allowed - SREEN is a standalone system.
 
 app = Flask(__name__)
 app.secret_key = "super_secret_onyx_key_123"
@@ -244,20 +235,42 @@ def get_salesman_metrics(rep_code):
                 emp_row = cur.fetchone()
                 total_employee_debt = float(emp_row[0]) if emp_row and emp_row[0] is not None else 0.0
                 
-                # Customer debt using exact SREEN logic with vendor_link enabled
+                # Customer debt (robust internal logic with vendor linking and IAS20261 prefix)
+                cust_debt_sql = """
+                    WITH cust_bals AS (
+                        SELECT TO_CHAR(p.C_CODE) as C_CODE, 
+                               SUM(NVL(p.DR_AMT,0) - NVL(p.CR_AMT,0)) as net_bal
+                        FROM IAS20261.IAS_POST_DTL p
+                        WHERE NVL(p.DOC_POST,0) = 1
+                          AND p.C_CODE IS NOT NULL
+                        GROUP BY TO_CHAR(p.C_CODE)
+                    ),
+                    vendor_bals AS (
+                        SELECT TO_CHAR(p.V_CODE) as V_CODE, 
+                               SUM(NVL(p.CR_AMT,0) - NVL(p.DR_AMT,0)) as v_net_bal
+                        FROM IAS20261.IAS_POST_DTL p
+                        WHERE NVL(p.DOC_POST,0) = 1
+                          AND p.V_CODE IS NOT NULL
+                        GROUP BY TO_CHAR(p.V_CODE)
+                    )
+                    SELECT cb.C_CODE, cb.net_bal, NVL(vb.v_net_bal, 0)
+                    FROM IAS20261.CUSTOMER c
+                    JOIN cust_bals cb ON cb.C_CODE = TO_CHAR(c.C_CODE)
+                    LEFT JOIN vendor_bals vb ON vb.V_CODE = TO_CHAR(c.C_VENDOR)
+                    WHERE TRIM(c.REP_CODE) = TRIM(:rep_code)
+                """
+                cur.execute(cust_debt_sql, {'rep_code': rep_code})
                 total_cust_debt = 0.0
-                if run_cust_aging:
-                    try:
-                        rpt = {}
-                        args = {
-                            'rep_code': rep_code,
-                            'date_to': now.strftime('%Y-%m-%d'),
-                            'vendor_link': '1'  # Always enable vendor linking
-                        }
-                        cols, rows = run_cust_aging(rpt, args)
-                        total_cust_debt = sum(float(str(r[-1]).replace(',', '')) for r in rows)
-                    except Exception as e:
-                        print("Error in run_cust_aging:", e)
+                for c_code, c_bal, v_bal in cur.fetchall():
+                    c_bal = float(c_bal) if c_bal else 0.0
+                    v_bal = float(v_bal) if v_bal else 0.0
+                    
+                    if v_bal > 0:
+                        c_bal -= v_bal
+                        
+                    if c_bal > 0:
+                        total_cust_debt += c_bal
+
                 
         return {
             'current_month': current_month,
@@ -285,7 +298,6 @@ def refresh_dashboard():
     
     rep_code = session['rep_code']
     get_salesman_metrics(rep_code, force_refresh=True)
-    get_salesman_customers(rep_code, force_refresh=True)
     
     flash('تم تحديث البيانات بنجاح!', 'success')
     return redirect(url_for('dashboard'))

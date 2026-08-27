@@ -179,99 +179,99 @@
         </div>
 
         <!-- Metrics Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
+        <div class="grid grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6 mb-12">
             
             <!-- Month Sales -->
-            <div class="glass-card rounded-3xl p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-1">
-                <div class="flex items-start gap-5">
-                    <div class="w-14 h-14 rounded-2xl icon-gradient-blue text-white flex items-center justify-center shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <div class="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-1">
+                <div class="flex flex-col sm:flex-row items-start gap-2.5 sm:gap-5">
+                    <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl icon-gradient-blue text-white flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 sm:w-[26px] sm:h-[26px]"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
                     <div class="flex-1 pt-1">
-                        <h3 class="text-sm font-bold text-slate-500 mb-1">مبيعات شهر {{ metrics.current_month }}</h3>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-500 mb-1">مبيعات شهر {{ metrics.current_month }}</h3>
                         <div class="flex items-baseline gap-2">
-                            <p class="text-3xl font-black text-slate-900 tracking-tight" dir="ltr">{{"{:,.2f}".format(metrics.month_sales)}}</p>
-                            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
+                            <p class="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-none" dir="ltr">{{"{:,.2f}".format(metrics.month_sales)}}</p>
+                            <span class="hidden sm:inline-block text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Month Collections -->
-            <div class="glass-card rounded-3xl p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-1">
-                <div class="flex items-start gap-5">
-                    <div class="w-14 h-14 rounded-2xl icon-gradient-emerald text-white flex items-center justify-center shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="4"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            <div class="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-1">
+                <div class="flex flex-col sm:flex-row items-start gap-2.5 sm:gap-5">
+                    <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl icon-gradient-emerald text-white flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 sm:w-[26px] sm:h-[26px]"><rect width="20" height="14" x="2" y="5" rx="4"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
                     </div>
                     <div class="flex-1 pt-1">
-                        <h3 class="text-sm font-bold text-slate-500 mb-1">تحصيل شهر {{ metrics.current_month }}</h3>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-500 mb-1">تحصيل شهر {{ metrics.current_month }}</h3>
                         <div class="flex items-baseline gap-2">
-                            <p class="text-3xl font-black text-slate-900 tracking-tight" dir="ltr">{{"{:,.2f}".format(metrics.month_col)}}</p>
-                            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
+                            <p class="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-none" dir="ltr">{{"{:,.2f}".format(metrics.month_col)}}</p>
+                            <span class="hidden sm:inline-block text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Year Sales -->
-            <div class="glass-card rounded-3xl p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-2">
-                <div class="flex items-start gap-5">
-                    <div class="w-14 h-14 rounded-2xl icon-gradient-indigo text-white flex items-center justify-center shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            <div class="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-2">
+                <div class="flex flex-col sm:flex-row items-start gap-2.5 sm:gap-5">
+                    <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl icon-gradient-indigo text-white flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 sm:w-[26px] sm:h-[26px]"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
                     </div>
                     <div class="flex-1 pt-1">
-                        <h3 class="text-sm font-bold text-slate-500 mb-1">مبيعات {{ metrics.current_year }}</h3>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-500 mb-1">مبيعات {{ metrics.current_year }}</h3>
                         <div class="flex items-baseline gap-2">
-                            <p class="text-3xl font-black text-slate-900 tracking-tight" dir="ltr">{{"{:,.2f}".format(metrics.year_sales)}}</p>
-                            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
+                            <p class="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-none" dir="ltr">{{"{:,.2f}".format(metrics.year_sales)}}</p>
+                            <span class="hidden sm:inline-block text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Year Collections -->
-            <div class="glass-card rounded-3xl p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-2">
-                <div class="flex items-start gap-5">
-                    <div class="w-14 h-14 rounded-2xl icon-gradient-teal text-white flex items-center justify-center shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <div class="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-2">
+                <div class="flex flex-col sm:flex-row items-start gap-2.5 sm:gap-5">
+                    <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl icon-gradient-teal text-white flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 sm:w-[26px] sm:h-[26px]"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
                     </div>
                     <div class="flex-1 pt-1">
-                        <h3 class="text-sm font-bold text-slate-500 mb-1">تحصيل {{ metrics.current_year }}</h3>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-500 mb-1">تحصيل {{ metrics.current_year }}</h3>
                         <div class="flex items-baseline gap-2">
-                            <p class="text-3xl font-black text-slate-900 tracking-tight" dir="ltr">{{"{:,.2f}".format(metrics.year_col)}}</p>
-                            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
+                            <p class="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-none" dir="ltr">{{"{:,.2f}".format(metrics.year_col)}}</p>
+                            <span class="hidden sm:inline-block text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Customer Debts -->
-            <div class="glass-card rounded-3xl p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-3">
-                <div class="flex items-start gap-5">
-                    <div class="w-14 h-14 rounded-2xl icon-gradient-rose text-white flex items-center justify-center shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <div class="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-3">
+                <div class="flex flex-col sm:flex-row items-start gap-2.5 sm:gap-5">
+                    <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl icon-gradient-rose text-white flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 sm:w-[26px] sm:h-[26px]"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </div>
                     <div class="flex-1 pt-1">
-                        <h3 class="text-sm font-bold text-slate-500 mb-1">مديونية العملاء</h3>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-500 mb-1">مديونية العملاء</h3>
                         <div class="flex items-baseline gap-2">
-                            <p class="text-3xl font-black text-slate-900 tracking-tight" dir="ltr">{{"{:,.2f}".format(metrics.total_cust_debt)}}</p>
-                            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
+                            <p class="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-none" dir="ltr">{{"{:,.2f}".format(metrics.total_cust_debt)}}</p>
+                            <span class="hidden sm:inline-block text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Employee Debt -->
-            <div class="glass-card rounded-3xl p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-3">
-                <div class="flex items-start gap-5">
-                    <div class="w-14 h-14 rounded-2xl icon-gradient-amber text-white flex items-center justify-center shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <div class="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden opacity-0 animate-fade-in-up stagger-3">
+                <div class="flex flex-col sm:flex-row items-start gap-2.5 sm:gap-5">
+                    <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl icon-gradient-amber text-white flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 sm:w-[26px] sm:h-[26px]"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                     </div>
                     <div class="flex-1 pt-1">
-                        <h3 class="text-sm font-bold text-slate-500 mb-1">كشف الحساب</h3>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-500 mb-1">كشف الحساب</h3>
                         <div class="flex items-baseline gap-2">
-                            <p class="text-3xl font-black text-slate-900 tracking-tight" dir="ltr">{{"{:,.2f}".format(metrics.total_employee_debt)}}</p>
-                            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
+                            <p class="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-none" dir="ltr">{{"{:,.2f}".format(metrics.total_employee_debt)}}</p>
+                            <span class="hidden sm:inline-block text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SAR</span>
                         </div>
                     </div>
                 </div>
@@ -302,31 +302,31 @@
         <!-- Customers Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 opacity-0 animate-fade-in-up stagger-4" id="customersGrid">
             {% for customer in customers %}
-            <div class="glass-card rounded-3xl p-6 flex flex-col customer-card" data-name="{{ customer.name }}" data-code="{{ customer.code }}">
+            <div class="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col customer-card" data-name="{{ customer.name }}" data-code="{{ customer.code }}">
                 
-                <div class="flex justify-between items-start mb-5 gap-3">
-                    <h3 class="font-extrabold text-lg text-slate-900 leading-snug">{{ customer.name }}</h3>
-                    <span class="bg-primary-50 text-primary-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-primary-100 whitespace-nowrap shrink-0 shadow-sm">
+                <div class="flex justify-between items-start mb-3 sm:mb-5 gap-3">
+                    <h3 class="font-extrabold text-base sm:text-lg text-slate-900 leading-snug">{{ customer.name }}</h3>
+                    <span class="bg-primary-50 text-primary-700 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold border border-primary-100 whitespace-nowrap shrink-0 shadow-sm">
                         #{{ customer.code }}
                     </span>
                 </div>
                 
-                <div class="flex-1 flex flex-col gap-3 mb-8">
-                    <div class="flex items-center gap-3 text-slate-500 text-sm font-semibold">
-                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                <div class="flex-1 flex flex-col gap-2 sm:gap-3 mb-4 sm:mb-8">
+                    <div class="flex items-center gap-2 sm:gap-3 text-slate-500 text-xs sm:text-sm font-semibold">
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="sm:w-[14px] sm:h-[14px]"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
                         </div>
                         <span dir="ltr" class="text-slate-700 tracking-wide">{{ customer.mobile if customer.mobile else 'غير متوفر' }}</span>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 w-full mt-auto">
-                    <a href="{{ url_for('customer_info', c_code=customer.code) }}" class="btn-glass text-center py-3 rounded-xl font-bold transition-all text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                <div class="grid grid-cols-2 gap-2 sm:gap-3 w-full mt-auto">
+                    <a href="{{ url_for('customer_info', c_code=customer.code) }}" class="btn-glass text-center py-2 sm:py-3 rounded-xl sm:rounded-2xl font-bold transition-all text-xs sm:text-sm flex flex-row items-center justify-center gap-1.5 sm:gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="sm:w-4 sm:h-4"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                         <span>البيانات</span>
                     </a>
-                    <a href="{{ url_for('customer_invoices', c_code=customer.code) }}" class="btn-gradient text-center py-3 rounded-xl font-bold transition-all text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    <a href="{{ url_for('customer_invoices', c_code=customer.code) }}" class="btn-gradient text-center py-2 sm:py-3 rounded-xl sm:rounded-2xl font-bold transition-all text-xs sm:text-sm flex flex-row items-center justify-center gap-1.5 sm:gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="sm:w-4 sm:h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                         <span>الفواتير</span>
                     </a>
                 </div>
