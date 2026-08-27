@@ -39,7 +39,7 @@ def timed_cache(seconds: int):
 # No external dependencies allowed - SREEN is a standalone system.
 
 app = Flask(__name__)
-app.secret_key = "super_secret_onyx_key_123"
+app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
@@ -500,8 +500,8 @@ def get_invoice(bill_no):
                     LEFT JOIN IAS20261.IAS_CASH_CUSTMR cash_c ON m.C_CODE_CSH = cash_c.CUST_CODE
                     LEFT JOIN IAS20261.CITIES ci ON NVL(c.CITY_NO, cash_c.CITY_NO) = ci.CITY_NO AND NVL(c.CNTRY_NO, cash_c.CNTRY_NO) = ci.CNTRY_NO AND NVL(c.PROV_NO, cash_c.PROV_NO) = ci.PROV_NO
                     LEFT JOIN IAS20261.CNTRY co ON NVL(c.CNTRY_NO, cash_c.CNTRY_NO) = co.CNTRY_NO
-                    WHERE m.BILL_NO = :1
-                """, [bill_no])
+                    WHERE m.BILL_NO = :1 AND TO_CHAR(m.CC_CODE) = TRIM(:2)
+                """, [bill_no, current_user.rep_code])
                 
                 mst_row = cur.fetchone()
                 if not mst_row:
