@@ -43,6 +43,42 @@ app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
+# --- I18N Engine ---
+LOCALES_DIR = os.path.join(os.path.dirname(__file__), 'locales')
+translations_cache = {}
+
+def load_translations(lang):
+    if lang not in translations_cache:
+        path = os.path.join(LOCALES_DIR, f"{lang}.json")
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                translations_cache[lang] = json.load(f)
+        except Exception as e:
+            print(f"Error loading {lang}.json: {e}")
+            translations_cache[lang] = {}
+    return translations_cache[lang]
+
+@app.context_processor
+def inject_i18n():
+    lang = session.get('lang', 'ar')
+    translations = load_translations(lang)
+    
+    def t(key):
+        return translations.get(key, key)
+    
+    return {
+        't': t,
+        'current_lang': lang,
+        'page_dir': 'rtl' if lang == 'ar' else 'ltr'
+    }
+
+@app.route('/set_lang/<lang>')
+def set_lang(lang):
+    if lang in ['ar', 'en']:
+        session['lang'] = lang
+    return redirect(request.referrer or url_for('login'))
+# -------------------
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -135,6 +171,50 @@ def login():
             flash(f'خطأ في الاتصال بقاعدة البيانات: {str(e)}')
             
     return render_template('login.html')
+@app.route('/item_prices')
+@login_required
+def item_prices():
+    try:
+        sql = """
+        WITH item_groups AS (
+            SELECT 
+                m.I_CODE,
+                MAX(m.I_NAME) AS I_NAME,
+                MAX(gd.G_A_NAME) AS main_grp,
+                MAX(mg.MNG_A_NAME) AS sub_main_grp,
+                MAX(sg.SUBG_A_NAME) AS sub_grp,
+                MAX(dg.DETAIL_A_NAME) AS dtl_grp
+            FROM IAS20261.IAS_ITM_MST m
+            LEFT JOIN IAS20261.GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
+            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
+            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
+            GROUP BY m.I_CODE
+        )
+        SELECT 
+            ig.main_grp AS "المجموعة الرئيسية",
+            ig.sub_main_grp AS "الفرعية",
+            ig.sub_grp AS "تحت الفرعية",
+            ig.dtl_grp AS "التفصيلية",
+            ig.I_CODE AS "رقم الصنف",
+            ig.I_NAME AS "اسم الصنف",
+            NVL((SELECT MAX(P.I_PRICE) FROM IAS20261.IAS_ITEM_PRICE P WHERE P.I_CODE = ig.I_CODE AND P.LEV_NO = 1), 0) AS "التكلفة علينا",
+            NVL((SELECT MAX(P.I_PRICE) FROM IAS20261.IAS_ITEM_PRICE P WHERE P.I_CODE = ig.I_CODE AND P.LEV_NO = 2), 0) AS "الحد الادنى"
+        FROM item_groups ig
+        ORDER BY ig.main_grp, ig.sub_main_grp, ig.sub_grp, ig.dtl_grp, ig.I_CODE
+        """
+        items = []
+        with get_conn() as con:
+            with con.cursor() as cur:
+                cur.execute(sql)
+                columns = ['main_grp', 'sub_main_grp', 'sub_grp', 'dtl_grp', 'i_code', 'i_name', 'cost_price', 'min_price']
+                for row in cur.fetchall():
+                    items.append(dict(zip(columns, row)))
+        
+        return render_template('item_prices.html', items=items)
+    except Exception as e:
+        flash(f'خطأ في جلب بيانات الأصناف: {str(e)}')
+        return redirect(url_for('dashboard'))
 
 @app.route('/logout')
 @login_required
