@@ -176,7 +176,15 @@ def login():
 def item_prices():
     try:
         sql = """
-        WITH item_groups AS (
+        WITH item_stats AS (
+            SELECT 
+                I_CODE, 
+                SUM(NVL(IN_OUT, 0) * NVL(I_QTY, 0)) as net_qty, 
+                SUM(CASE WHEN EXTRACT(YEAR FROM I_DATE) = 2026 THEN 1 ELSE 0 END) as mov_2026_count
+            FROM IAS20261.ITEM_MOVEMENT
+            GROUP BY I_CODE
+        ),
+        item_groups AS (
             SELECT 
                 m.I_CODE,
                 MAX(m.I_NAME) AS I_NAME,
@@ -189,6 +197,10 @@ def item_prices():
             LEFT JOIN IAS20261.IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
             LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
             LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
+            JOIN item_stats s ON m.I_CODE = s.I_CODE
+            WHERE NVL(m.INACTIVE, 0) = 0
+              AND (s.net_qty > 0 OR s.mov_2026_count > 0)
+              AND EXISTS (SELECT 1 FROM IAS20261.IAS_ITEM_PRICE p WHERE p.I_CODE = m.I_CODE)
             GROUP BY m.I_CODE
         )
         SELECT 
