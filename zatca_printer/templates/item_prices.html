@@ -207,76 +207,103 @@
             const filterDtl = document.getElementById('filterDtl');
             const tableRows = Array.from(document.querySelectorAll('#pricesTable tbody tr.item-row'));
 
-            // Sets to collect unique group names
-            const mainSet = new Set();
-            const subMainSet = new Set();
-            const subSet = new Set();
-            const dtlSet = new Set();
+            // Pre-process items data for faster filtering and cleaner logic
+            const itemsData = tableRows.map(row => ({
+                main: row.getAttribute('data-main'),
+                submain: row.getAttribute('data-submain'),
+                sub: row.getAttribute('data-sub'),
+                dtl: row.getAttribute('data-dtl'),
+                row: row,
+                code: row.querySelector('.item-code').textContent.toLowerCase(),
+                name: row.querySelector('.item-name').textContent.toLowerCase()
+            }));
 
-            // Populate sets
-            tableRows.forEach(row => {
-                const main = row.getAttribute('data-main');
-                const submain = row.getAttribute('data-submain');
-                const sub = row.getAttribute('data-sub');
-                const dtl = row.getAttribute('data-dtl');
-
-                if(main) mainSet.add(main);
-                if(submain) subMainSet.add(submain);
-                if(sub) subSet.add(sub);
-                if(dtl) dtlSet.add(dtl);
-            });
-
-            // Helper to add options to select
+            // Helper to add options to select while keeping the current selection if valid
             function populateSelect(selectEl, set) {
-                Array.from(set).sort().forEach(val => {
+                const currentVal = selectEl.value;
+                const firstOptionText = selectEl.options.length > 0 ? selectEl.options[0].text : 'الكل';
+                
+                selectEl.innerHTML = `<option value="">${firstOptionText}</option>`;
+                
+                Array.from(set).filter(Boolean).sort().forEach(val => {
                     const opt = document.createElement('option');
                     opt.value = val;
                     opt.textContent = val;
                     selectEl.appendChild(opt);
                 });
+
+                if (set.has(currentVal)) {
+                    selectEl.value = currentVal;
+                } else {
+                    selectEl.value = '';
+                }
             }
 
+            // Populate Main Group once (it never changes)
+            const mainSet = new Set(itemsData.map(item => item.main));
             populateSelect(filterMain, mainSet);
-            populateSelect(filterSubMain, subMainSet);
-            populateSelect(filterSub, subSet);
-            populateSelect(filterDtl, dtlSet);
 
-            // Filter logic
-            function filterTable() {
+            function updateFiltersAndTable() {
                 const term = searchInput.value.toLowerCase().trim();
                 const fMain = filterMain.value;
                 const fSubMain = filterSubMain.value;
                 const fSub = filterSub.value;
                 const fDtl = filterDtl.value;
 
-                tableRows.forEach(row => {
-                    const code = row.querySelector('.item-code').textContent.toLowerCase();
-                    const name = row.querySelector('.item-name').textContent.toLowerCase();
-                    
-                    const main = row.getAttribute('data-main');
-                    const submain = row.getAttribute('data-submain');
-                    const sub = row.getAttribute('data-sub');
-                    const dtl = row.getAttribute('data-dtl');
+                // 1. Top-Down Cascading Dropdowns Logic
+                const availableSubMains = new Set();
+                const availableSubs = new Set();
+                const availableDtls = new Set();
 
-                    const matchSearch = code.includes(term) || name.includes(term);
-                    const matchMain = !fMain || main === fMain;
-                    const matchSubMain = !fSubMain || submain === fSubMain;
-                    const matchSub = !fSub || sub === fSub;
-                    const matchDtl = !fDtl || dtl === fDtl;
+                itemsData.forEach(item => {
+                    const matchMain = !fMain || item.main === fMain;
+                    const matchSubMain = !fSubMain || item.submain === fSubMain;
+                    const matchSub = !fSub || item.sub === fSub;
+                    
+                    if (matchMain) {
+                        availableSubMains.add(item.submain);
+                        if (matchSubMain) {
+                            availableSubs.add(item.sub);
+                            if (matchSub) {
+                                availableDtls.add(item.dtl);
+                            }
+                        }
+                    }
+                });
+
+                populateSelect(filterSubMain, availableSubMains);
+                populateSelect(filterSub, availableSubs);
+                populateSelect(filterDtl, availableDtls);
+
+                // Re-read values in case they were cleared by populateSelect
+                const newFSubMain = filterSubMain.value;
+                const newFSub = filterSub.value;
+                const newFDtl = filterDtl.value;
+
+                // 2. Filter Table Rows
+                itemsData.forEach(item => {
+                    const matchSearch = item.code.includes(term) || item.name.includes(term);
+                    const matchMain = !fMain || item.main === fMain;
+                    const matchSubMain = !newFSubMain || item.submain === newFSubMain;
+                    const matchSub = !newFSub || item.sub === newFSub;
+                    const matchDtl = !newFDtl || item.dtl === newFDtl;
 
                     if (matchSearch && matchMain && matchSubMain && matchSub && matchDtl) {
-                        row.style.display = '';
+                        item.row.style.display = '';
                     } else {
-                        row.style.display = 'none';
+                        item.row.style.display = 'none';
                     }
                 });
             }
 
-            searchInput.addEventListener('input', filterTable);
-            filterMain.addEventListener('change', filterTable);
-            filterSubMain.addEventListener('change', filterTable);
-            filterSub.addEventListener('change', filterTable);
-            filterDtl.addEventListener('change', filterTable);
+            // Initial call to populate dependent dropdowns based on empty state
+            updateFiltersAndTable();
+
+            searchInput.addEventListener('input', updateFiltersAndTable);
+            filterMain.addEventListener('change', updateFiltersAndTable);
+            filterSubMain.addEventListener('change', updateFiltersAndTable);
+            filterSub.addEventListener('change', updateFiltersAndTable);
+            filterDtl.addEventListener('change', updateFiltersAndTable);
         });
     </script>
 </body>
