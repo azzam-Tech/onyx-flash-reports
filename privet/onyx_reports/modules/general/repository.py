@@ -76,5 +76,7 @@ def get_item_prices_and_stock_sql():
         FROM IAS_ITM_MST I
         LEFT JOIN GROUP_DETAILS G ON G.G_CODE = I.G_CODE
         WHERE (:i_code IS NULL OR :i_code = '' OR I.I_CODE = :i_code)
+          AND NVL(I.INACTIVE, 0) = 0
+          AND NVL((SELECT SUM(M.I_QTY * NVL(M.IN_OUT, 1)) FROM ITEM_MOVEMENT M WHERE M.I_CODE = I.I_CODE AND M.W_CODE IN ('103','105','108','118','122','121','119')), 0) != 0
         ORDER BY I.G_CODE, I.I_CODE
     """

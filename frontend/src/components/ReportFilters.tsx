@@ -142,13 +142,17 @@ export function ReportFilters({
         break
       case 'this_week':
         d1.setDate(today.getDate() - today.getDay())
+        d2 = new Date(d1)
+        d2.setDate(d1.getDate() + 6)
         break
       case 'last_week':
         d1.setDate(today.getDate() - today.getDay() - 7)
-        d2.setDate(today.getDate() - today.getDay() - 1)
+        d2 = new Date(d1)
+        d2.setDate(d1.getDate() + 6)
         break
       case 'this_month':
         d1.setDate(1)
+        d2 = new Date(today.getFullYear(), today.getMonth() + 1, 0)
         break
       case 'last_month':
         d1 = new Date(today.getFullYear(), today.getMonth() - 1, 1)
@@ -164,10 +168,15 @@ export function ReportFilters({
         break
     }
 
+    const formatDate = (d: Date) => {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    };
+
     setBinds(prev => ({
       ...prev,
-      [date1]: d1.toISOString().split('T')[0],
-      [date2]: d2.toISOString().split('T')[0]
+      [date1]: formatDate(d1),
+      [date2]: formatDate(d2)
     }))
   }
 
