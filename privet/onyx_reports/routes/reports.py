@@ -81,7 +81,7 @@ def api_report_data(tab_id, report_id):
                     val = "1" if val else "0"
                 binds[p["name"]] = str(val)
         
-        if tab_id == 'stock' or (tab_id == 'summary' and report_id in ('detailed_stock_pivot', 'dead_stock_value')):
+        if tab_id == 'stock' or (tab_id == 'summary' and report_id in ('detailed_stock_pivot', 'dead_stock_value', 'stock_move')):
             from modules.warehouses.services import handle_warehouse_report
             cols, rows = handle_warehouse_report(report_id, rpt, binds)
         elif tab_id == 'sales' or (tab_id == 'summary' and report_id in ('workflow_summary', 'debt_movement_summary', 'net_debt_movement_summary')):
