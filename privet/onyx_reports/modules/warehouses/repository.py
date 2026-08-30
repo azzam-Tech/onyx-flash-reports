@@ -358,17 +358,76 @@ def get_stock_bal_sql():
 
 def get_stock_move_sql():
     return """
-      SELECT * FROM (
-        SELECT TO_CHAR(mv.I_DATE,'DD/MM/YYYY') AS "التاريخ", mv.DOC_NO AS "المستند",
-               CASE NVL(mv.IN_OUT,0) WHEN 1 THEN 'وارد' ELSE 'صادر' END AS "الاتجاه",
-               TO_CHAR(NVL(mv.I_QTY,0),'FM999,999,990.00') AS "الكمية",
-               TO_CHAR(NVL(mv.STK_COST,0),'FM999,999,990.00') AS "التكلفة",
-               mv.W_CODE AS "المستودع"
-        FROM ITEM_MOVEMENT mv
-        WHERE mv.I_CODE = :i_code
-          AND mv.I_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND mv.I_DATE < TO_DATE(:date_to,'YYYY-MM-DD')+1
-        ORDER BY mv.I_DATE, mv.DOC_NO
-      ) """
+      WITH opening AS (
+          SELECT 
+              TO_DATE(:date_from, 'YYYY-MM-DD') - 1 AS I_DATE,
+              0 AS DOC_NO,
+              0 AS DOC_TYPE,
+              'رصيد إفتتاحي' AS DOC_TYPE_NAME,
+              SUM(CASE NVL(IN_OUT, 0) WHEN 1 THEN NVL(I_QTY, 0) ELSE -NVL(I_QTY, 0) END) AS BAL_QTY,
+              W_CODE
+          FROM ITEM_MOVEMENT
+          WHERE (:i_code IS NOT NULL) AND I_CODE = :i_code
+            AND I_DATE < TO_DATE(:date_from, 'YYYY-MM-DD')
+            AND (:w_code IS NULL OR W_CODE = :w_code)
+          GROUP BY W_CODE
+          HAVING SUM(CASE NVL(IN_OUT, 0) WHEN 1 THEN NVL(I_QTY, 0) ELSE -NVL(I_QTY, 0) END) <> 0
+      ),
+      movements AS (
+          SELECT 
+              I_DATE,
+              DOC_NO,
+              DOC_TYPE,
+              CASE DOC_TYPE
+                  WHEN 1 THEN 'فاتورة مبيعات'
+                  WHEN 2 THEN 'فاتورة مشتريات'
+                  WHEN 3 THEN 'مردود مبيعات'
+                  WHEN 4 THEN 'مردود مشتريات'
+                  WHEN 7 THEN 'تحويل منصرف'
+                  WHEN 8 THEN 'تحويل وارد'
+                  WHEN 9 THEN 'تسوية كميات وارد'
+                  WHEN 10 THEN 'تسوية كميات منصرف'
+                  WHEN 11 THEN 'رصيد إفتتاحي'
+                  WHEN 28 THEN 'صرف مواد'
+                  WHEN 29 THEN 'توريد مواد'
+                  ELSE 'مستند ' || TO_CHAR(DOC_TYPE)
+              END AS DOC_TYPE_NAME,
+              CASE WHEN NVL(IN_OUT,0) = 1 THEN NVL(I_QTY,0) ELSE 0 END AS QTY_IN,
+              CASE WHEN NVL(IN_OUT,0) <> 1 THEN NVL(I_QTY,0) ELSE 0 END AS QTY_OUT,
+              NVL(STK_COST, 0) AS STK_COST,
+              W_CODE
+          FROM ITEM_MOVEMENT
+          WHERE (:i_code IS NOT NULL) AND I_CODE = :i_code
+            AND I_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD')
+            AND I_DATE < TO_DATE(:date_to, 'YYYY-MM-DD') + 1
+            AND (:w_code IS NULL OR W_CODE = :w_code)
+            AND (:doc_type IS NULL OR DOC_TYPE = :doc_type)
+      ),
+      combined AS (
+          SELECT I_DATE, DOC_NO, DOC_TYPE, DOC_TYPE_NAME, QTY_IN, QTY_OUT, STK_COST, W_CODE, 1 AS SORT_ORDER FROM movements
+          UNION ALL
+          SELECT I_DATE, DOC_NO, DOC_TYPE, DOC_TYPE_NAME,
+                 CASE WHEN BAL_QTY >= 0 THEN BAL_QTY ELSE 0 END AS QTY_IN,
+                 CASE WHEN BAL_QTY < 0 THEN ABS(BAL_QTY) ELSE 0 END AS QTY_OUT,
+                 0 AS STK_COST, W_CODE, 0 AS SORT_ORDER
+          FROM opening
+      )
+      SELECT 
+          TO_CHAR(c.I_DATE, 'DD/MM/YYYY') AS "التاريخ",
+          c.DOC_NO AS "رقم المستند",
+          c.DOC_TYPE_NAME AS "نوع المستند",
+          TO_CHAR(w.W_CODE) || ' - ' || w.W_NAME AS "المخزن",
+          TO_CHAR(c.QTY_IN, 'FM999,999,990.00') AS "الكمية الواردة",
+          TO_CHAR(c.QTY_OUT, 'FM999,999,990.00') AS "الكمية المنصرفة",
+          TO_CHAR(c.STK_COST, 'FM999,999,990.00') AS "التكلفة",
+          TO_CHAR(
+              SUM(c.QTY_IN - c.QTY_OUT) OVER (ORDER BY c.SORT_ORDER, c.I_DATE, c.DOC_NO ROWS UNBOUNDED PRECEDING), 
+              'FM999,999,990.00'
+          ) AS "الرصيد"
+      FROM combined c
+      LEFT JOIN WAREHOUSE_DETAILS w ON w.W_CODE = c.W_CODE
+      ORDER BY c.SORT_ORDER, c.I_DATE, c.DOC_NO
+      """
 
 def get_stock_dormant_sql():
     return """

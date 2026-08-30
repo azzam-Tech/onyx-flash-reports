@@ -350,7 +350,19 @@ TABS = [
       {"id":"smart_replenishment","title":"ذكاء المشتريات (تغطية المخزون)","params":[ASOF,{"name":"days","label":"فترة سحب المبيعات (أيام)","type":"number","default":"90"},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":""},
       
     {"id":"stock_bal","title":"أرصدة الأصناف","params":[ASOF,{"name":"w_code","label":"المستودع (اختياري)","type":"text","default":""},{"name":"i_code","label":"رقم الصنف (اختياري)","type":"text","default":""}],"sql":""},
-    {"id":"stock_move","title":"حركة صنف","params":[{"name":"i_code","label":"كود الصنف","type":"text","default":""},DFROM,DTO],"sql":""},
+    {"id":"stock_move","title":"حركة صنف","params":[
+        {"name":"i_code","label":"كود الصنف","type":"text","default":""},
+        DFROM, DTO,
+        {"name":"w_code","label":"المخزن (اختياري)","type":"text","default":""},
+        {"name":"doc_type","label":"نوع الوثيقة","type":"select","default":"",
+         "options":[
+             ["","الكل"],
+             ["1","فاتورة المبيعات"],
+             ["3","فاتورة مردود المبيعات"],
+             ["2","فاتورة المشتريات"],
+             ["4","فاتورة مردود المشتريات"]
+         ]}
+    ],"sql":""},
     {"id":"stock_dormant","title":"الأصناف الراكدة (تطوير الذكي)","params":[ASOF,{"name":"days","label":"أيام الركود","type":"number","default":str((datetime.now() - datetime(datetime.now().year, 1, 1)).days + 1)},{"name":"dormancy_pct","label":"نسبة الركود (أقل من %)","type":"number","default":"10"}],"sql":""},
     {"id":"main_wh_movement","title":"حركة الأصناف (7 مستودعات)","fn":"run_main_wh_movement","params":[{"name":"i_code","label":"كود الصنف (اختياري)","type":"text","default":""},DFROM,DTO],"sql":""},
   ]},
