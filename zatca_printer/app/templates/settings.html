@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-8 opacity-0 animate-fade-in-up text-start">
+    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ t('settings_title') | default('الإعدادات') }}</h2>
+    <p class="text-slate-500 font-medium mt-1">تفضيلات الحساب والنظام</p>
+</div>
+
+<div class="glass-card rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center opacity-0 animate-fade-in-up stagger-1">
+    <div class="text-6xl mb-6 opacity-30 grayscale mix-blend-luminosity">⚙️</div>
+    <h3 class="text-2xl font-extrabold text-slate-800 mb-2">قريباً</h3>
+    <p class="text-slate-500 font-medium text-lg">هذه الصفحة قيد التطوير وسيتم إضافة الإعدادات فيها لاحقاً.</p>
+</div>
+{% endblock %}

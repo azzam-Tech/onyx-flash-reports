@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Customers Header & Search -->
+<div class="flex flex-col md:flex-row justify-between items-center gap-6 mb-8 opacity-0 animate-fade-in-up">
+    <div class="flex items-center gap-4 text-start">
+        <div class="w-12 h-12 bg-white rounded-full shadow-sm border border-slate-200 flex items-center justify-center text-xl">
+            👥
+        </div>
+        <div>
+            <h2 class="text-2xl font-extrabold tracking-tight text-slate-900">{{ t('my_customers') }}</h2>
+            <p class="text-slate-500 font-medium text-sm mt-0.5">{{ t('linked_customers') }} <span class="text-primary-600 font-bold px-1">{{ customers|length }}</span></p>
+        </div>
+    </div>
+    
+    <div class="w-full md:w-[400px] relative text-start">
+        <input type="text" id="searchInput" onkeyup="filterCustomers()" placeholder="{{ t('customer_search_placeholder') }}" 
+               class="premium-input w-full px-5 py-3.5 rounded-2xl text-slate-900 placeholder-slate-400 {{ 'pr-12 text-right' if page_dir == 'rtl' else 'pl-12 text-left' }} font-medium text-base">
+        <div class="absolute {{ 'right-4' if page_dir == 'rtl' else 'left-4' }} top-1/2 -translate-y-1/2 text-slate-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
+    </div>
+</div>
+
+<!-- Customers Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 opacity-0 animate-fade-in-up stagger-1" id="customersGrid">
+    {% for customer in customers %}
+    <div class="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col customer-card cursor-pointer" data-name="{{ customer.name }}" data-code="{{ customer.code }}" onclick="window.location.href='{{ url_for('reports.customer_info', c_code=customer.code) }}'">
+        
+        <div class="flex justify-between items-start mb-3 sm:mb-5 gap-3 text-start">
+            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 leading-snug">{{ customer.name }}</h3>
+            <span class="bg-primary-50 text-primary-700 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold border border-primary-100 whitespace-nowrap shrink-0 shadow-sm">
+                #{{ customer.code }}
+            </span>
+        </div>
+        
+        <div class="flex-1 flex flex-col gap-2 sm:gap-3 mb-2 sm:mb-4 text-start">
+            <div class="flex items-center gap-2 sm:gap-3 text-slate-500 text-xs sm:text-sm font-semibold">
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="sm:w-[14px] sm:h-[14px]"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                </div>
+                <span dir="ltr" class="text-slate-700 tracking-wide">{{ customer.mobile if customer.mobile else t('not_available') }}</span>
+            </div>
+        </div>
+        <!-- Removing the buttons grid, clicking the card directly takes them to Customer Hub -->
+    </div>
+    {% else %}
+    <div class="col-span-full py-24 bg-white/50 backdrop-blur-sm border-2 border-dashed border-slate-300 rounded-[2.5rem] text-center shadow-sm">
+        <div class="text-6xl mb-6 opacity-30 grayscale mix-blend-luminosity">👥</div>
+        <h3 class="text-2xl font-extrabold text-slate-800 mb-2">{{ t('no_customers') }}</h3>
+        <p class="text-slate-500 font-medium text-lg">{{ t('no_customers_desc') }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterCustomers() {
+        let input = document.getElementById('searchInput');
+        let filter = input.value.toUpperCase();
+        let grid = document.getElementById('customersGrid');
+        let cards = grid.getElementsByClassName('customer-card');
+
+        for (let i = 0; i < cards.length; i++) {
+            let name = cards[i].getAttribute('data-name').toUpperCase();
+            let code = cards[i].getAttribute('data-code').toUpperCase();
+            
+            if (name.indexOf(filter) > -1 || code.indexOf(filter) > -1) {
+                cards[i].style.display = "flex";
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+    }
+</script>
+{% endblock %}

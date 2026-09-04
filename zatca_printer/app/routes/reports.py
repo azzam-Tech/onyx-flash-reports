@@ -175,8 +175,13 @@ def refresh_dashboard():
 @reports_bp.route('/dashboard')
 @login_required
 def dashboard():
-    customers = []
     metrics = get_salesman_metrics(current_user.rep_code)
+    return render_template('dashboard.html', salesman_name=current_user.name, metrics=metrics)
+
+@reports_bp.route('/customers')
+@login_required
+def customers_list():
+    customers = []
     try:
         with get_conn() as con:
             with con.cursor() as cur:
@@ -196,7 +201,12 @@ def dashboard():
     except Exception as e:
         flash(f'خطأ في جلب بيانات العملاء: {str(e)}')
         
-    return render_template('dashboard.html', salesman_name=current_user.name, customers=customers, metrics=metrics)
+    return render_template('customers_list.html', customers=customers)
+
+@reports_bp.route('/settings')
+@login_required
+def settings():
+    return render_template('settings.html')
 
 @reports_bp.route('/customer/<path:c_code>')
 @login_required
