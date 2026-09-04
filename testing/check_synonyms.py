@@ -21,19 +21,19 @@ def main():
         connection = get_conn()
         cursor = connection.cursor()
 
-        # Just query the table directly to get its owner from all_tables
-        print("Finding owner of IAS_BILL_MST from ALL_TABLES...")
-        query = """
-            SELECT OWNER, TABLE_NAME 
-            FROM ALL_TABLES 
-            WHERE TABLE_NAME = 'IAS_BILL_MST'
+        # How does RPT_USER see IAS_BILL_MST? Is there a synonym?
+        print("Checking synonyms for IAS_BILL_MST...")
+        query_synonym = """
+            SELECT TABLE_OWNER, TABLE_NAME 
+            FROM ALL_SYNONYMS 
+            WHERE SYNONYM_NAME = 'IAS_BILL_MST'
         """
-        cursor.execute(query)
-        tables = cursor.fetchall()
-        for tbl in tables:
-            owner = tbl[0]
-            table = tbl[1]
-            print(f"Owner: {owner}, Table: {table}")
+        cursor.execute(query_synonym)
+        syns = cursor.fetchall()
+        for s in syns:
+            print(f"Synonym points to Owner: {s[0]}, Table: {s[1]}")
+            owner = s[0]
+            table = s[1]
             
             print(f"\nChecking triggers on {owner}.{table}...")
             query_triggers = """

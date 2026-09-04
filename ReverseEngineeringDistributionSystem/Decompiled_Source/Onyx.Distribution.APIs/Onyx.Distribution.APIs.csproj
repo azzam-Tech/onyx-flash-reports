@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <AssemblyName>Onyx.Distribution.APIs</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Onyx.Distribution.APIs.servercertificate.crt" />
+    <None Remove="340f0de1-da6a-4652-a989-73fe059c84ad" />
+    <None Remove="e7416e12-a13f-41a4-84a5-65eed03575cb" />
+    <None Remove="4d5b1420-4b1d-40b7-bc18-bd6dc94be7a6" />
+    <EmbeddedResource Include="Onyx.Distribution.APIs.servercertificate.crt" LogicalName="Onyx.Distribution.APIs.servercertificate.crt" />
+    <EmbeddedResource Include="340f0de1-da6a-4652-a989-73fe059c84ad" LogicalName="340f0de1-da6a-4652-a989-73fe059c84ad" />
+    <EmbeddedResource Include="e7416e12-a13f-41a4-84a5-65eed03575cb" LogicalName="e7416e12-a13f-41a4-84a5-65eed03575cb" />
+    <EmbeddedResource Include="4d5b1420-4b1d-40b7-bc18-bd6dc94be7a6" LogicalName="4d5b1420-4b1d-40b7-bc18-bd6dc94be7a6" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Onyx.Distribution.Services">
+      <HintPath>..\..\Raw_DLLs\Onyx.Distribution.Services.dll</HintPath>
+    </Reference>
+    <Reference Include="Onyx.Distribution.Models">
+      <HintPath>..\..\Raw_DLLs\Onyx.Distribution.Models.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
+    <Reference Include="Swashbuckle.AspNetCore.SwaggerGen" />
+    <Reference Include="Swashbuckle.AspNetCore.Swagger" />
+    <Reference Include="Swashbuckle.AspNetCore.SwaggerUI" />
+    <Reference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <Reference Include="Newtonsoft.Json" />
+    <Reference Include="Microsoft.OpenApi" />
+    <Reference Include="Microsoft.IdentityModel.Tokens" />
+    <Reference Include="System.IdentityModel.Tokens.Jwt" />
+  </ItemGroup>
+</Project>

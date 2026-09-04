@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <AssemblyName>Onyx.Distribution.Models</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Onyx.Distribution.Models.LLS.pfx" />
+    <None Remove="ef6cda30-8fbf-4df7-802f-b0604668c7e0" />
+    <None Remove="56bd827b-5b5e-4d84-acd3-02144d8f6654" />
+    <None Remove="d6918adf-2c1b-429c-ba87-c0d5d39f857c" />
+    <EmbeddedResource Include="Onyx.Distribution.Models.LLS.pfx" LogicalName="Onyx.Distribution.Models.LLS.pfx" />
+    <EmbeddedResource Include="ef6cda30-8fbf-4df7-802f-b0604668c7e0" LogicalName="ef6cda30-8fbf-4df7-802f-b0604668c7e0" />
+    <EmbeddedResource Include="56bd827b-5b5e-4d84-acd3-02144d8f6654" LogicalName="56bd827b-5b5e-4d84-acd3-02144d8f6654" />
+    <EmbeddedResource Include="d6918adf-2c1b-429c-ba87-c0d5d39f857c" LogicalName="d6918adf-2c1b-429c-ba87-c0d5d39f857c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json" />
+    <Reference Include="BouncyCastle.Crypto" />
+    <Reference Include="Oracle.ManagedDataAccess" />
+    <Reference Include="SecuStandard" />
+  </ItemGroup>
+</Project>

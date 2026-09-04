@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <AssemblyName>Onyx.Distribution.Services</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="4bfa769b-e910-4a24-8c2e-8cda9b1bd4b6" />
+    <None Remove="f43b3953-983c-48d5-ae3e-23ff3ea0e14a" />
+    <None Remove="56ca8863-e352-4f3f-bebc-b159812e86be" />
+    <EmbeddedResource Include="4bfa769b-e910-4a24-8c2e-8cda9b1bd4b6" LogicalName="4bfa769b-e910-4a24-8c2e-8cda9b1bd4b6" />
+    <EmbeddedResource Include="f43b3953-983c-48d5-ae3e-23ff3ea0e14a" LogicalName="f43b3953-983c-48d5-ae3e-23ff3ea0e14a" />
+    <EmbeddedResource Include="56ca8863-e352-4f3f-bebc-b159812e86be" LogicalName="56ca8863-e352-4f3f-bebc-b159812e86be" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json" />
+    <Reference Include="Onyx.Distribution.Models" />
+    <Reference Include="Oracle.ManagedDataAccess" />
+    <Reference Include="Dapper.Oracle" />
+    <Reference Include="Dapper" />
+    <Reference Include="Nancy" />
+  </ItemGroup>
+</Project>

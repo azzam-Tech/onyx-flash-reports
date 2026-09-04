@@ -1,0 +1,9 @@
+using Onyx.Containers;
+
+internal class _003CModule_003E_007B485D7AAD_002D8331_002D4316_002D940E_002D5C73BFCEF5CC_007D
+{
+	static _003CModule_003E_007B485D7AAD_002D8331_002D4316_002D940E_002D5C73BFCEF5CC_007D()
+	{
+		ThreadIndexerContainer.IncludeClass();
+	}
+}
