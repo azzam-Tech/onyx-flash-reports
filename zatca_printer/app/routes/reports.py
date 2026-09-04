@@ -576,3 +576,78 @@ def get_invoice(bill_no):
                 })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# ==========================================
+# Phase 2: Visit Dashboard API Routes
+# ==========================================
+
+@reports_bp.route('/api/visits/start', methods=['POST'])
+@login_required
+def api_visit_start():
+    data = request.get_json()
+    c_code = data.get('c_code')
+    rep_code = current_user.rep_code
+    
+    if not c_code:
+        return jsonify({"status": "error", "message": "Missing customer code"}), 400
+
+    # TODO: We need explicit permission to INSERT using ULT user before executing this block.
+    '''
+    try:
+        with get_conn() as con:
+            with con.cursor() as cur:
+                # Generate new VST_NO and VST_SRL (Simple max + 1 logic for now)
+                cur.execute("SELECT NVL(MAX(VST_NO), 0) + 1 FROM IAS20261.DTS_CST_VST_MST")
+                new_vst_no = cur.fetchone()[0]
+                
+                cur.execute("SELECT NVL(MAX(VST_SRL), 0) + 1 FROM IAS20261.DTS_CST_VST_MST WHERE VST_NO = :1", [new_vst_no])
+                new_vst_srl = cur.fetchone()[0]
+
+                sql = """
+                    INSERT INTO IAS20261.DTS_CST_VST_MST 
+                    (VST_NO, VST_SRL, C_CODE, REP_CODE, ARIVL_TM, VST_STS, VST_DATE) 
+                    VALUES (:1, :2, :3, :4, SYSDATE, 1, TRUNC(SYSDATE))
+                """
+                cur.execute(sql, [new_vst_no, new_vst_srl, c_code, rep_code])
+                con.commit()
+                return jsonify({"status": "success", "message": "Visit started in Oracle", "vst_no": new_vst_no})
+    except Exception as e:
+        print("Error starting visit:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+    '''
+    
+    return jsonify({"status": "success", "message": "Visit started (Simulated)"})
+
+
+@reports_bp.route('/api/visits/end', methods=['POST'])
+@login_required
+def api_visit_end():
+    data = request.get_json()
+    c_code = data.get('c_code')
+    result_type = data.get('result_type')
+    fail_reason = data.get('fail_reason')
+    notes = data.get('notes')
+
+    # TODO: We need explicit permission to UPDATE using ULT user before executing this block.
+    '''
+    try:
+        with get_conn() as con:
+            with con.cursor() as cur:
+                sql = """
+                    UPDATE IAS20261.DTS_CST_VST_MST 
+                    SET LVD_TM = SYSDATE, 
+                        VST_STS = 2, 
+                        VST_RSLT_TYP = :1, 
+                        RESON_TYP = :2, 
+                        VST_NOTES = :3
+                    WHERE C_CODE = :4 AND VST_STS = 1
+                """
+                cur.execute(sql, [result_type, fail_reason, notes, c_code])
+                con.commit()
+                return jsonify({"status": "success", "message": "Visit ended in Oracle"})
+    except Exception as e:
+        print("Error ending visit:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+    '''
+
+    return jsonify({"status": "success", "message": "Visit ended (Simulated)"})
