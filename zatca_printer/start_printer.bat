@@ -14,14 +14,11 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-:: Rename .env.production to .env if .env doesn't exist
+:: Ensure .env exists
 if not exist .env (
-    if exist .env.production (
-        echo [INFO] Copying .env.production to .env
-        copy .env.production .env >nul
-    ) else (
-        echo [WARNING] No .env or .env.production found!
-    )
+    echo [ERROR] No .env file found! Please create one.
+    pause
+    exit /b
 )
 
 :: Create virtual environment if it doesn't exist

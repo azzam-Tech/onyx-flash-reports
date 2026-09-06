@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فاتورة مبيعات - {{ c_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0F172A;
+            --primary-light: #1E293B;
+            --accent: #10B981;
+            --accent-hover: #059669;
+            --bg-color: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-main: #334155;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --danger: #EF4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Green Header matching Onyx */
+        .green-header {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .header-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-box h4 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-box .val {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            flex-grow: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            border: 1px solid var(--border);
+            min-width: 0; /* Fix grid overflow */
+            overflow: hidden;
+        }
+
+        .panel h2 {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--accent);
+            display: inline-block;
+            padding-bottom: 0.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            color: var(--primary-light);
+            font-size: 0.9rem;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #F8FAFC;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+            background: white;
+        }
+
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-accent:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #FEF2F2;
+            color: var(--danger);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+        }
+
+        .cart-table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            width: 100%;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on mobile */
+        }
+
+        .cart-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .cart-table th {
+            background: #F1F5F9;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-align: right;
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .cart-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .cart-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .totals-section {
+            background: #F8FAFC;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+
+        .total-row.grand-total {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px dashed var(--border);
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; /* ensure top */
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-card {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95) translateY(20px);
+            transition: all 0.3s ease;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+            color: var(--primary);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+        }
+
+        .item-list-item {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .item-list-item:hover {
+            border-color: var(--accent);
+            background: #F0FDF4;
+        }
+        
+        .item-name { font-weight: 700; color: var(--primary); margin-bottom: 0.25rem;}
+        .item-code { font-size: 0.8rem; color: var(--text-muted); }
+        .item-qty { font-weight: 800; color: var(--accent); background: #D1FAE5; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.9rem;}
+
+        /* Loader */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <header class="green-header">
+        <div class="header-top">
+            <div class="header-title">فاتورة مبيعات</div>
+            <a href="/customer_info/{{ c_code }}" style="color: white; text-decoration: none; font-weight: bold; font-size: 1.2rem;">&times; إغلاق</a>
+        </div>
+        <div class="header-stats">
+            <div class="stat-box">
+                <h4>العميل</h4>
+                <div class="val">{{ c_name }}</div>
+            </div>
+            <div class="stat-box">
+                <h4 id="header_balance_lbl">رصيد العميل الحالي</h4>
+                <div class="val" id="header_balance">جاري الجلب...</div>
+            </div>
+            <div class="stat-box" id="credit_limit_box">
+                <h4>حد الدين</h4>
+                <div class="val" id="header_credit_limit">...</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- Left Panel: Invoice Details -->
+        <div class="panel invoice-details">
+            <h2>البيانات الأساسية</h2>
+            
+            <div class="input-group">
+                <label>نوع المستند</label>
+                <select id="doc_type" disabled>
+                    <option value="4">مبيعات</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>طريقة الدفع</label>
+                <select id="pay_way">
+                    <option value="cash">نقداً</option>
+                    <option value="credit">آجل</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>العملة</label>
+                <select id="currency" disabled>
+                    <option value="SAR">ريال سعودي</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>الرقم المرجعي</label>
+                <input type="text" id="ref_no" placeholder="اختياري">
+            </div>
+
+            <div class="input-group">
+                <label>البيان</label>
+                <input type="text" id="bill_remark" value="عليكم فاتورة مبيعات">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="input-group">
+                    <label>نسبة الخصم (%)</label>
+                    <input type="number" id="global_discount_percent" value="0" min="0" max="100" onchange="calculateTotals()">
+                </div>
+                <div class="input-group">
+                    <label>مبلغ الخصم</label>
+                    <input type="number" id="global_discount_amount" value="0" min="0" onchange="onDiscountAmountChange()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Cart -->
+        <div class="panel cart-panel">
+            <div class="cart-header">
+                <h2>الأصناف المضافة</h2>
+                <button class="btn btn-accent" onclick="openItemsModal()">إضافة صنف +</button>
+            </div>
+
+            <div class="cart-table-wrapper" style="overflow-x: auto; font-size: 0.85rem;">
+                <table class="cart-table" style="min-width: 800px; padding: 0;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 8px;">رقم الصنف</th>
+                            <th style="padding: 8px;">الاسم</th>
+                            <th style="padding: 8px;">الكمية</th>
+                            <th style="padding: 8px;">السعر</th>
+                            <th style="padding: 8px;">ن.خصم(%)</th>
+                            <th style="padding: 8px;">الخصم</th>
+                            <th style="padding: 8px;">الإجمالي</th>
+                            <th style="padding: 8px;">الضريبة</th>
+                            <th style="padding: 8px;">الصافي</th>
+                            <th style="padding: 8px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart_body">
+                        <!-- Items will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="totals-section">
+                <div class="total-row">
+                    <span>الإجمالي قبل الضريبة:</span>
+                    <span id="txt_subtotal">0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>الخصم:</span>
+                    <span id="txt_discount">0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>ضريبة القيمة المضافة (15%):</span>
+                    <span id="txt_vat">0.00</span>
+                </div>
+                <div class="total-row grand-total">
+                    <span>الصافي المطلوب:</span>
+                    <span id="txt_grand_total">0.00</span>
+                </div>
+            </div>
+
+            <button class="btn btn-accent" style="width: 100%; padding: 1rem; font-size: 1.25rem;" onclick="submitInvoice()" id="btn_submit">حفظ واعتماد الفاتورة</button>
+        </div>
+    </div>
+
+
+    <!-- ITEMS SEARCH MODAL -->
+    <div class="modal-overlay" id="modalItems">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>اختر صنفاً من المستودع</h3>
+                <button class="close-btn" onclick="closeItemsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="search-bar" id="itemSearch" placeholder="ابحث برقم أو اسم الصنف..." oninput="filterItems()">
+                <div id="itemsListLoader" class="loader" style="display:none;"></div>
+                <div id="itemsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ITEM DETAILS MODAL (Qty & Price Entry) -->
+    <div class="modal-overlay" id="modalItemDetails">
+        <div class="modal-card" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="det_item_name">اسم الصنف</h3>
+                <button class="close-btn" onclick="closeItemDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #F8FAFC; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">الكمية المتوفرة في المستودع</p>
+                    <h2 id="det_item_avail" style="color: var(--accent); font-size: 2rem;">0</h2>
+                </div>
+
+                <div class="input-group">
+                    <label>الكمية المطلوبة</label>
+                    <input type="number" id="det_qty" value="1" min="1" style="font-size: 1.5rem; text-align: center; font-weight: bold;">
+                </div>
+
+                <div class="input-group">
+                    <label>سعر البيع (للحبة)</label>
+                    <input type="number" id="det_price" style="font-size: 1.5rem; text-align: center; font-weight: bold;" step="0.01">
+                    <p id="det_min_price_warn" style="color: var(--danger); font-size: 0.8rem; margin-top: 0.5rem; display: none;">يجب ألا يقل السعر عن الحد الأدنى.</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div class="input-group">
+                        <label>نسبة خصم الحبة (%)</label>
+                        <input type="number" id="det_disc_pct" value="0" min="0" max="100" style="font-size: 1.2rem; text-align: center;" onchange="calcItemDiscAmt()">
+                    </div>
+                    <div class="input-group">
+                        <label>مبلغ خصم الحبة</label>
+                        <input type="number" id="det_disc_amt" value="0" min="0" style="font-size: 1.2rem; text-align: center;" onchange="calcItemDiscPct()">
+                    </div>
+                </div>
+
+                <button class="btn btn-accent" style="width: 100%; margin-top: 1rem;" onclick="confirmAddItem()">إضافة للسلة</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const C_CODE = "{{ c_code }}";
+        let allItems = []; 
+        let cart = [];     
+        let currentSelectedItem = null; 
+
+        // 1. Initialize
+        window.onload = async () => {
+            loadCustomerCredit();
+            fetchItems();
+        };
+
+        // 1. Fetch Customer Credit & Info
+        async function loadCustomerCredit() {
+            try {
+                const response = await fetch(`/api/customer/${C_CODE}/credit`);
+                const data = await response.json();
+                if (data.status === "success") {
+                    document.getElementById('header_balance_lbl').innerText = data.label;
+                    document.getElementById('header_balance').innerText = data.remaining_balance + ' ' + data.currency;
+                    document.getElementById('header_credit_limit').innerText = data.credit_limit.toLocaleString() + ' ' + data.currency;
+                }
+            } catch (err) {
+                console.error("Failed to load credit", err);
+            }
+        }
+
+        async function fetchItems() {
+            document.getElementById('itemsListLoader').style.display = 'block';
+            try {
+                const res = await fetch('/api/items');
+                const data = await res.json();
+                if(data.status === 'success') {
+                    allItems = data.items;
+                    renderItemsList(allItems);
+                }
+            } catch (e) { console.error(e); }
+            document.getElementById('itemsListLoader').style.display = 'none';
+        }
+
+        // 2. Modals & UI Logic
+        function openItemsModal() {
+            document.getElementById('modalItems').classList.add('active');
+            document.getElementById('itemSearch').focus();
+        }
+        function closeItemsModal() {
+            document.getElementById('modalItems').classList.remove('active');
+        }
+
+        function renderItemsList(items) {
+            const container = document.getElementById('itemsList');
+            container.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item-list-item';
+                div.innerHTML = `
+                    <div>
+                        <div class="item-name">${item.i_name}</div>
+                        <div class="item-code">${item.i_code}</div>
+                    </div>
+                    <div style="text-align: left;">
+                        <div class="item-qty">${item.avail_qty} حبة</div>
+                        <div style="font-size:0.8rem; color: #64748B; margin-top: 0.3rem;">السعر: ${item.i_price}</div>
+                    </div>
+                `;
+                div.onclick = () => openItemDetails(item);
+                container.appendChild(div);
+            });
+        }
+
+        function filterItems() {
+            const q = document.getElementById('itemSearch').value.toLowerCase();
+            const filtered = allItems.filter(i => 
+                i.i_name.toLowerCase().includes(q) || i.i_code.toLowerCase().includes(q)
+            );
+            renderItemsList(filtered);
+        }
+
+        function openItemDetails(item) {
+            currentSelectedItem = item;
+            document.getElementById('det_item_name').innerText = item.i_name;
+            document.getElementById('det_item_avail').innerText = item.avail_qty;
+            document.getElementById('det_qty').value = 1;
+            document.getElementById('det_price').value = item.i_price;
+            document.getElementById('det_disc_pct').value = 0;
+            document.getElementById('det_disc_amt').value = 0;
+            
+            closeItemsModal();
+            document.getElementById('modalItemDetails').classList.add('active');
+            setTimeout(() => document.getElementById('det_qty').focus(), 100);
+        }
+
+        function closeItemDetailsModal() {
+            document.getElementById('modalItemDetails').classList.remove('active');
+            currentSelectedItem = null;
+        }
+
+                function calcItemDiscAmt() {
+            const price = parseFloat(document.getElementById('det_price').value) || 0;
+            const pct = parseFloat(document.getElementById('det_disc_pct').value) || 0;
+            document.getElementById('det_disc_amt').value = (price * (pct / 100)).toFixed(2);
+        }
+        function calcItemDiscPct() {
+            const price = parseFloat(document.getElementById('det_price').value) || 0;
+            const amt = parseFloat(document.getElementById('det_disc_amt').value) || 0;
+            if (price > 0) {
+                document.getElementById('det_disc_pct').value = ((amt / price) * 100).toFixed(2);
+            }
+        }
+
+        function confirmAddItem() {
+            if(!currentSelectedItem) return;
+            
+            const qty = parseFloat(document.getElementById('det_qty').value);
+            const price = parseFloat(document.getElementById('det_price').value);
+            const disc_pct = parseFloat(document.getElementById('det_disc_pct').value) || 0;
+            const disc_amt = parseFloat(document.getElementById('det_disc_amt').value) || 0;
+            const avail = parseFloat(currentSelectedItem.avail_qty);
+
+            if (isNaN(qty) || qty <= 0) { alert('الرجاء إدخال كمية صحيحة.'); return; }
+            if (qty > avail) { alert(`الكمية المطلوبة (${qty}) تتجاوز المتوفر في المستودع (${avail})!`); return; }
+            if (isNaN(price) || price <= 0) { alert('الرجاء إدخال سعر صحيح.'); return; }
+            if (price < currentSelectedItem.min_price) {
+                alert(`خطأ: السعر المدخل (${price}) أقل من الحد الأدنى المسموح للبيع وهو (${currentSelectedItem.min_price})!`);
+                return;
+            }
+
+            const existingIdx = cart.findIndex(c => c.i_code === currentSelectedItem.i_code);
+            if(existingIdx >= 0) {
+                const newQty = cart[existingIdx].qty + qty;
+                if(newQty > avail) { alert('مجموع الكمية يتجاوز المتوفر!'); return; }
+                cart[existingIdx].qty = newQty;
+                cart[existingIdx].price = price;
+                cart[existingIdx].disc_pct = disc_pct;
+                cart[existingIdx].disc_amt = disc_amt;
+            } else {
+                cart.push({
+                    i_code: currentSelectedItem.i_code,
+                    i_name: currentSelectedItem.i_name,
+                    qty: qty,
+                    price: price,
+                    disc_pct: disc_pct,
+                    disc_amt: disc_amt
+                });
+            }
+
+            closeItemDetailsModal();
+            renderCart();
+        }
+
+        function removeFromCart(i_code) {
+            cart = cart.filter(c => c.i_code !== i_code);
+            renderCart();
+        }
+
+        function renderCart() {
+            const tbody = document.getElementById('cart_body');
+            tbody.innerHTML = '';
+            
+            cart.forEach(item => {
+                const tr = document.createElement('tr');
+                const total_before = item.qty * item.price;
+                const total_disc = item.qty * (item.disc_amt || 0);
+                const total_after_disc = total_before - total_disc;
+                const total_vat = total_after_disc * 0.15;
+                const net = total_after_disc + total_vat;
+                
+                tr.innerHTML = `
+                    <td style="font-family: monospace; padding: 6px;">${item.i_code}</td>
+                    <td style="font-weight: bold; color: var(--primary); padding: 6px;">${item.i_name}</td>
+                    <td style="padding: 6px;">${item.qty}</td>
+                    <td style="padding: 6px;">${item.price.toFixed(2)}</td>
+                    <td style="padding: 6px; color: var(--danger);">${item.disc_pct || 0}%</td>
+                    <td style="padding: 6px; color: var(--danger);">${(item.disc_amt || 0).toFixed(2)}</td>
+                    <td style="padding: 6px;">${total_after_disc.toFixed(2)}</td>
+                    <td style="padding: 6px;">${total_vat.toFixed(2)}</td>
+                    <td style="font-weight: bold; padding: 6px;">${net.toFixed(2)}</td>
+                    <td style="padding: 6px;"><button class="btn-danger" style="padding: 4px 8px; font-size: 0.8rem;" onclick="removeFromCart('${item.i_code}')">&times; حذف</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            calculateTotals();
+        }
+
+        function onDiscountAmountChange() {
+            let subtotal = 0;
+            cart.forEach(item => { subtotal += (item.qty * (item.price - (item.disc_amt || 0))); });
+            const discountAmt = parseFloat(document.getElementById('global_discount_amount').value) || 0;
+            if (subtotal > 0) {
+                const discPercent = (discountAmt / subtotal) * 100;
+                document.getElementById('global_discount_percent').value = discPercent.toFixed(2);
+            } else {
+                document.getElementById('global_discount_percent').value = 0;
+            }
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            let subtotal = 0;
+            cart.forEach(item => { subtotal += (item.qty * (item.price - (item.disc_amt || 0))); });
+            
+            const discPercent = parseFloat(document.getElementById('global_discount_percent').value) || 0;
+            const discountAmt = subtotal * (discPercent / 100);
+            document.getElementById('global_discount_amount').value = discountAmt.toFixed(2);
+            
+            const afterDiscount = subtotal - discountAmt;
+            const vatAmt = afterDiscount * 0.15;
+            const grandTotal = afterDiscount + vatAmt;
+
+            document.getElementById('txt_subtotal').innerText = subtotal.toFixed(2);
+            document.getElementById('txt_discount').innerText = discountAmt.toFixed(2);
+            document.getElementById('txt_vat').innerText = vatAmt.toFixed(2);
+            document.getElementById('txt_grand_total').innerText = grandTotal.toFixed(2);
+        }
+
+        async function submitInvoice() {
+            if (cart.length === 0) {
+                alert('السلة فارغة! الرجاء إضافة أصناف للفاتورة.');
+                return;
+            }
+
+            const btn = document.getElementById('btn_submit');
+            btn.innerText = 'جاري المعالجة والإرسال لأونكس...';
+            btn.disabled = true;
+
+            const payload = {
+                c_code: C_CODE,
+                pay_way: document.getElementById('pay_way').value,
+                bill_remark: document.getElementById('bill_remark').value || 'عليكم فاتورة مبيعات',
+                ref_no: document.getElementById('ref_no').value || '',
+                global_discount_percent: parseFloat(document.getElementById('global_discount_percent').value) || 0,
+                global_discount_amount: parseFloat(document.getElementById('global_discount_amount').value) || 0,
+                items: cart
+            };
+
+            console.log("Submitting payload:", payload);
+            alert("تم تجميع البيانات بنجاح! نحن الآن بانتظار المرحلة الرابعة (الحقن في أوراكل).");
+            
+            btn.innerText = 'حفظ واعتماد الفاتورة';
+            btn.disabled = false;
+        }
+
+    </script>
+</body>
+</html>

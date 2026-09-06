@@ -28,6 +28,19 @@ def login():
                             user = User(id=u_id, rep_code=r_code, name=u_name)
                             login_user(user)
                             session['rep_code'] = r_code
+                            
+                            # Capture the latest terminal (MAC) address used by this rep
+                            try:
+                                cur.execute("SELECT AD_TRMNL_NM FROM IAS20261.DTS_CST_VST_MST WHERE REP_CODE = :1 AND AD_TRMNL_NM IS NOT NULL ORDER BY VST_NO DESC FETCH FIRST 1 ROWS ONLY", [r_code])
+                                term_row = cur.fetchone()
+                                if term_row and term_row[0]:
+                                    session['trmnl_nm'] = term_row[0]
+                                else:
+                                    session['trmnl_nm'] = 'WEB_PORTAL'
+                            except Exception as e:
+                                print("Error fetching terminal name:", e)
+                                session['trmnl_nm'] = 'WEB_PORTAL'
+
                             return redirect(url_for('reports.dashboard'))
                         else:
                             flash('كلمة المرور غير صحيحة')

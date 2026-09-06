@@ -1,14 +1,7 @@
 import os
 import oracledb
 
-# قراءة المتغيرات من ملف db.env إن وجد (الآن في المجلد الأب)
-env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'db.env')
-if os.path.exists(env_path):
-    with open(env_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            if '=' in line and not line.strip().startswith('#'):
-                k, v = line.strip().split('=', 1)
-                os.environ[k.strip()] = v.strip()
+# We rely on load_dotenv() from run.py to load the .env file.
 
 DB_USER     = os.environ.get("ORA_USER")
 DB_PASSWORD = os.environ.get("ORA_PASSWORD")
@@ -91,8 +84,22 @@ class InterceptConnection:
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self._conn.__exit__(exc_type, exc_val, exc_tb)
 
-def get_conn():
-    return InterceptConnection(oracledb.connect(user=DB_USER, password=DB_PASSWORD, dsn=DB_DSN))
+def get_conn(readonly=True):
+    """
+    Unified database connection.
+    - readonly=True (default): uses ORA_USER (e.g. RPT_USER) for safe reporting.
+    - readonly=False: uses ORA_WRITE_USER (e.g. ULT) for authorized INSERT/UPDATE operations.
+    """
+    if readonly:
+        user = DB_USER
+        password = DB_PASSWORD
+    else:
+        user = os.environ.get("ORA_WRITE_USER")
+        password = os.environ.get("ORA_WRITE_PASSWORD")
+        if not user or not password:
+            raise ValueError("ORA_WRITE_USER and ORA_WRITE_PASSWORD must be defined in the .env file for write operations.")
+        
+    return InterceptConnection(oracledb.connect(user=user, password=password, dsn=DB_DSN))
 
 _pool = None
 

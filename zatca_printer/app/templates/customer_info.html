@@ -37,102 +37,135 @@
 {% endblock %}
 
 {% block content %}
-<div class="opacity-0 animate-fade-in-up">
-    <!-- Header -->
-    <div class="flex flex-col items-center mb-6 text-center">
-        <h1 class="text-3xl font-black tracking-tight mb-3 text-slate-900">{{ customer.name }}</h1>
-        <span class="bg-primary-50 text-primary-700 px-4 py-1.5 rounded-xl text-sm font-bold border border-primary-100 shadow-sm">كود العميل: #{{ c_code }}</span>
+<div class="opacity-0 animate-fade-in-up pb-10">
+    <!-- Top Navigation -->
+    <div class="flex items-center justify-between mb-6">
+        <a href="{{ url_for('reports.customers_list') }}" class="btn-glass px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors text-slate-600 hover:text-slate-900">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="{{ 'rotate-180' if page_dir == 'ltr' else '' }}"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            العودة للعملاء
+        </a>
+        <span class="bg-white border border-slate-200 shadow-sm text-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold tracking-wider">كود: #{{ c_code }}</span>
     </div>
 
-    <!-- Visit Dashboard -->
-    <div id="visit-dashboard" class="glass-card rounded-[2rem] overflow-hidden mb-10 max-w-3xl mx-auto p-6 bg-white shadow-sm border border-slate-100">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-                <h2 class="text-xl font-extrabold text-slate-800 mb-1">الزيارة الحالية</h2>
-                <p id="visit-status-text" class="text-sm font-bold text-slate-500">حالة الزيارة: <span class="text-slate-400">مغلقة</span></p>
-            </div>
-            
-            <!-- Open Visit Button -->
-            <button id="btn-open-visit" onclick="openVisit()" class="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-8 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all flex justify-center items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                بدء الزيارة
-            </button>
-
-            <!-- Active Visit Actions (Hidden by default) -->
-            <div id="active-visit-actions" class="hidden w-full md:w-auto flex flex-wrap gap-2 justify-center">
-                <button class="bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold py-2 px-4 rounded-xl transition-colors flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    فاتورة مبيعات
-                </button>
-                <button class="bg-green-50 text-green-700 hover:bg-green-100 font-bold py-2 px-4 rounded-xl transition-colors flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    سند قبض
-                </button>
-                <button onclick="showCloseVisitModal()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-4 rounded-xl shadow-md transition-all flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
-                    إنهاء الزيارة
-                </button>
-            </div>
+    <!-- Customer Header Profile -->
+    <div class="flex flex-col items-center text-center mb-10">
+        <div class="w-20 h-20 rounded-[1.5rem] bg-gradient-to-tr from-blue-100 to-indigo-50 flex items-center justify-center text-blue-600 mb-4 shadow-sm border border-blue-100 relative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <div id="profile-visit-indicator" class="absolute -bottom-1 -right-1 w-5 h-5 bg-slate-200 border-2 border-white rounded-full transition-colors duration-300"></div>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ customer.name }}</h1>
+        <div class="flex items-center gap-2 mt-2 text-slate-500 font-semibold text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>{{ customer.city if customer.city else t('not_available') }}</span>
         </div>
     </div>
 
-    <!-- Info Card Table -->
-    <div class="glass-card rounded-[2rem] overflow-hidden mb-10 max-w-3xl mx-auto">
-        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-5 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                <h3 class="font-extrabold text-lg">التفاصيل الأساسية</h3>
+    <!-- Visit & Actions Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-10 max-w-5xl mx-auto">
+        <!-- Main Visit Widget (Takes 2 columns on tablet/desktop) -->
+        <div class="md:col-span-2 glass-card rounded-[2rem] p-5 sm:p-7 relative overflow-hidden transition-all duration-300 border border-slate-100" id="visit-widget">
+            <div class="flex flex-col h-full justify-between gap-5 sm:gap-6">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-2.5 mb-1.5">
+                            <div id="visit-indicator" class="w-2.5 h-2.5 rounded-full bg-slate-300 transition-colors duration-300 shadow-sm"></div>
+                            <h2 class="text-lg font-extrabold text-slate-800">إدارة الزيارة</h2>
+                        </div>
+                        <p id="visit-status-text" class="text-sm font-bold text-slate-500">حالة الزيارة: <span class="text-slate-400 transition-colors">مغلقة</span></p>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-2xl text-slate-400 transition-colors duration-300 border border-slate-100" id="visit-icon-bg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                    </div>
+                </div>
+
+                <!-- Start Visit State -->
+                <button id="btn-open-visit" onclick="openVisit()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all flex justify-center items-center gap-2.5 text-base sm:text-lg border border-emerald-400/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    بدء زيارة جديدة
+                </button>
+
+                <!-- Active Visit Actions -->
+                <div id="active-visit-actions" class="hidden grid grid-cols-2 gap-3 w-full">
+                    <button onclick="window.location.href='/invoice/{{ c_code }}'" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-3 px-3 sm:px-4 rounded-2xl transition-colors flex flex-col items-center justify-center gap-2 border border-blue-200/60 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        <span class="text-xs sm:text-sm">فاتورة مبيعات</span>
+                    </button>
+                    <button class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-3 px-3 sm:px-4 rounded-2xl transition-colors flex flex-col items-center justify-center gap-2 border border-emerald-200/60 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        <span class="text-xs sm:text-sm">سند قبض</span>
+                    </button>
+                    <button onclick="showCloseVisitModal()" class="col-span-2 mt-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-md shadow-rose-500/20 transition-all flex items-center justify-center gap-2 border border-rose-400/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+                        إنهاء الزيارة وتسجيل النتيجة
+                    </button>
+                </div>
             </div>
-            <a href="{{ url_for('reports.customers_list') }}" class="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5">
-                عودة للعملاء
-            </a>
+        </div>
+
+        <!-- Quick Stats Placeholder -->
+        <div class="glass-card rounded-[2rem] p-6 flex flex-col justify-center items-center text-center border-dashed border-2 border-slate-200 bg-slate-50/50">
+            <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4 border border-slate-200 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            </div>
+            <h3 class="font-extrabold text-slate-700 mb-1.5 text-sm sm:text-base">إحصائيات العميل</h3>
+            <p class="text-xs text-slate-500 font-semibold leading-relaxed">ستتوفر معلومات المديونية والمسحوبات قريباً</p>
+        </div>
+    </div>
+    
+    <!-- Basic Details Table -->
+    <div class="glass-card rounded-[2rem] overflow-hidden max-w-5xl mx-auto border border-slate-200/75 shadow-sm">
+        <div class="bg-white border-b border-slate-100 px-6 sm:px-8 py-5 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center border border-slate-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <h3 class="font-extrabold text-lg text-slate-800 tracking-tight">التفاصيل الأساسية</h3>
         </div>
         
         <div class="bg-white text-start">
             <table>
                 <tbody>
-                    <tr class="transition-colors">
-                        <td class="label-cell">الإسم</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">الإسم</td>
                         <td class="value-cell">{% if customer.name %}{{ customer.name }}{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">المبنى</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">المبنى</td>
                         <td class="value-cell">{% if customer.building %}<span class="font-sans text-slate-700">{{ customer.building }}</span>{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">الشارع</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">الشارع</td>
                         <td class="value-cell">{% if customer.street %}{{ customer.street }}{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">الحي</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">الحي</td>
                         <td class="value-cell">{% if customer.district %}{{ customer.district }}{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">المدينة</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">المدينة</td>
                         <td class="value-cell">{% if customer.city %}{{ customer.city }}{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">الدولة</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">الدولة</td>
                         <td class="value-cell">{% if customer.country %}{{ customer.country }}{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">الرمز البريدي</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">الرمز البريدي</td>
                         <td class="value-cell">{% if customer.postal_code %}<span class="font-sans text-slate-700">{{ customer.postal_code }}</span>{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">الرقم الإضافي</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">الرقم الإضافي</td>
                         <td class="value-cell">{% if customer.additional_no %}<span class="font-sans text-slate-700">{{ customer.additional_no }}</span>{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">الرقم الضريبي</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">الرقم الضريبي</td>
                         <td class="value-cell">{% if customer.vat_no %}<span class="font-sans tracking-widest text-slate-700">{{ customer.vat_no }}</span>{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">السجل التجاري</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">السجل التجاري</td>
                         <td class="value-cell">{% if customer.crn %}<span class="font-sans tracking-widest text-slate-700">{{ customer.crn }}</span>{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
-                    <tr class="transition-colors">
-                        <td class="label-cell">معرف آخر</td>
+                    <tr class="transition-colors group hover:bg-slate-50/50">
+                        <td class="label-cell group-hover:text-slate-700">معرف آخر</td>
                         <td class="value-cell">{% if customer.other_id %}<span class="font-sans text-slate-700">{{ customer.other_id }}</span>{% else %}<span class="empty-val">لا يوجد</span>{% endif %}</td>
                     </tr>
                 </tbody>
@@ -152,28 +185,6 @@
         </div>
         
         <div class="space-y-5">
-            <!-- Result Type -->
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">نتيجة الزيارة</label>
-                <select id="visit-result" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-primary-500 focus:border-primary-500 block p-3 font-bold" onchange="toggleReasonSelect()">
-                    <option value="1">ناجحة (تمت العمليات)</option>
-                    <option value="2">فشلت (لم تتم أي عملية)</option>
-                </select>
-            </div>
-            
-            <!-- Fail Reason (Hidden if success) -->
-            <div id="fail-reason-container" class="hidden">
-                <label class="block text-sm font-bold text-slate-700 mb-2">سبب الفشل / عدم البيع</label>
-                <select id="visit-fail-reason" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-primary-500 focus:border-primary-500 block p-3 font-bold">
-                    <option value="" disabled selected>اختر السبب...</option>
-                    <option value="1">المحل مغلق</option>
-                    <option value="2">المسؤول غير متواجد</option>
-                    <option value="3">البضاعة متوفرة لديه</option>
-                    <option value="4">الأسعار غير مناسبة</option>
-                    <option value="5">سبب آخر</option>
-                </select>
-            </div>
-
             <!-- Notes -->
             <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">ملاحظات الزيارة (اختياري)</label>
@@ -208,86 +219,127 @@
     });
 
     function setVisitActiveUI(isActive) {
+        const visitIndicator = document.getElementById('visit-indicator');
+        const profileIndicator = document.getElementById('profile-visit-indicator');
+        const visitWidget = document.getElementById('visit-widget');
+        const iconBg = document.getElementById('visit-icon-bg');
+
         if (isActive) {
             btnOpenVisit.classList.add('hidden');
             activeVisitActions.classList.remove('hidden');
-            visitStatusText.innerHTML = 'حالة الزيارة: <span class="text-emerald-500">نشطة (مفتوحة الآن)</span>';
+            
+            // Active Styles
+            visitStatusText.innerHTML = 'حالة الزيارة: <span class="text-emerald-500">نشطة الآن</span>';
+            visitIndicator.classList.remove('bg-slate-300');
+            visitIndicator.classList.add('bg-emerald-500', 'animate-pulse');
+            profileIndicator.classList.remove('bg-slate-200');
+            profileIndicator.classList.add('bg-emerald-500');
+            
+            visitWidget.classList.add('ring-2', 'ring-emerald-500/20', 'bg-emerald-50/10');
+            iconBg.classList.remove('bg-slate-50', 'text-slate-400');
+            iconBg.classList.add('bg-emerald-100', 'text-emerald-600');
         } else {
             btnOpenVisit.classList.remove('hidden');
             activeVisitActions.classList.add('hidden');
+            
+            // Inactive Styles
             visitStatusText.innerHTML = 'حالة الزيارة: <span class="text-slate-400">مغلقة</span>';
+            visitIndicator.classList.remove('bg-emerald-500', 'animate-pulse');
+            visitIndicator.classList.add('bg-slate-300');
+            profileIndicator.classList.remove('bg-emerald-500');
+            profileIndicator.classList.add('bg-slate-200');
+            
+            visitWidget.classList.remove('ring-2', 'ring-emerald-500/20', 'bg-emerald-50/10');
+            iconBg.classList.remove('bg-emerald-100', 'text-emerald-600');
+            iconBg.classList.add('bg-slate-50', 'text-slate-400');
         }
     }
 
     async function openVisit() {
-        // TODO: Call API to start visit in Oracle
-        // For now, simulate UI
+        const btn = document.getElementById('btn-open-visit');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> جاري فتح الزيارة...';
+        btn.disabled = true;
+
         try {
-            // Simulated API call
-            // const response = await fetch('/api/visits/start', { method: 'POST', body: JSON.stringify({ c_code: customerCode }) });
+            const response = await fetch('/api/visits/start', { 
+                method: 'POST', 
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ c_code: customerCode }) 
+            });
+            const data = await response.json();
             
-            sessionStorage.setItem(`active_visit_${customerCode}`, new Date().toISOString());
-            setVisitActiveUI(true);
-            
-            // Notification (Assuming a toast system exists or just simple alert)
-            console.log('تم فتح الزيارة بنجاح');
+            if(data.status === 'success') {
+                sessionStorage.setItem(`active_visit_${customerCode}`, new Date().toISOString());
+                setVisitActiveUI(true);
+            } else {
+                alert('حدث خطأ: ' + data.message);
+            }
         } catch (error) {
             console.error('Error starting visit:', error);
-            alert('حدث خطأ أثناء فتح الزيارة');
+            alert('حدث خطأ أثناء الاتصال بالخادم');
+        } finally {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
         }
     }
 
     // Modal Logic
     const modal = document.getElementById('close-visit-modal');
     const modalContent = document.getElementById('close-visit-modal-content');
-    const resultSelect = document.getElementById('visit-result');
-    const failReasonContainer = document.getElementById('fail-reason-container');
 
     function showCloseVisitModal() {
         modal.classList.remove('hidden');
         // Trigger animation
         setTimeout(() => {
             modal.classList.remove('opacity-0');
-            modalContent.classList.remove('scale-95');
+            modalContent.classList.remove('scale-95', 'opacity-0');
+            modalContent.classList.add('scale-100', 'opacity-100');
         }, 10);
     }
 
     function hideCloseVisitModal() {
-        modal.classList.add('opacity-0');
-        modalContent.classList.add('scale-95');
+        modalContent.classList.remove('scale-100', 'opacity-100');
+        modalContent.classList.add('scale-95', 'opacity-0');
+        
         setTimeout(() => {
-            modal.classList.add('hidden');
-        }, 300);
-    }
-
-    function toggleReasonSelect() {
-        if (resultSelect.value === "2") { // Failed
-            failReasonContainer.classList.remove('hidden');
-        } else {
-            failReasonContainer.classList.add('hidden');
-        }
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }, 100);
     }
 
     async function submitCloseVisit() {
-        const resultType = resultSelect.value;
-        const failReason = document.getElementById('visit-fail-reason').value;
         const notes = document.getElementById('visit-notes').value;
 
-        if (resultType === "2" && !failReason) {
-            alert('يرجى اختيار سبب الفشل');
-            return;
-        }
-
-        // TODO: Call API to end visit in Oracle
         try {
-            // Simulated API call
-            sessionStorage.removeItem(`active_visit_${customerCode}`);
-            setVisitActiveUI(false);
-            hideCloseVisitModal();
-            console.log('تم إنهاء الزيارة بنجاح');
+            const response = await fetch('/api/visits/end', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ 
+                    c_code: customerCode,
+                    notes: notes
+                }) 
+            });
+            const data = await response.json();
+            
+            if(data.status === 'success') {
+                sessionStorage.removeItem(`active_visit_${customerCode}`);
+                setVisitActiveUI(false);
+                hideCloseVisitModal();
+            } else {
+                alert('حدث خطأ: ' + data.message);
+            }
         } catch (error) {
             console.error('Error closing visit:', error);
-            alert('حدث خطأ أثناء إنهاء الزيارة');
+            alert('حدث خطأ أثناء الاتصال بالخادم');
         }
     }
 </script>

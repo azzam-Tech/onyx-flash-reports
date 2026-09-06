@@ -1,21 +1,20 @@
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'privet', 'onyx_reports'))
-from app import app
+import urllib.request
+import urllib.error
+import json
 
-client = app.test_client()
+def test_api():
+    req = urllib.request.Request('http://127.0.0.1:8080/api/visits/start', method='POST')
+    req.add_header('Content-Type', 'application/json')
+    data = json.dumps({'c_code': '1113'}).encode('utf-8')
+    try:
+        with urllib.request.urlopen(req, data=data) as response:
+            print("Status Code:", response.getcode())
+            print("Response Text:", response.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        print("HTTP Error:", e.code)
+        print("Response Text:", e.read().decode('utf-8'))
+    except Exception as e:
+        print("Exception:", e)
 
-# Login to bypass auth (simulate the session)
-# Wait, auth might check cookies or headers. Let's see if we can just patch it or simulate login.
-# Actually, the easiest way to test reports.py parameter logic is to just call `handle_ar_report` directly.
-from modules.ar.services import handle_ar_report
-from reports_config import REPORTS
-rpt = next(r for r in REPORTS['ar'] if r['id'] == 'aging')
-args = {'vendor_link': '0', 'date_to': '2026-08-31'}
-cols, rows = handle_ar_report('aging', rpt, args)
-print("Handled rows:", len(rows))
-
-# Let's test the route logic directly.
-from routes.reports import resolved_params, get_reports_config
-# Actually, let's just make a test request without auth.
-# If auth is required, maybe I can disable it?
+if __name__ == "__main__":
+    test_api()

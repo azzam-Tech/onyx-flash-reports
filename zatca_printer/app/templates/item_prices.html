@@ -1,46 +1,112 @@
-<!DOCTYPE html>
-<html lang="{{ current_lang }}" dir="{{ page_dir }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ t('prices_title') }}</title>
-    <link rel="icon" type="image/png" href="/static/logo.png">
-    <link rel="apple-touch-icon" href="/static/logo.png">
-    <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#f8fafc">
-    <meta name="apple-mobile-web-app-title" content="SREEN">
-    <meta name="application-name" content="SREEN">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Cairo', 'sans-serif'],
-                    },
-                    colors: {
-                        primary: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                        }
-                    },
-                    animation: {
-                        'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
-                    },
-                    keyframes: {
-                        fadeInUp: {
-                            '0%': { opacity: 0, transform: 'translateY(10px)' },
-                            '100%': { opacity: 1, transform: 'translateY(0)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+{% extends "base.html" %}
+{% block title %}{{ t('prices_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
+    .table-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ t('prices_title') }}</h1>
+        <p class="text-gray-500 mt-1">{{ t('salesman_label') }} {{ current_user.name }}</p>
+    </div>
+</div>
+
+<!-- Search & Filter Bar -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <h2 class="text-lg font-bold text-slate-800 whitespace-nowrap">{{ t('items_list_title') }}</h2>
+                    <div class="w-full md:w-1/2">
+                        <input type="text" id="searchInput" placeholder="{{ t('search_placeholder') }}" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm text-start">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-2 pt-4 border-t border-slate-100 text-start">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">{{ t('main_group') }}</label>
+                        <select id="filterMain" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-slate-50 transition-colors">
+                            <option value="">{{ t('all_filter') }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">{{ t('sub_group') }}</label>
+                        <select id="filterSubMain" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-slate-50 transition-colors">
+                            <option value="">{{ t('all_filter') }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">{{ t('sub_sub_group') }}</label>
+                        <select id="filterSub" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-slate-50 transition-colors">
+                            <option value="">{{ t('all_filter') }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">{{ t('dtl_group') }}</label>
+                        <select id="filterDtl" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-slate-50 transition-colors">
+                            <option value="">{{ t('all_filter') }}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="table-container overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200" id="pricesTable">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th scope="col" class="px-3 py-3 md:px-6 md:py-4 text-start text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap w-24 md:w-32">{{ t('item_code') }}</th>
+                            <th scope="col" class="px-3 py-3 md:px-6 md:py-4 text-start text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap">{{ t('item_name') }}</th>
+                            <th scope="col" class="px-3 py-3 md:px-6 md:py-4 text-start text-[10px] md:text-xs font-bold text-primary-700 uppercase tracking-wider whitespace-nowrap bg-primary-50/50 w-28 md:w-40">{{ t('cost_price') }}</th>
+                            <th scope="col" class="px-3 py-3 md:px-6 md:py-4 text-start text-[10px] md:text-xs font-bold text-emerald-700 uppercase tracking-wider whitespace-nowrap bg-emerald-50/50 w-28 md:w-40">{{ t('min_price') }}</th>
+                            <th scope="col" class="px-3 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap">{{ t('qty_riyadh') }}</th>
+                            <th scope="col" class="px-3 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap">{{ t('qty_south') }}</th>
+                            <th scope="col" class="px-3 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap">{{ t('qty_north') }}</th>
+                            <th scope="col" class="px-3 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap">{{ t('qty_jeddah') }}</th>
+                            <th scope="col" class="px-3 py-3 md:px-6 md:py-4 text-center text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap">{{ t('qty_dammam') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200 text-sm">
+                        {% for item in items %}
+                        <tr class="hover:bg-slate-100 even:bg-slate-50 transition-colors duration-150 item-row"
+                            data-main="{{ item.main_grp or '' }}"
+                            data-submain="{{ item.sub_main_grp or '' }}"
+                            data-sub="{{ item.sub_grp or '' }}"
+                            data-dtl="{{ item.dtl_grp or '' }}">
+                            <td class="px-3 py-3 md:px-6 md:py-4 whitespace-nowrap font-bold text-slate-700 text-start item-code text-xs md:text-sm">{{ item.i_code }}</td>
+                            <td class="px-3 py-3 md:px-6 md:py-4 text-slate-800 font-semibold text-start item-name min-w-[120px] md:min-w-[200px] text-xs md:text-sm leading-tight max-w-[200px] truncate whitespace-normal">{{ item.i_name }}</td>
+                            <td class="px-3 py-3 md:px-6 md:py-4 whitespace-nowrap font-black text-primary-700 bg-primary-50/30 text-end text-sm md:text-base" dir="ltr">{{ "{:,.2f}".format(item.cost_price) }}</td>
+                            <td class="px-3 py-3 md:px-6 md:py-4 whitespace-nowrap font-black text-emerald-700 bg-emerald-50/30 text-end text-sm md:text-base" dir="ltr">{{ "{:,.2f}".format(item.min_price) }}</td>
+                            <td class="px-3 py-3 md:px-6 md:py-4 whitespace-nowrap font-bold text-slate-700 text-center text-xs md:text-sm" dir="ltr">{{ "{:,.0f}".format(item.qty_riyadh) }}</td>
+                            <td class="px-3 py-3 md:px-6 md:py-4 whitespace-nowrap font-bold text-slate-700 text-center text-xs md:text-sm" dir="ltr">{{ "{:,.0f}".format(item.qty_south) }}</td>
+                            <td class="px-3 py-3 md:px-6 md:py-4 whitespace-nowrap font-bold text-slate-700 text-center text-xs md:text-sm" dir="ltr">{{ "{:,.0f}".format(item.qty_north) }}</td>
+                            <td class="px-3 py-3 md:px-6 md:py-4 whitespace-nowrap font-bold text-slate-700 text-center text-xs md:text-sm" dir="ltr">{{ "{:,.0f}".format(item.qty_jeddah) }}</td>
+                            <td class="px-3 py-3 md:px-6 md:py-4 whitespace-nowrap font-bold text-slate-700 text-center text-xs md:text-sm" dir="ltr">{{ "{:,.0f}".format(item.qty_dammam) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr id="emptyRow">
+                            <td colspan="9" class="px-6 py-12 text-center text-slate-500">{{ t('no_items_found') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    
+{% endblock %}
+
+{% block scripts %}
+
     <style>
         body {
             background-color: #f8fafc;
@@ -316,5 +382,5 @@
             filterDtl.addEventListener('change', updateFiltersAndTable);
         });
     </script>
-</body>
-</html>
+
+{% endblock %}

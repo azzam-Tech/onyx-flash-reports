@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}المخزن - طباعة الفاتورة{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">مخزن المندوب</h1>
+        <p class="text-gray-500 mt-1">الأصناف المتوفرة في سيارتك</p>
+    </div>
+    <div class="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-bold text-lg">
+        {{ items|length }} صنف
+    </div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="ابحث عن صنف بالاسم أو الرمز..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm">
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-right" id="inventoryTable">
+            <thead>
+                <tr class="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
+                    <th class="py-4 px-6 font-semibold whitespace-nowrap">رقم الصنف</th>
+                    <th class="py-4 px-6 font-semibold">اسم الصنف</th>
+                    <th class="py-4 px-6 font-semibold text-center whitespace-nowrap">الكمية المتوفرة</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for item in items %}
+                <tr class="hover:bg-blue-50/50 transition-colors">
+                    <td class="py-4 px-6 text-sm font-mono text-slate-500">{{ item.i_code }}</td>
+                    <td class="py-4 px-6 font-bold text-slate-800">{{ item.i_name }}</td>
+                    <td class="py-4 px-6">
+                        <div class="flex justify-center">
+                            <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-700">
+                                {{ item.avail_qty }}
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="py-8 px-6 text-center text-slate-500">لا توجد أصناف في مستودعك حالياً.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterTable() {
+    let input = document.getElementById("searchInput");
+    let filter = input.value.toUpperCase();
+    let table = document.getElementById("inventoryTable");
+    let tr = table.getElementsByTagName("tr");
+
+    for (let i = 1; i < tr.length; i++) {
+        let tdName = tr[i].getElementsByTagName("td")[1];
+        let tdCode = tr[i].getElementsByTagName("td")[0];
+        if (tdName || tdCode) {
+            let txtValue = (tdName.textContent || tdName.innerText) + " " + (tdCode.textContent || tdCode.innerText);
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }       
+    }
+}
+</script>
+{% endblock %}

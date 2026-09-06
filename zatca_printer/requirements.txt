@@ -1,5 +1,5 @@
 Flask==3.0.3
-oracledb==2.2.1
+oracledb
 num2words==0.5.14
 python-dotenv==1.2.3
 waitress==3.0.2

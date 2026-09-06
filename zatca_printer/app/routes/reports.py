@@ -293,6 +293,42 @@ def customer_info(c_code):
         flash(f'خطأ في جلب بيانات العميل: {str(e)}')
         return redirect(url_for('reports.dashboard'))
 
+@reports_bp.route('/inventory')
+@login_required
+def inventory():
+    rep_code = current_user.rep_code
+    items = []
+    try:
+        with get_conn(readonly=True) as con:
+            with con.cursor() as cur:
+                sql = """
+                    SELECT m.I_CODE, m.I_NAME,
+                           NVL(v.AVAIL_QTY, 0) AS AVAIL_QTY
+                    FROM IAS20261.IAS_ITM_MST m
+                    JOIN (
+                        SELECT I_CODE, SUM(I_QTY * IN_OUT) AS AVAIL_QTY
+                        FROM IAS20261.ITEM_MOVEMENT
+                        WHERE W_CODE = (SELECT W_CODE FROM IAS20261.SALES_MAN WHERE TRIM(REPRS_CODE) = TRIM(:1))
+                        GROUP BY I_CODE
+                    ) v ON m.I_CODE = v.I_CODE
+                    WHERE NVL(v.AVAIL_QTY, 0) > 0
+                    ORDER BY m.I_NAME
+                """
+                cur.execute(sql, [rep_code])
+                cols = [col[0].lower() for col in cur.description]
+                for row in cur.fetchall():
+                    item = dict(zip(cols, row))
+                    try:
+                        if isinstance(item['i_name'], bytes):
+                            item['i_name'] = item['i_name'].decode('windows-1256')
+                    except:
+                        pass
+                    items.append(item)
+        return render_template('inventory.html', items=items)
+    except Exception as e:
+        flash(f'خطأ في جلب بيانات المخزن: {str(e)}')
+        return redirect(url_for('reports.dashboard'))
+
 @reports_bp.route('/item_prices')
 @login_required
 def item_prices():
@@ -578,6 +614,30 @@ def get_invoice(bill_no):
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
+# Invoice Screen Route
+# ==========================================
+
+@reports_bp.route('/invoice/<c_code>')
+@login_required
+def invoice_screen(c_code):
+    try:
+        with get_conn(readonly=True) as con:
+            with con.cursor() as cur:
+                cur.execute("SELECT C_A_NAME FROM IAS20261.CUSTOMER WHERE C_CODE = :1", [c_code])
+                row = cur.fetchone()
+                c_name = row[0] if row else "عميل غير معروف"
+                try:
+                    if isinstance(c_name, bytes):
+                        c_name = c_name.decode('windows-1256')
+                except:
+                    pass
+    except Exception as e:
+        print("Error fetching c_name:", e)
+        c_name = "عميل غير معروف"
+    
+    return render_template('invoice.html', c_code=c_code, c_name=c_name)
+
+# ==========================================
 # Phase 2: Visit Dashboard API Routes
 # ==========================================
 
@@ -591,32 +651,43 @@ def api_visit_start():
     if not c_code:
         return jsonify({"status": "error", "message": "Missing customer code"}), 400
 
-    # TODO: We need explicit permission to INSERT using ULT user before executing this block.
-    '''
     try:
-        with get_conn() as con:
+        with get_conn(readonly=False) as con:
             with con.cursor() as cur:
-                # Generate new VST_NO and VST_SRL (Simple max + 1 logic for now)
+                # 1. هل توجد زيارة مفتوحة مسبقاً لنفس العميل ونفس المندوب؟
+                cur.execute("SELECT VST_NO FROM IAS20261.DTS_CST_VST_MST WHERE C_CODE = :1 AND VST_STS = 1 AND REP_CODE = :2", [c_code, rep_code])
+                active = cur.fetchone()
+                
+                if active:
+                    # الزيارة مفتوحة بالفعل
+                    return jsonify({"status": "success", "message": "Visit already active.", "vst_no": active[0]})
+
+                # 2. جلب رقم تسلسلي جديد للزيارة
                 cur.execute("SELECT NVL(MAX(VST_NO), 0) + 1 FROM IAS20261.DTS_CST_VST_MST")
                 new_vst_no = cur.fetchone()[0]
                 
-                cur.execute("SELECT NVL(MAX(VST_SRL), 0) + 1 FROM IAS20261.DTS_CST_VST_MST WHERE VST_NO = :1", [new_vst_no])
+                cur.execute("SELECT NVL(MAX(VST_SRL), 0) + 1 FROM IAS20261.DTS_CST_VST_MST")
                 new_vst_srl = cur.fetchone()[0]
+
+                trmnl_nm = session.get('trmnl_nm', 'WEB_PORTAL')
 
                 sql = """
                     INSERT INTO IAS20261.DTS_CST_VST_MST 
-                    (VST_NO, VST_SRL, C_CODE, REP_CODE, ARIVL_TM, VST_STS, VST_DATE) 
-                    VALUES (:1, :2, :3, :4, SYSDATE, 1, TRUNC(SYSDATE))
+                    (
+                        VST_NO, VST_SRL, C_CODE, REP_CODE, 
+                        ARIVL_TM, LVD_TM, VST_STS, VST_DATE, 
+                        CMP_NO, BRN_NO, PLAN_SER_REF, PLAN_NO_REF,
+                        DOC_SER_EXTRNL, VST_OPN_TYP, CST_TYP,
+                        AD_U_ID, AD_DATE, AD_TRMNL_NM
+                    )
+                    VALUES (:1, :2, :3, :4, SYSDATE, SYSDATE, 1, TRUNC(SYSDATE), 1, 1, 0, 0, '0', 1, 1, :5, SYSDATE, :6)
                 """
-                cur.execute(sql, [new_vst_no, new_vst_srl, c_code, rep_code])
+                cur.execute(sql, [new_vst_no, new_vst_srl, c_code, rep_code, rep_code, trmnl_nm])
                 con.commit()
                 return jsonify({"status": "success", "message": "Visit started in Oracle", "vst_no": new_vst_no})
     except Exception as e:
         print("Error starting visit:", e)
         return jsonify({"status": "error", "message": str(e)}), 500
-    '''
-    
-    return jsonify({"status": "success", "message": "Visit started (Simulated)"})
 
 
 @reports_bp.route('/api/visits/end', methods=['POST'])
@@ -624,30 +695,106 @@ def api_visit_start():
 def api_visit_end():
     data = request.get_json()
     c_code = data.get('c_code')
-    result_type = data.get('result_type')
-    fail_reason = data.get('fail_reason')
     notes = data.get('notes')
+    # print(f"API /api/visits/end called for c_code: {c_code}, notes: {notes}, by rep: {current_user.rep_code}")
 
-    # TODO: We need explicit permission to UPDATE using ULT user before executing this block.
-    '''
     try:
-        with get_conn() as con:
+        with get_conn(readonly=False) as con:
             with con.cursor() as cur:
                 sql = """
                     UPDATE IAS20261.DTS_CST_VST_MST 
                     SET LVD_TM = SYSDATE, 
-                        VST_STS = 2, 
-                        VST_RSLT_TYP = :1, 
-                        RESON_TYP = :2, 
-                        VST_NOTES = :3
-                    WHERE C_CODE = :4 AND VST_STS = 1
+                        VST_STS = 0, 
+                        VST_NOTES = :1
+                    WHERE C_CODE = :2 AND VST_STS = 1 AND REP_CODE = :3
                 """
-                cur.execute(sql, [result_type, fail_reason, notes, c_code])
+                cur.execute(sql, [notes, c_code, current_user.rep_code])
+                if cur.rowcount == 0:
+                    # Return success anyway so the frontend can clear its stuck local state
+                    return jsonify({"status": "success", "message": "الزيارة مغلقة مسبقاً في النظام."})
                 con.commit()
                 return jsonify({"status": "success", "message": "Visit ended in Oracle"})
     except Exception as e:
         print("Error ending visit:", e)
         return jsonify({"status": "error", "message": str(e)}), 500
-    '''
 
-    return jsonify({"status": "success", "message": "Visit ended (Simulated)"})
+
+@reports_bp.route('/api/items', methods=['GET'])
+@login_required
+def api_items():
+    rep_code = current_user.rep_code
+    items = []
+    try:
+        with get_conn(readonly=True) as con:
+            with con.cursor() as cur:
+                sql = """
+                    SELECT m.I_CODE, m.I_NAME,
+                           NVL(p2.I_PRICE, 0) AS I_PRICE,
+                           NVL(p2.I_PRICE, 0) AS MIN_PRICE,
+                           NVL(v.AVAIL_QTY, 0) AS AVAIL_QTY
+                    FROM IAS20261.IAS_ITM_MST m
+                    LEFT JOIN IAS20261.IAS_ITEM_PRICE p2 ON m.I_CODE = p2.I_CODE AND p2.LEV_NO = 2
+                    LEFT JOIN (
+                        SELECT I_CODE, SUM(I_QTY * IN_OUT) AS AVAIL_QTY
+                        FROM IAS20261.ITEM_MOVEMENT
+                        WHERE W_CODE = (SELECT W_CODE FROM IAS20261.SALES_MAN WHERE TRIM(REPRS_CODE) = TRIM(:1))
+                        GROUP BY I_CODE
+                    ) v ON m.I_CODE = v.I_CODE
+                    WHERE NVL(v.AVAIL_QTY, 0) > 0
+                """
+                cur.execute(sql, [rep_code])
+                cols = [col[0].lower() for col in cur.description]
+                for row in cur.fetchall():
+                    item = dict(zip(cols, row))
+                    try:
+                        if isinstance(item['i_name'], bytes):
+                            item['i_name'] = item['i_name'].decode('windows-1256')
+                    except:
+                        pass
+                    items.append(item)
+        return jsonify({"status": "success", "items": items})
+    except Exception as e:
+        print("Error fetching items:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@reports_bp.route('/api/customer/<c_code>/credit', methods=['GET'])
+@login_required
+def api_customer_credit(c_code):
+    try:
+        limit = 0.0
+        balance = 0.0
+        with get_conn(readonly=True) as con:
+            with con.cursor() as cur:
+                # 1. Fetch limit from CUSTOMER table
+                cur.execute("SELECT NVL(CST_CR_LMT_LOCAL, 0) FROM IAS20261.CUSTOMER WHERE C_CODE = :1", [c_code])
+                row = cur.fetchone()
+                if row:
+                    limit = float(row[0])
+                
+                # 2. Fetch actual balance (Debit - Credit) from GL
+                cur.execute("""
+                    SELECT NVL(SUM(NVL(DR_AMT,0) - NVL(CR_AMT,0)), 0)
+                    FROM IAS20261.IAS_POST_DTL
+                    WHERE C_CODE = :1 AND NVL(DOC_POST,0) = 1
+                """, [c_code])
+                bal_row = cur.fetchone()
+                if bal_row:
+                    balance = float(bal_row[0])
+
+        # Always show the actual balance. The limit is just for background validation.
+        display_text = f"{balance:,.2f}"
+        lbl = "رصيد العميل الحالي"
+
+        return jsonify({
+            "status": "success",
+            "c_code": c_code,
+            "credit_limit": limit,
+            "actual_balance": balance,
+            "remaining_balance": display_text,
+            "label": lbl,
+            "currency": "ريال سعودي"
+        })
+    except Exception as e:
+        print("Error fetching customer credit:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
