@@ -4,6 +4,9 @@ from app.database import get_conn
 from app.utils.helpers import timed_cache, generate_zatca_qr_base64
 from app.local_db import get_emp_code
 from datetime import datetime
+from app import csrf
+import oracledb
+import json
 
 reports_bp = Blueprint('reports', __name__)
 
@@ -643,6 +646,7 @@ def invoice_screen(c_code):
 
 @reports_bp.route('/api/visits/start', methods=['POST'])
 @login_required
+@csrf.exempt
 def api_visit_start():
     data = request.get_json()
     c_code = data.get('c_code')
@@ -655,7 +659,7 @@ def api_visit_start():
         with get_conn(readonly=False) as con:
             with con.cursor() as cur:
                 # 1. هل توجد زيارة مفتوحة مسبقاً لنفس العميل ونفس المندوب؟
-                cur.execute("SELECT VST_NO FROM IAS20261.DTS_CST_VST_MST WHERE C_CODE = :1 AND VST_STS = 1 AND REP_CODE = :2", [c_code, rep_code])
+                cur.execute("SELECT VST_NO FROM IAS20261.DTS_CST_VST_MST WHERE TRIM(C_CODE) = TRIM(:1) AND VST_STS = 1 AND TRIM(REP_CODE) = TRIM(:2)", [c_code, rep_code])
                 active = cur.fetchone()
                 
                 if active:
@@ -670,6 +674,10 @@ def api_visit_start():
                 new_vst_srl = cur.fetchone()[0]
 
                 trmnl_nm = session.get('trmnl_nm', 'WEB_PORTAL')
+                
+                # Generate DOC_SER_EXTRNL exactly like Android App: 1 + YYYYMMDDHHMMSS + rep_code
+                from datetime import datetime
+                doc_ser = f"1{datetime.now().strftime('%Y%m%d%H%M%S')}{rep_code.strip()}"
 
                 sql = """
                     INSERT INTO IAS20261.DTS_CST_VST_MST 
@@ -678,11 +686,12 @@ def api_visit_start():
                         ARIVL_TM, LVD_TM, VST_STS, VST_DATE, 
                         CMP_NO, BRN_NO, PLAN_SER_REF, PLAN_NO_REF,
                         DOC_SER_EXTRNL, VST_OPN_TYP, CST_TYP,
-                        AD_U_ID, AD_DATE, AD_TRMNL_NM
+                        AD_U_ID, AD_DATE, AD_TRMNL_NM,
+                        BRN_YEAR, BRN_USR
                     )
-                    VALUES (:1, :2, :3, :4, SYSDATE, SYSDATE, 1, TRUNC(SYSDATE), 1, 1, 0, 0, '0', 1, 1, :5, SYSDATE, :6)
+                    VALUES (:1, :2, :3, :4, SYSDATE, SYSDATE, 1, TRUNC(SYSDATE), 1, 1, 0, 0, :5, 1, 1, :6, SYSDATE, :7, TO_CHAR(SYSDATE, 'YYYY'), 1)
                 """
-                cur.execute(sql, [new_vst_no, new_vst_srl, c_code, rep_code, rep_code, trmnl_nm])
+                cur.execute(sql, [new_vst_no, new_vst_srl, c_code, rep_code, doc_ser, rep_code, trmnl_nm])
                 con.commit()
                 return jsonify({"status": "success", "message": "Visit started in Oracle", "vst_no": new_vst_no})
     except Exception as e:
@@ -692,6 +701,7 @@ def api_visit_start():
 
 @reports_bp.route('/api/visits/end', methods=['POST'])
 @login_required
+@csrf.exempt
 def api_visit_end():
     data = request.get_json()
     c_code = data.get('c_code')
@@ -706,7 +716,7 @@ def api_visit_end():
                     SET LVD_TM = SYSDATE, 
                         VST_STS = 0, 
                         VST_NOTES = :1
-                    WHERE C_CODE = :2 AND VST_STS = 1 AND REP_CODE = :3
+                    WHERE TRIM(C_CODE) = TRIM(:2) AND VST_STS = 1 AND TRIM(REP_CODE) = TRIM(:3)
                 """
                 cur.execute(sql, [notes, c_code, current_user.rep_code])
                 if cur.rowcount == 0:
@@ -731,6 +741,7 @@ def api_items():
                     SELECT m.I_CODE, m.I_NAME,
                            NVL(p2.I_PRICE, 0) AS I_PRICE,
                            NVL(p2.I_PRICE, 0) AS MIN_PRICE,
+                           NVL(p2.ITM_UNT, 1) AS ITM_UNT,
                            NVL(v.AVAIL_QTY, 0) AS AVAIL_QTY
                     FROM IAS20261.IAS_ITM_MST m
                     LEFT JOIN IAS20261.IAS_ITEM_PRICE p2 ON m.I_CODE = p2.I_CODE AND p2.LEV_NO = 2
@@ -797,4 +808,155 @@ def api_customer_credit(c_code):
         })
     except Exception as e:
         print("Error fetching customer credit:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+@reports_bp.route('/api/invoice', methods=['POST'])
+@csrf.exempt
+def api_invoice():
+    try:
+        data = request.json
+        c_code = data.get('c_code')
+        pay_way = data.get('pay_way')
+        bill_remark = data.get('bill_remark', '')
+        ref_no = data.get('ref_no', '')
+        items = data.get('items', [])
+        
+        if not c_code or not items:
+            return jsonify({"status": "error", "message": "Missing required fields"}), 400
+            
+        # Hardcoded for now based on successful tests
+        sys_no = 70
+        rep_code = 144
+        w_code = 144
+        
+        # Calculate totals
+        total_vat = 0.0
+        total_bill_amt = 0.0
+        
+        # Determine invoice type and parameters
+        if pay_way == 'cash':
+            bill_doc_type = 1
+            a_code_node = f"        <A_CODE>113010{rep_code}</A_CODE>\n"
+        else:
+            bill_doc_type = 4
+            a_code_node = ""
+        
+        date_str = datetime.now().strftime('%d/%m/%Y')
+        
+        # Offline bills must generate their own DOC_NO
+        with get_conn(readonly=True) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT NVL(MAX(BILL_NO), 0) FROM IAS20261.IAS_BILL_MST WHERE W_CODE = :1", [rep_code])
+                max_bill_no = cur.fetchone()[0]
+        if max_bill_no == 0:
+            doc_no = int(f"263{rep_code}00001")
+        else:
+            doc_no = max_bill_no + 1
+
+        # Build XML
+        xml_parts = []
+        xml_parts.append("<BILL>")
+        xml_parts.append("    <IAS_BILL_MST>")
+        xml_parts.append(f"        <DOC_NO>{doc_no}</DOC_NO>")
+        xml_parts.append(f"        <SYS_NO>{sys_no}</SYS_NO>")
+        xml_parts.append(f"        <BRN_NO>1</BRN_NO>")
+        xml_parts.append(f"        <DOC_SER_EXTRNL>{ref_no or 'WEB-API'}</DOC_SER_EXTRNL>")
+        xml_parts.append(f"        <DOC_DATE>{date_str}</DOC_DATE>")
+        xml_parts.append(f"        <REP_CODE>{rep_code}</REP_CODE>")
+        xml_parts.append(f"        <EXTERNAL_POST>70</EXTERNAL_POST>")
+        xml_parts.append(f"        <SI_TYPE>1</SI_TYPE>")
+        xml_parts.append(f"        <C_CODE>{c_code}</C_CODE>")
+        if a_code_node:
+            xml_parts.append(a_code_node.rstrip())
+        xml_parts.append(f"        <CUR_CODE>SAR</CUR_CODE>")
+        xml_parts.append(f"        <E_INVC_MTHD_NO>3</E_INVC_MTHD_NO>")
+        xml_parts.append(f"        <BILL_DOC_TYPE>{bill_doc_type}</BILL_DOC_TYPE>")
+        xml_parts.append(f"        <CLC_TYP_NO_TAX>5</CLC_TYP_NO_TAX>")
+        xml_parts.append(f"        <W_CODE>{w_code}</W_CODE>")
+        xml_parts.append(f"        <CC_CODE>{rep_code}</CC_CODE>")
+        xml_parts.append("        <VAT_AMT>{total_vat}</VAT_AMT>")
+        xml_parts.append("        <BILL_AMT>{total_bill_amt}</BILL_AMT>")
+        xml_parts.append(f"        <AD_U_ID>{rep_code}</AD_U_ID>")
+        xml_parts.append(f"        <BRN_USR>1</BRN_USR>")
+        xml_parts.append("    </IAS_BILL_MST>")
+        
+        for idx, item in enumerate(items, start=1):
+            qty = float(item['qty'])
+            price = float(item['price'])
+            item_vat = (qty * price) * 0.15
+            total_vat += item_vat
+            total_bill_amt += (qty * price)
+            
+            xml_parts.append("    <IAS_BILL_DTL>")
+            xml_parts.append(f"        <I_CODE>{item['i_code']}</I_CODE>")
+            xml_parts.append(f"        <W_CODE>{w_code}</W_CODE>")
+            xml_parts.append(f"        <EXPIRE_DATE>01/01/1900</EXPIRE_DATE>")
+            xml_parts.append(f"        <BATCH_NO>0</BATCH_NO>")
+            xml_parts.append(f"        <I_QTY>{qty}</I_QTY>")
+            xml_parts.append(f"        <P_QTY>{qty}</P_QTY>")
+            xml_parts.append(f"        <P_SIZE>1</P_SIZE>")
+            xml_parts.append(f"        <I_PRICE>{price}</I_PRICE>")
+            xml_parts.append(f"        <VAT_PER>15</VAT_PER>")
+            xml_parts.append(f"        <VAT_AMT>{item_vat:.2f}</VAT_AMT>")
+            xml_parts.append(f"        <RCRD_NO>{idx}</RCRD_NO>")
+            xml_parts.append(f"        <SI_TYPE>1</SI_TYPE>")
+            xml_parts.append(f"        <EXTERNAL_POST>70</EXTERNAL_POST>")
+            xml_parts.append("    </IAS_BILL_DTL>")
+            
+            # Tax Movement
+            xml_parts.append("    <GNR_TAX_ITM_MOVMNT>")
+            xml_parts.append("        <TAX_NO>1</TAX_NO>")
+            xml_parts.append("        <CLC_TYP_NO>5</CLC_TYP_NO>")
+            xml_parts.append("        <AGNCY_NO>1</AGNCY_NO>")
+            xml_parts.append(f"        <RCRD_NO>{idx}</RCRD_NO>")
+            xml_parts.append(f"        <I_CODE>{item['i_code']}</I_CODE>")
+            xml_parts.append("        <P_SIZE>1</P_SIZE>")
+            xml_parts.append(f"        <I_PRICE>{price}</I_PRICE>")
+            xml_parts.append("        <DISC_AMT>0</DISC_AMT>")
+            xml_parts.append("        <A_CODE>223030001</A_CODE>")
+            xml_parts.append("        <CUR_CODE>SAR</CUR_CODE>")
+            xml_parts.append("        <AC_RATE>1</AC_RATE>")
+            xml_parts.append("        <TAX_PRCNT>15</TAX_PRCNT>")
+            xml_parts.append(f"        <TAX_AMT>{item_vat:.2f}</TAX_AMT>")
+            xml_parts.append(f"        <TAX_AMT_L>{item_vat:.2f}</TAX_AMT_L>")
+            xml_parts.append(f"        <I_QTY>{qty}</I_QTY>")
+            xml_parts.append("        <FREE_QTY>0</FREE_QTY>")
+            xml_parts.append("        <STK_COST>0</STK_COST>")
+            xml_parts.append("        <STK_RATE>0</STK_RATE>")
+            xml_parts.append("        <CLC_TAX_FREE_QTY_FLG>0</CLC_TAX_FREE_QTY_FLG>")
+            xml_parts.append("    </GNR_TAX_ITM_MOVMNT>")
+            
+        xml_parts.append("</BILL>")
+        xml_payload = "\n".join(xml_parts).replace("{total_vat}", f"{total_vat:.2f}").replace("{total_bill_amt}", f"{total_bill_amt:.2f}")
+        
+        # Inject into Oracle
+        with get_conn(readonly=False) as conn:
+            with conn.cursor() as cur:
+                p_json_rslt = cur.var(oracledb.DB_TYPE_VARCHAR)
+                p_xml = cur.var(oracledb.DB_TYPE_CLOB)
+                p_xml.setvalue(0, xml_payload)
+                
+                # Using COMMIT (P_COMMIT_FLG = 1) for real insertion
+                cur.callproc('ARS_API_TRNS_PKG.INSRT_DOC_INTO_ONYX', [
+                    bill_doc_type, # P_Doc_Typ
+                    1,             # P_COMMIT_FLG (COMMIT mode)
+                    0,             # P_CLC_TAX_METHOD (MUST be 0 for Offline)
+                    1,             # P_Lng_No
+                    p_xml,         # P_Xml
+                    p_json_rslt    # P_Json_Rslt
+                ])
+                
+                result_json_str = p_json_rslt.getvalue()
+                
+                result = json.loads(result_json_str or '{}', strict=False)
+                if '_ErrNo' in result and result['_ErrNo'] == 0:
+                    result['_Doc_No'] = str(doc_no) # Override with the actual generated DOC_NO
+                
+                return jsonify({
+                    "status": "success",
+                    "message": result,
+                    "payload_sent": xml_payload
+                })
+                
+    except Exception as e:
+        print("Error creating invoice API:", e)
         return jsonify({"status": "error", "message": str(e)}), 500

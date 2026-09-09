@@ -114,3 +114,6 @@
    - Never attempt to DELETE from `IAS_ITM_MST` or any related table.
    - The database prevents it due to foreign keys in `IAS_ITM_WCODE`, `IAS_ITEM_PRICE_HISTORY`, etc.
    - The only valid and safe way to 'delete' an item is to set `INACTIVE = 1`.
+
+## Onyx Reverse Engineering Findings
+A comprehensive document of all database integration discoveries, errors (like `ITM_UNT`, `EXPIRE_DATE`, `BILL_AMT`, offline mode constraints), and solutions is actively maintained at `troubleshooting/onyx_reverse_engineering_findings.md`. **Always consult this file before making Onyx API changes.**

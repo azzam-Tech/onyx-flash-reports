@@ -74,6 +74,7 @@ def run_perf_aging_fifo(rpt, args):
                     if dtype in (5, 15):
                         byc[str(ccode)]['returns'].append({'date': d, 'amt': cr, 'doc_no': doc_no, 'doc_ser': doc_ser, 'linked_inv': None, 'dtype': dtype, 'jvtype': jvtype, 'acode': acode})
                     else:
+                        valid_cr = 0.0
                         if not is_dynamic:
                             valid_cr = cr
                         elif dtype == 2 and inc_rcpt:
@@ -274,6 +275,7 @@ def run_perf_aging_analytical(rpt, args):
                     if dtype in (5, 15):
                         byc[str(ccode)]['returns'].append({'date': d, 'amt': cr, 'doc_no': doc_no, 'doc_ser': doc_ser, 'linked_inv': None, 'dtype': dtype, 'jvtype': jvtype, 'acode': acode})
                     else:
+                        valid_cr = 0.0
                         if dtype == 2 and inc_rcpt:
                             valid_cr = cr
                         elif dtype == 1 and jvtype == 2 and inc_net:

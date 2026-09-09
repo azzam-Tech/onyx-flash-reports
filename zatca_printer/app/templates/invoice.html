@@ -671,6 +671,7 @@
                     i_name: currentSelectedItem.i_name,
                     qty: qty,
                     price: price,
+                    itm_unt: currentSelectedItem.itm_unt,
                     disc_pct: disc_pct,
                     disc_amt: disc_amt
                 });
@@ -767,7 +768,28 @@
             };
 
             console.log("Submitting payload:", payload);
-            alert("تم تجميع البيانات بنجاح! نحن الآن بانتظار المرحلة الرابعة (الحقن في أوراكل).");
+            
+            try {
+                const response = await fetch('/api/invoice', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert("نجاح! تم إرسال الفاتورة.\nنتيجة أونكس: " + result.message);
+                    // location.href = '/dashboard';
+                } else {
+                    alert("خطأ: " + result.message);
+                }
+            } catch (e) {
+                alert("حدث خطأ أثناء الإتصال بالخادم.");
+                console.error(e);
+            }
             
             btn.innerText = 'حفظ واعتماد الفاتورة';
             btn.disabled = false;
