@@ -188,7 +188,7 @@ def get_collection_adopted_sql():
       base AS (
         SELECT grp_code,
                SUM(rcpt) rcpt, SUM(net_jrn) net_jrn, SUM(cash_sales) cash_sales, SUM(inv_disc) inv_disc, SUM(cash_ret) cash_ret, SUM(ext_notice) ext_notice, SUM(rcpt_unknown) rcpt_unknown,
-               (CASE WHEN :inc_rcpt='1' THEN (SUM(rcpt) + SUM(rcpt_unknown)) ELSE 0 END
+               (CASE WHEN :inc_rcpt='1' THEN SUM(rcpt) ELSE 0 END
               + CASE WHEN :inc_net='1'  THEN SUM(net_jrn) ELSE 0 END
               + CASE WHEN :inc_cash='1' THEN SUM(cash_sales) ELSE 0 END
               - CASE WHEN :inc_ret='1'  THEN SUM(cash_ret) ELSE 0 END

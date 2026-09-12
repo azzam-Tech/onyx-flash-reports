@@ -43,12 +43,14 @@ from routes.users import users_bp
 from routes.settings import settings_bp
 from routes.reports import reports_bp
 from routes.dashboard import dashboard_bp
+from routes.customers_api import customers_api_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(reports_bp)
 app.register_blueprint(dashboard_bp)
+app.register_blueprint(customers_api_bp)
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

@@ -6,6 +6,7 @@ import { Dashboard } from "./components/Dashboard"
 import { UsersManagement } from "./components/UsersManagement"
 import { SettingsManagement } from "./components/SettingsManagement"
 import { Login } from "./components/Login"
+import { CustomersTab } from "./components/CustomersTab"
 
 export interface Tab {
   id: string
@@ -57,6 +58,13 @@ export default function App() {
             }
             finalTabs.unshift(dashboardTab)
           }
+
+          const customersTab: Tab = {
+            id: 'customers',
+            title: 'العملاء',
+            reports: [{ id: 'data', title: 'بيانات ومستندات العملاء' }]
+          }
+          finalTabs.push(customersTab)
           
           setTabs(finalTabs)
           if (finalTabs.length > 0) {
@@ -117,6 +125,7 @@ export default function App() {
           {hasDashboard && <Route path="/dashboard/main" element={<Dashboard />} />}
           <Route path="/tools/users" element={<UsersManagement />} />
           <Route path="/tools/settings" element={<SettingsManagement />} />
+          <Route path="/customers/data" element={<CustomersTab />} />
           <Route path="/:tabId/:reportId" element={<ReportViewerWrapper tabs={tabs} />} />
           <Route path="*" element={<Navigate to={defaultPath} replace />} />
         </Routes>
