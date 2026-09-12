@@ -76,5 +76,37 @@
       "summary/true_income_statement",
       "summary/collection_adopted"
     ]
+  },
+  "bashar": {
+    "password": "1999",
+    "role": "user",
+    "allowed_tabs": [],
+    "allowed_reports": [
+      "summary/item_prices_and_stock",
+      "summary/aging",
+      "summary/workflow_summary",
+      "summary/critical_debts",
+      "summary/statement_analytic",
+      "summary/perf_aging_dynamic_analytical",
+      "summary/perf_aging_dynamic",
+      "summary/collection_adopted"
+    ]
+  },
+  "mohamed ali": {
+    "password": "1998",
+    "role": "user",
+    "allowed_tabs": [
+      "summary"
+    ],
+    "allowed_reports": [
+      "summary/item_prices_and_stock",
+      "summary/workflow_summary",
+      "summary/aging",
+      "summary/critical_debts",
+      "summary/statement_analytic",
+      "summary/perf_aging_dynamic_analytical",
+      "summary/perf_aging_dynamic",
+      "summary/collection_adopted"
+    ]
   }
 }
