@@ -14,11 +14,12 @@ def login():
     if request.method == 'POST':
         rep_code = request.form.get('rep_code')
         password = request.form.get('password')
+        target_year = request.form.get('target_year')
         
         try:
             with get_conn() as con:
                 with con.cursor() as cur:
-                    cur.execute("SELECT U_ID, REP_CODE, U_A_NAME, PASSWORD FROM IAS20261.USER_R WHERE REP_CODE = :1", [rep_code])
+                    cur.execute("SELECT U_ID, REP_CODE, U_A_NAME, PASSWORD FROM USER_R WHERE REP_CODE = :1", [rep_code])
                     row = cur.fetchone()
                     if row:
                         u_id, r_code, u_name, encrypted_pwd = row
@@ -28,10 +29,11 @@ def login():
                             user = User(id=u_id, rep_code=r_code, name=u_name)
                             login_user(user)
                             session['rep_code'] = r_code
+                            session['target_year'] = target_year
                             
                             # Capture the latest terminal (MAC) address used by this rep
                             try:
-                                cur.execute("SELECT AD_TRMNL_NM FROM IAS20261.DTS_CST_VST_MST WHERE REP_CODE = :1 AND AD_TRMNL_NM IS NOT NULL ORDER BY VST_NO DESC FETCH FIRST 1 ROWS ONLY", [r_code])
+                                cur.execute("SELECT AD_TRMNL_NM FROM DTS_CST_VST_MST WHERE REP_CODE = :1 AND AD_TRMNL_NM IS NOT NULL ORDER BY VST_NO DESC FETCH FIRST 1 ROWS ONLY", [r_code])
                                 term_row = cur.fetchone()
                                 if term_row and term_row[0]:
                                     session['trmnl_nm'] = term_row[0]

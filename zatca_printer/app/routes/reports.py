@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session, g
 from flask_login import login_required, current_user
 from app.database import get_conn
 from app.utils.helpers import timed_cache, generate_zatca_qr_base64
@@ -29,7 +29,7 @@ def get_salesman_metrics(rep_code):
         sql = """
         WITH sales_base AS (
             SELECT SUM(NVL(BILL_AMT,0) - NVL(DISC_AMT_MST,0) + NVL(VAT_AMT,0)) as sales
-            FROM IAS20261.IAS_BILL_MST
+            FROM IAS_BILL_MST
             WHERE BILL_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') 
               AND BILL_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
               AND BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8)
@@ -37,7 +37,7 @@ def get_salesman_metrics(rep_code):
         ),
         returns_base AS (
             SELECT SUM(NVL(BILL_AMT,0) - NVL(DISC_AMT_MST,0) + NVL(VAT_AMT,0)) as returns
-            FROM IAS20261.IAS_RT_BILL_MST
+            FROM IAS_RT_BILL_MST
             WHERE RT_BILL_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') 
               AND RT_BILL_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
               AND RT_BILL_DOC_TYPE IN (1,2,3,4,5,6,7,8)
@@ -45,7 +45,7 @@ def get_salesman_metrics(rep_code):
         ),
         ext_disc_base AS (
             SELECT SUM(NVL(p.CR_AMT,0)) as ext_disc
-            FROM IAS20261.IAS_POST_DTL p
+            FROM IAS_POST_DTL p
             WHERE p.DOC_TYPE = 15 AND NVL(p.CR_AMT,0) > 0 AND NVL(p.DOC_POST,0) = 1
               AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') 
               AND p.DOC_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
@@ -53,26 +53,26 @@ def get_salesman_metrics(rep_code):
         ),
         col_trans AS (
           SELECT p.CR_AMT as rcpt, 0 as net_jrn, 0 as cash_sales, 0 as cash_ret
-          FROM IAS20261.IAS_POST_DTL p
+          FROM IAS_POST_DTL p
           WHERE NVL(p.DOC_POST,0)=1 AND p.DOC_TYPE=2 AND NVL(p.CR_AMT,0)>0 AND p.C_CODE IS NOT NULL
             AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND p.DOC_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
             AND TO_CHAR(p.CC_CODE) = TRIM(:rep_code)
           UNION ALL
           SELECT 0, p.CR_AMT, 0, 0
-          FROM IAS20261.IAS_POST_DTL p
+          FROM IAS_POST_DTL p
           WHERE NVL(p.DOC_POST,0)=1 AND p.DOC_TYPE=1 AND p.JV_TYPE=2 AND NVL(p.CR_AMT,0)>0 AND p.C_CODE IS NOT NULL
             AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND p.DOC_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
             AND TO_CHAR(p.CC_CODE) = TRIM(:rep_code)
           UNION ALL
           SELECT 0, 0, NVL(p.DR_AMT,0), 0
-          FROM IAS20261.IAS_BILL_MST b
-          JOIN IAS20261.IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%'
+          FROM IAS_BILL_MST b
+          JOIN IAS_POST_DTL p ON p.DOC_NO = b.BILL_NO AND p.DOC_SER = b.BILL_SER AND p.DOC_TYPE = 4 AND TO_CHAR(p.A_CODE) LIKE '111%'
           WHERE b.BILL_DOC_TYPE=1 AND NVL(p.DOC_POST,0)=1 AND p.DR_AMT > 0
             AND b.BILL_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND b.BILL_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
             AND TO_CHAR(b.CC_CODE) = TRIM(:rep_code)
           UNION ALL
           SELECT 0, 0, 0, p.CR_AMT
-          FROM IAS20261.IAS_POST_DTL p
+          FROM IAS_POST_DTL p
           WHERE NVL(p.DOC_POST,0)=1 AND p.DOC_TYPE=5 AND p.A_CODE LIKE '111%' AND NVL(p.CR_AMT,0)>0
             AND p.DOC_DATE >= TO_DATE(:date_from,'YYYY-MM-DD') AND p.DOC_DATE <= TO_DATE(:date_to,'YYYY-MM-DD')
             AND TO_CHAR(p.CC_CODE) = TRIM(:rep_code)
@@ -99,7 +99,7 @@ def get_salesman_metrics(rep_code):
                 # Employee / Salesman Debt
                 emp_debt_sql = """
                     SELECT SUM(NVL(p.CR_AMT, 0) - NVL(p.DR_AMT, 0))
-                    FROM IAS20261.IAS_POST_DTL p
+                    FROM IAS_POST_DTL p
                     WHERE (p.A_CODE LIKE '11402%' OR p.A_CODE LIKE '321%' OR p.A_CODE LIKE '324%')
                       AND TO_CHAR(p.AC_CODE_DTL) = :emp_code
                       AND NVL(p.DOC_POST, 0) = 1
@@ -113,7 +113,7 @@ def get_salesman_metrics(rep_code):
                     WITH cust_bals AS (
                         SELECT TO_CHAR(p.C_CODE) as C_CODE, 
                                SUM(NVL(p.DR_AMT,0) - NVL(p.CR_AMT,0)) as net_bal
-                        FROM IAS20261.IAS_POST_DTL p
+                        FROM IAS_POST_DTL p
                         WHERE NVL(p.DOC_POST,0) = 1
                           AND p.C_CODE IS NOT NULL
                         GROUP BY TO_CHAR(p.C_CODE)
@@ -121,13 +121,13 @@ def get_salesman_metrics(rep_code):
                     vendor_bals AS (
                         SELECT TO_CHAR(p.V_CODE) as V_CODE, 
                                SUM(NVL(p.CR_AMT,0) - NVL(p.DR_AMT,0)) as v_net_bal
-                        FROM IAS20261.IAS_POST_DTL p
+                        FROM IAS_POST_DTL p
                         WHERE NVL(p.DOC_POST,0) = 1
                           AND p.V_CODE IS NOT NULL
                         GROUP BY TO_CHAR(p.V_CODE)
                     )
                     SELECT cb.C_CODE, cb.net_bal, NVL(vb.v_net_bal, 0)
-                    FROM IAS20261.CUSTOMER c
+                    FROM CUSTOMER c
                     JOIN cust_bals cb ON cb.C_CODE = TO_CHAR(c.C_CODE)
                     LEFT JOIN vendor_bals vb ON vb.V_CODE = TO_CHAR(c.C_VENDOR)
                     WHERE TRIM(c.REP_CODE) = TRIM(:rep_code)
@@ -190,7 +190,7 @@ def customers_list():
             with con.cursor() as cur:
                 cur.execute("""
                     SELECT C_CODE, C_A_NAME, NVL(C_MOBILE, NVL(C_PHONE, '')) 
-                    FROM IAS20261.CUSTOMER 
+                    FROM CUSTOMER 
                     WHERE TRIM(REP_CODE) = TRIM(:1)
                       AND NVL(INACTIVE, 0) = 0
                       AND NVL(BLK_LST, 0) = 0
@@ -211,7 +211,7 @@ def customers_list():
 def settings():
     return render_template('settings.html')
 
-@reports_bp.route('/customer/<path:c_code>')
+@reports_bp.route('/customer_invoices/<path:c_code>')
 @login_required
 def customer_invoices(c_code):
     invoices = []
@@ -219,7 +219,7 @@ def customer_invoices(c_code):
     try:
         with get_conn() as con:
             with con.cursor() as cur:
-                cur.execute("SELECT C_A_NAME FROM IAS20261.CUSTOMER WHERE C_CODE = :1 AND TRIM(REP_CODE) = TRIM(:2)", [c_code, current_user.rep_code])
+                cur.execute("SELECT C_A_NAME FROM CUSTOMER WHERE C_CODE = :1 AND TRIM(REP_CODE) = TRIM(:2)", [c_code, current_user.rep_code])
                 row = cur.fetchone()
                 if not row:
                     flash('هذا العميل غير موجود أو غير مرتبط بك.')
@@ -229,7 +229,7 @@ def customer_invoices(c_code):
                 
                 cur.execute("""
                     SELECT BILL_NO, TO_CHAR(BILL_DATE, 'YYYY-MM-DD'), BILL_AMT + NVL(VAT_AMT, 0) as TOT_AMT, BILL_DOC_TYPE
-                    FROM IAS20261.IAS_BILL_MST 
+                    FROM IAS_BILL_MST 
                     WHERE C_CODE = :1 
                     ORDER BY BILL_DATE DESC
                     FETCH FIRST 50 ROWS ONLY
@@ -266,9 +266,9 @@ def customer_info(c_code):
                         c.C_TAX_CODE,
                         c.CR_NO,
                         c.CSTMR_IDNTFR
-                    FROM IAS20261.CUSTOMER c
-                    LEFT JOIN IAS20261.CITIES ci ON c.CITY_NO = ci.CITY_NO AND c.CNTRY_NO = ci.CNTRY_NO AND c.PROV_NO = ci.PROV_NO
-                    LEFT JOIN IAS20261.CNTRY co ON c.CNTRY_NO = co.CNTRY_NO
+                    FROM CUSTOMER c
+                    LEFT JOIN CITIES ci ON c.CITY_NO = ci.CITY_NO AND c.CNTRY_NO = ci.CNTRY_NO AND c.PROV_NO = ci.PROV_NO
+                    LEFT JOIN CNTRY co ON c.CNTRY_NO = co.CNTRY_NO
                     WHERE c.C_CODE = :1 AND TRIM(c.REP_CODE) = TRIM(:2)
                 """, [c_code, current_user.rep_code])
                 
@@ -307,11 +307,11 @@ def inventory():
                 sql = """
                     SELECT m.I_CODE, m.I_NAME,
                            NVL(v.AVAIL_QTY, 0) AS AVAIL_QTY
-                    FROM IAS20261.IAS_ITM_MST m
+                    FROM IAS_ITM_MST m
                     JOIN (
                         SELECT I_CODE, SUM(I_QTY * IN_OUT) AS AVAIL_QTY
-                        FROM IAS20261.ITEM_MOVEMENT
-                        WHERE W_CODE = (SELECT W_CODE FROM IAS20261.SALES_MAN WHERE TRIM(REPRS_CODE) = TRIM(:1))
+                        FROM ITEM_MOVEMENT
+                        WHERE W_CODE = (SELECT W_CODE FROM SALES_MAN WHERE TRIM(REPRS_CODE) = TRIM(:1))
                         GROUP BY I_CODE
                     ) v ON m.I_CODE = v.I_CODE
                     WHERE NVL(v.AVAIL_QTY, 0) > 0
@@ -336,18 +336,19 @@ def inventory():
 @login_required
 def item_prices():
     try:
-        sql = """
+        target_year = getattr(g, 'target_year', '2026')
+        sql = f"""
         WITH item_stats AS (
             SELECT 
                 I_CODE, 
                 SUM(NVL(IN_OUT, 0) * NVL(I_QTY, 0)) as net_qty, 
-                SUM(CASE WHEN EXTRACT(YEAR FROM I_DATE) = 2026 THEN 1 ELSE 0 END) as mov_2026_count,
+                SUM(CASE WHEN EXTRACT(YEAR FROM I_DATE) = {target_year} THEN 1 ELSE 0 END) as mov_year_count,
                 SUM(CASE WHEN W_CODE IN ('103','105','108') THEN NVL(IN_OUT, 0) * NVL(I_QTY, 0) ELSE 0 END) as qty_riyadh,
                 SUM(CASE WHEN W_CODE = '118' THEN NVL(IN_OUT, 0) * NVL(I_QTY, 0) ELSE 0 END) as qty_south,
                 SUM(CASE WHEN W_CODE = '122' THEN NVL(IN_OUT, 0) * NVL(I_QTY, 0) ELSE 0 END) as qty_north,
                 SUM(CASE WHEN W_CODE = '121' THEN NVL(IN_OUT, 0) * NVL(I_QTY, 0) ELSE 0 END) as qty_jeddah,
                 SUM(CASE WHEN W_CODE = '119' THEN NVL(IN_OUT, 0) * NVL(I_QTY, 0) ELSE 0 END) as qty_dammam
-            FROM IAS20261.ITEM_MOVEMENT
+            FROM ITEM_MOVEMENT
             GROUP BY I_CODE
         ),
         item_groups AS (
@@ -358,15 +359,15 @@ def item_prices():
                 MAX(mg.MNG_A_NAME) AS sub_main_grp,
                 MAX(sg.SUBG_A_NAME) AS sub_grp,
                 MAX(dg.DETAIL_A_NAME) AS dtl_grp
-            FROM IAS20261.IAS_ITM_MST m
-            LEFT JOIN IAS20261.GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
-            LEFT JOIN IAS20261.IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
-            LEFT JOIN IAS20261.IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
+            FROM IAS_ITM_MST m
+            LEFT JOIN GROUP_DETAILS gd ON gd.G_CODE = m.G_CODE
+            LEFT JOIN IAS_MAINSUB_GRP_DTL mg ON mg.MNG_CODE = m.MNG_CODE AND mg.G_CODE = m.G_CODE
+            LEFT JOIN IAS_SUB_GRP_DTL sg ON sg.SUBG_CODE = m.SUBG_CODE
+            LEFT JOIN IAS_DETAIL_GROUP dg ON dg.DETAIL_NO = m.DETAIL_NO
             JOIN item_stats s ON m.I_CODE = s.I_CODE
             WHERE NVL(m.INACTIVE, 0) = 0
-              AND (s.net_qty > 0 OR s.mov_2026_count > 0)
-              AND EXISTS (SELECT 1 FROM IAS20261.IAS_ITEM_PRICE p WHERE p.I_CODE = m.I_CODE)
+              AND (s.net_qty > 0 OR s.mov_year_count > 0)
+              AND EXISTS (SELECT 1 FROM IAS_ITEM_PRICE p WHERE p.I_CODE = m.I_CODE)
             GROUP BY m.I_CODE
         )
         SELECT 
@@ -376,8 +377,8 @@ def item_prices():
             ig.dtl_grp AS "التفصيلية",
             ig.I_CODE AS "رقم الصنف",
             ig.I_NAME AS "اسم الصنف",
-            NVL((SELECT MAX(P.I_PRICE) FROM IAS20261.IAS_ITEM_PRICE P WHERE P.I_CODE = ig.I_CODE AND P.LEV_NO = 1), 0) AS "التكلفة علينا",
-            NVL((SELECT MAX(P.I_PRICE) FROM IAS20261.IAS_ITEM_PRICE P WHERE P.I_CODE = ig.I_CODE AND P.LEV_NO = 2), 0) AS "الحد الادنى",
+            NVL((SELECT MAX(P.I_PRICE) FROM IAS_ITEM_PRICE P WHERE P.I_CODE = ig.I_CODE AND P.LEV_NO = 1), 0) AS "التكلفة علينا",
+            NVL((SELECT MAX(P.I_PRICE) FROM IAS_ITEM_PRICE P WHERE P.I_CODE = ig.I_CODE AND P.LEV_NO = 2), 0) AS "الحد الادنى",
             NVL(s.qty_riyadh, 0) AS "الرياض",
             NVL(s.qty_south, 0) AS "الجنوب",
             NVL(s.qty_north, 0) AS "الشمال",
@@ -408,9 +409,9 @@ def print_last_invoice():
             with con.cursor() as cur:
                 cur.execute("""
                     SELECT m.BILL_NO
-                    FROM IAS20261.IAS_BILL_MST m
+                    FROM IAS_BILL_MST m
                     WHERE m.C_CODE IN (
-                        SELECT C_CODE FROM IAS20261.CUSTOMER WHERE TRIM(REP_CODE) = TRIM(:1)
+                        SELECT C_CODE FROM CUSTOMER WHERE TRIM(REP_CODE) = TRIM(:1)
                     )
                     ORDER BY m.BILL_DATE DESC, m.AD_DATE DESC
                     FETCH FIRST 1 ROWS ONLY
@@ -465,11 +466,11 @@ def get_invoice(bill_no):
                         ci.CITY_A_NAME,
                         co.CNTRY_A_NAME,
                         TO_CHAR(NVL(m.BILL_DUE_DATE, m.BILL_DATE), 'DD/MM/YYYY')
-                    FROM IAS20261.IAS_BILL_MST m
-                    LEFT JOIN IAS20261.CUSTOMER c ON c.C_CODE = m.C_CODE
-                    LEFT JOIN IAS20261.IAS_CASH_CUSTMR cash_c ON m.C_CODE_CSH = cash_c.CUST_CODE
-                    LEFT JOIN IAS20261.CITIES ci ON NVL(c.CITY_NO, cash_c.CITY_NO) = ci.CITY_NO AND NVL(c.CNTRY_NO, cash_c.CNTRY_NO) = ci.CNTRY_NO AND NVL(c.PROV_NO, cash_c.PROV_NO) = ci.PROV_NO
-                    LEFT JOIN IAS20261.CNTRY co ON NVL(c.CNTRY_NO, cash_c.CNTRY_NO) = co.CNTRY_NO
+                    FROM IAS_BILL_MST m
+                    LEFT JOIN CUSTOMER c ON c.C_CODE = m.C_CODE
+                    LEFT JOIN IAS_CASH_CUSTMR cash_c ON m.C_CODE_CSH = cash_c.CUST_CODE
+                    LEFT JOIN CITIES ci ON NVL(c.CITY_NO, cash_c.CITY_NO) = ci.CITY_NO AND NVL(c.CNTRY_NO, cash_c.CNTRY_NO) = ci.CNTRY_NO AND NVL(c.PROV_NO, cash_c.PROV_NO) = ci.PROV_NO
+                    LEFT JOIN CNTRY co ON NVL(c.CNTRY_NO, cash_c.CNTRY_NO) = co.CNTRY_NO
                     WHERE m.BILL_NO = :1 AND TO_CHAR(m.CC_CODE) = TRIM(:2)
                 """, [bill_no, current_user.rep_code])
                 
@@ -492,7 +493,7 @@ def get_invoice(bill_no):
                         BRN_TAX_CODE,
                         RC_CODE,
                         BRN_IDNTFR
-                    FROM IAS20261.S_BRN 
+                    FROM S_BRN 
                     WHERE BRN_NO = 1
                 """)
                 s_row = cur.fetchone()
@@ -517,8 +518,8 @@ def get_invoice(bill_no):
                         NVL(d.DIS_AMT, 0),
                         NVL(d.VAT_AMT, 0),
                         (d.I_QTY * (d.I_PRICE - NVL(d.DIS_AMT, 0) + NVL(d.VAT_AMT, 0))) as TOT_AMT
-                    FROM IAS20261.IAS_BILL_DTL d
-                    LEFT JOIN IAS20261.IAS_ITM_MST m ON d.I_CODE = m.I_CODE
+                    FROM IAS_BILL_DTL d
+                    LEFT JOIN IAS_ITM_MST m ON d.I_CODE = m.I_CODE
                     WHERE d.BILL_NO = :1
                 """, [bill_no])
                 
@@ -626,7 +627,7 @@ def invoice_screen(c_code):
     try:
         with get_conn(readonly=True) as con:
             with con.cursor() as cur:
-                cur.execute("SELECT C_A_NAME FROM IAS20261.CUSTOMER WHERE C_CODE = :1", [c_code])
+                cur.execute("SELECT C_A_NAME FROM CUSTOMER WHERE C_CODE = :1", [c_code])
                 row = cur.fetchone()
                 c_name = row[0] if row else "عميل غير معروف"
                 try:
@@ -659,7 +660,7 @@ def api_visit_start():
         with get_conn(readonly=False) as con:
             with con.cursor() as cur:
                 # 1. هل توجد زيارة مفتوحة مسبقاً لنفس العميل ونفس المندوب؟
-                cur.execute("SELECT VST_NO FROM IAS20261.DTS_CST_VST_MST WHERE TRIM(C_CODE) = TRIM(:1) AND VST_STS = 1 AND TRIM(REP_CODE) = TRIM(:2)", [c_code, rep_code])
+                cur.execute("SELECT VST_NO FROM DTS_CST_VST_MST WHERE TRIM(C_CODE) = TRIM(:1) AND VST_STS = 1 AND TRIM(REP_CODE) = TRIM(:2)", [c_code, rep_code])
                 active = cur.fetchone()
                 
                 if active:
@@ -667,10 +668,10 @@ def api_visit_start():
                     return jsonify({"status": "success", "message": "Visit already active.", "vst_no": active[0]})
 
                 # 2. جلب رقم تسلسلي جديد للزيارة
-                cur.execute("SELECT NVL(MAX(VST_NO), 0) + 1 FROM IAS20261.DTS_CST_VST_MST")
+                cur.execute("SELECT NVL(MAX(VST_NO), 0) + 1 FROM DTS_CST_VST_MST")
                 new_vst_no = cur.fetchone()[0]
                 
-                cur.execute("SELECT NVL(MAX(VST_SRL), 0) + 1 FROM IAS20261.DTS_CST_VST_MST")
+                cur.execute("SELECT NVL(MAX(VST_SRL), 0) + 1 FROM DTS_CST_VST_MST")
                 new_vst_srl = cur.fetchone()[0]
 
                 trmnl_nm = session.get('trmnl_nm', 'WEB_PORTAL')
@@ -680,7 +681,7 @@ def api_visit_start():
                 doc_ser = f"1{datetime.now().strftime('%Y%m%d%H%M%S')}{rep_code.strip()}"
 
                 sql = """
-                    INSERT INTO IAS20261.DTS_CST_VST_MST 
+                    INSERT INTO DTS_CST_VST_MST 
                     (
                         VST_NO, VST_SRL, C_CODE, REP_CODE, 
                         ARIVL_TM, LVD_TM, VST_STS, VST_DATE, 
@@ -712,7 +713,7 @@ def api_visit_end():
         with get_conn(readonly=False) as con:
             with con.cursor() as cur:
                 sql = """
-                    UPDATE IAS20261.DTS_CST_VST_MST 
+                    UPDATE DTS_CST_VST_MST 
                     SET LVD_TM = SYSDATE, 
                         VST_STS = 0, 
                         VST_NOTES = :1
@@ -743,12 +744,12 @@ def api_items():
                            NVL(p2.I_PRICE, 0) AS MIN_PRICE,
                            NVL(p2.ITM_UNT, 1) AS ITM_UNT,
                            NVL(v.AVAIL_QTY, 0) AS AVAIL_QTY
-                    FROM IAS20261.IAS_ITM_MST m
-                    LEFT JOIN IAS20261.IAS_ITEM_PRICE p2 ON m.I_CODE = p2.I_CODE AND p2.LEV_NO = 2
+                    FROM IAS_ITM_MST m
+                    LEFT JOIN IAS_ITEM_PRICE p2 ON m.I_CODE = p2.I_CODE AND p2.LEV_NO = 2
                     LEFT JOIN (
                         SELECT I_CODE, SUM(I_QTY * IN_OUT) AS AVAIL_QTY
-                        FROM IAS20261.ITEM_MOVEMENT
-                        WHERE W_CODE = (SELECT W_CODE FROM IAS20261.SALES_MAN WHERE TRIM(REPRS_CODE) = TRIM(:1))
+                        FROM ITEM_MOVEMENT
+                        WHERE W_CODE = (SELECT W_CODE FROM SALES_MAN WHERE TRIM(REPRS_CODE) = TRIM(:1))
                         GROUP BY I_CODE
                     ) v ON m.I_CODE = v.I_CODE
                     WHERE NVL(v.AVAIL_QTY, 0) > 0
@@ -778,7 +779,7 @@ def api_customer_credit(c_code):
         with get_conn(readonly=True) as con:
             with con.cursor() as cur:
                 # 1. Fetch limit from CUSTOMER table
-                cur.execute("SELECT NVL(CST_CR_LMT_LOCAL, 0) FROM IAS20261.CUSTOMER WHERE C_CODE = :1", [c_code])
+                cur.execute("SELECT NVL(CST_CR_LMT_LOCAL, 0) FROM CUSTOMER WHERE C_CODE = :1", [c_code])
                 row = cur.fetchone()
                 if row:
                     limit = float(row[0])
@@ -786,7 +787,7 @@ def api_customer_credit(c_code):
                 # 2. Fetch actual balance (Debit - Credit) from GL
                 cur.execute("""
                     SELECT NVL(SUM(NVL(DR_AMT,0) - NVL(CR_AMT,0)), 0)
-                    FROM IAS20261.IAS_POST_DTL
+                    FROM IAS_POST_DTL
                     WHERE C_CODE = :1 AND NVL(DOC_POST,0) = 1
                 """, [c_code])
                 bal_row = cur.fetchone()
@@ -845,7 +846,7 @@ def api_invoice():
         # Offline bills must generate their own DOC_NO
         with get_conn(readonly=True) as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT NVL(MAX(BILL_NO), 0) FROM IAS20261.IAS_BILL_MST WHERE W_CODE = :1", [rep_code])
+                cur.execute("SELECT NVL(MAX(BILL_NO), 0) FROM IAS_BILL_MST WHERE W_CODE = :1", [rep_code])
                 max_bill_no = cur.fetchone()[0]
         if max_bill_no == 0:
             doc_no = int(f"263{rep_code}00001")

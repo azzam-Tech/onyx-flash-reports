@@ -1,7 +1,7 @@
 import os
 import json
 from datetime import timedelta
-from flask import Flask, session
+from flask import Flask, session, g
 from flask_login import LoginManager, UserMixin
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
@@ -25,7 +25,7 @@ def load_user(user_id):
     try:
         with get_conn() as con:
             with con.cursor() as cur:
-                cur.execute("SELECT U_ID, REP_CODE, U_A_NAME FROM IAS20261.USER_R WHERE U_ID = :1", [user_id])
+                cur.execute("SELECT U_ID, REP_CODE, U_A_NAME FROM USER_R WHERE U_ID = :1", [user_id])
                 row = cur.fetchone()
                 if row:
                     return User(id=row[0], rep_code=row[1], name=row[2])
@@ -53,6 +53,7 @@ def create_app():
     @app.before_request
     def make_session_permanent():
         session.permanent = True
+        g.target_year = session.get('target_year')
 
     # I18N Engine
     LOCALES_DIR = os.path.join(os.path.dirname(__file__), 'locales')
