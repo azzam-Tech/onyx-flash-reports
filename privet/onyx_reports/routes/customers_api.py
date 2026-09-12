@@ -13,10 +13,33 @@ BASE_STORAGE = os.path.join(ROOT_DIR, 'customers_data')
 if not os.path.exists(BASE_STORAGE):
     os.makedirs(BASE_STORAGE)
 
+@customers_api_bp.route('/groups', methods=['GET'])
+def get_customer_groups():
+    try:
+        groups = []
+        with get_conn() as con:
+            with con.cursor() as cur:
+                query = """
+                    SELECT C_GROUP_CODE, C_GROUP_A_NAME 
+                    FROM IAS20261.CUSTOMER_GROUP 
+                    ORDER BY C_GROUP_CODE
+                """
+                cur.execute(query)
+                for row in cur.fetchall():
+                    groups.append({
+                        "code": row[0],
+                        "name": row[1]
+                    })
+        return jsonify({"status": "success", "data": groups})
+    except Exception as e:
+        print("Error fetching customer groups:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @customers_api_bp.route('/', methods=['GET'])
 def get_customers():
     try:
         net_supplier = request.args.get('net_supplier', 'false').lower() == 'true'
+        group_code = request.args.get('group_code', 'all')
         customers = []
         with get_conn() as con:
             with con.cursor() as cur:
@@ -67,6 +90,8 @@ def get_customers():
                         LEFT JOIN CustBal cb ON c.C_CODE = cb.C_CODE
                         LEFT JOIN VendBal vb ON TO_CHAR(c.C_CODE) = vb.C_V_CODE
                     """
+                    if group_code != 'all':
+                        query += f" WHERE c.C_GROUP_CODE = '{group_code}'"
                 else:
                     query = """
                         WITH CustBal AS (
@@ -106,6 +131,9 @@ def get_customers():
                         LEFT JOIN IAS20261.CNTRY co ON c.CNTRY_NO = co.CNTRY_NO
                         LEFT JOIN CustBal cb ON c.C_CODE = cb.C_CODE
                     """
+                    if group_code != 'all':
+                        query += f" WHERE c.C_GROUP_CODE = '{group_code}'"
+                        
                 cur.execute(query)
                 for row in cur.fetchall():
                     customers.append({

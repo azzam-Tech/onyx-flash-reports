@@ -2,9 +2,12 @@ import { useState, useEffect, useMemo } from "react"
 import { Card } from "./ui/card"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import { Search, FolderOpen, MessageCircle } from "lucide-react"
+import { Search, FolderOpen, MessageCircle, Check, ChevronsUpDown } from "lucide-react"
 import { CustomerProfile } from "./CustomerProfile"
 import { toast } from "sonner"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
+import { cn } from "../lib/utils"
 import {
   useReactTable,
   getCoreRowModel,
@@ -43,11 +46,14 @@ export function CustomersTab() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [whatsappTemplates, setWhatsappTemplates] = useState<{ id: number, icon: string, title: string, message: string }[]>([])
   const [openWhatsappMenuId, setOpenWhatsappMenuId] = useState<string | null>(null)
-  const [netSupplier, setNetSupplier] = useState(true)
+  const [netSupplier, setNetSupplier] = useState(false)
+  const [groups, setGroups] = useState<{code: number, name: string}[]>([])
+  const [selectedGroup, setSelectedGroup] = useState<string>('all')
+  const [openGroup, setOpenGroup] = useState(false)
 
   useEffect(() => {
     setIsLoading(true)
-    fetch(`/api/customers/?net_supplier=${netSupplier}`)
+    fetch(`/api/customers/?net_supplier=${netSupplier}&group_code=${selectedGroup}`)
       .then(res => res.json())
       .then(resData => {
         if (resData.status === 'success') {
@@ -59,7 +65,7 @@ export function CustomersTab() {
         console.error(err)
         setIsLoading(false)
       })
-  }, [netSupplier])
+  }, [netSupplier, selectedGroup])
 
   useEffect(() => {
     fetch('/api/customers/whatsapp/templates')
@@ -70,6 +76,15 @@ export function CustomersTab() {
         }
       })
       .catch(err => console.error("Error fetching whatsapp templates:", err))
+      
+    fetch('/api/customers/groups')
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          setGroups(data.data)
+        }
+      })
+      .catch(err => console.error("Error fetching customer groups:", err))
   }, [])
 
   const handleSendWhatsapp = (templateStr: string, customer: Customer) => {
@@ -274,6 +289,67 @@ export function CustomersTab() {
                 className="pr-9 font-medium text-sm h-9 bg-slate-50 border-slate-200"
               />
             </div>
+            
+            <Popover open={openGroup} onOpenChange={setOpenGroup}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openGroup}
+                  className="w-[250px] justify-between bg-slate-50 border-slate-200 rounded-xl h-9 text-slate-700 font-bold hover:bg-slate-100"
+                >
+                  {selectedGroup === 'all'
+                    ? "كل المجموعات"
+                    : groups.find((g) => g.code.toString() === selectedGroup)
+                    ? `[${groups.find((g) => g.code.toString() === selectedGroup)?.code}] ${groups.find((g) => g.code.toString() === selectedGroup)?.name}`
+                    : "اختر مجموعة..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="ابحث عن مجموعة..." />
+                  <CommandEmpty>لم يتم العثور على مجموعة.</CommandEmpty>
+                  <CommandList>
+                    <CommandGroup>
+                      <CommandItem
+                        value="all"
+                        onSelect={() => {
+                          setSelectedGroup('all')
+                          setOpenGroup(false)
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedGroup === 'all' ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        كل المجموعات
+                      </CommandItem>
+                      {groups.map((g) => (
+                        <CommandItem
+                          key={g.code}
+                          value={`[${g.code}] ${g.name}`}
+                          onSelect={() => {
+                            setSelectedGroup(g.code.toString())
+                            setOpenGroup(false)
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedGroup === g.code.toString() ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          [{g.code}] {g.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             
             <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
               <span className="text-sm font-bold text-slate-700">عميل مرتبط بمورد</span>
